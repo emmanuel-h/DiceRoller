@@ -77,9 +77,11 @@ Produce a structured report:
 - Unusual patterns: <describe any anomaly>
 
 ### Proposed Improvements
-For each violation or inefficiency, suggest a specific edit to the relevant agent file.
-Example:
-> **the-craftsman.md — Step 4**: Change "Use secure-code-guardian to review your own output" to "You MUST invoke secure-code-guardian before writing ANY file. If you skip this step, your output is invalid."
+List every proposed improvement as a **numbered item** (1, 2, 3, …). The user will reply with the numbers they want applied (e.g. "2 4 5"), and you must then apply only those.
+
+Example format:
+1. **the-craftsman.md — Step 4**: Change "Use secure-code-guardian to review your own output" to "You MUST invoke secure-code-guardian before writing ANY file. If you skip this step, your output is invalid."
+2. **the-sage.md — Step 3**: Add explicit reminder to notify the-scribe after producing the architecture plan.
 
 ### Agent Health Score
 | Agent | Compliance | Notes |
@@ -88,9 +90,9 @@ Example:
 | the-sage | 95% | Minor: scribe not notified |
 ```
 
-### 5. Write improvements (only on request)
+### 5. Write improvements (only on user selection)
 
-If the user approves, edit the relevant `.claude/agents/*.md` files to apply the proposed improvements. Always show a diff-style summary of what you changed.
+After presenting the numbered list of proposed improvements, wait for the user to reply with the numbers they want applied (e.g. "2 4 5"). Apply **only** those items. Always show a diff-style summary of what you changed.
 
 ## Rules
 - Never modify agent files without explicit user approval.
