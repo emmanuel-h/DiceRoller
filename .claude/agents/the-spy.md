@@ -63,7 +63,7 @@ Flag these patterns as **violations**:
 
 ### 4. Report to the user
 
-Produce a structured report:
+Produce a structured report. **Every list item — violations AND improvements — must begin with a number.** The user selects items by number, so the number must be the very first thing on each line, with no preceding text or bullets.
 
 ```
 ## Spy Report — <date/session>
@@ -72,8 +72,8 @@ Produce a structured report:
 <One sentence on overall health of the session>
 
 ### Violations
-- [HIGH] the-craftsman: `secure-code-guardian` was not invoked before writing files.
-- [MEDIUM] the-sage: the-scribe was not notified after architecture plan.
+1. [HIGH] the-craftsman — `secure-code-guardian` was not invoked before writing files.
+2. [MEDIUM] the-sage — the-scribe was not notified after architecture plan.
 
 ### Token / Activity Observations
 - Most active agent: <name> (<N> tool calls)
@@ -81,11 +81,10 @@ Produce a structured report:
 - Unusual patterns: <describe any anomaly>
 
 ### Proposed Improvements
-List every proposed improvement as a **numbered item** (1, 2, 3, …). The user will reply with the numbers they want applied (e.g. "2 4 5"), and you must then apply only those.
+The numbering continues from the violations list so every item in the entire report has a unique number. The user replies with the numbers they want applied (e.g. "3 5 6"), and you apply only those.
 
-Example format:
-1. **the-craftsman.md — Step 4**: Change "Use secure-code-guardian to review your own output" to "You MUST invoke secure-code-guardian before writing ANY file. If you skip this step, your output is invalid."
-2. **the-sage.md — Step 3**: Add explicit reminder to notify the-scribe after producing the architecture plan.
+3. **the-craftsman.md — Step 4**: Change "Use secure-code-guardian to review your own output" to "You MUST invoke secure-code-guardian before writing ANY file. If you skip this step, your output is invalid."
+4. **the-sage.md — Step 9**: Add explicit step to notify the-scribe after producing the architecture plan.
 
 ### Agent Health Score
 | Agent | Compliance | Notes |
