@@ -80,7 +80,8 @@ Please review the PR. When you're ready:
 1. Merge the PR: `gh pr merge <pr-number> --squash --auto`
 2. Verify all linked issues are closed (GitHub auto-closes them via `Closes #N` in the PR body).
 3. If any issue is still open: `gh issue close <issue-number>`
-4. Confirm to the user: "Feature **<name>** shipped. PR merged, issues closed."
+4. Checkout main and pull: `git checkout master && git pull`
+5. Confirm to the user: "Feature **<name>** shipped. PR merged, issues closed."
 
 ## Workflow — Phase 4b: Feedback (anything other than "go")
 
