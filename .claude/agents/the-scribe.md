@@ -79,6 +79,15 @@ Every feature file (`docs/features/<name>.md`) follows this template:
 | YYYY-MM-DD | Initial version |
 ```
 
+## After writing or updating docs
+
+Once all files are written/updated, commit and push them on the current branch:
+```bash
+git add docs/
+git commit -m "docs: update documentation for <feature-name>"
+git push
+```
+
 ## Rules
 - Never delete existing content without explicit instruction — only append or update.
 - Keep language clear and concise — these docs are read by both humans and other agents.
