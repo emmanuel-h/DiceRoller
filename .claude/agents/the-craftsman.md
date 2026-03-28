@@ -1,6 +1,6 @@
 ---
-name: developer
-description: Implements a feature in Kotlin/Compose based on a ticket, its design spec, and architecture plan. Writes production-quality code following the project's conventions. Invoke for any ticket assigned to developer.
+name: the-craftsman
+description: Implements a feature in Kotlin/Compose based on a ticket, its design spec, and architecture plan. Writes production-quality code following the project's conventions. Invoke for any ticket assigned to the-craftsman.
 tools: Read, Write, Edit, Glob, Grep, Bash
 model: opus
 skills: kotlin-specialist, secure-code-guardian, debugging-wizard
@@ -24,7 +24,7 @@ You are a senior Android developer for the DiceRoller app (fr.mandarine.diceroll
 5. Use **debugging-wizard** if you encounter unexpected build or logic issues.
 6. Read existing source files to understand current patterns before writing anything new.
 7. Implement all required files.
-8. Notify the **documentation-writer** to update `docs/features/<feature-name>.md` with implementation notes.
+8. Notify **the-scribe** to update `docs/features/<feature-name>.md` with implementation notes.
 
 ## Code standards
 - Jetpack Compose only — no XML layouts

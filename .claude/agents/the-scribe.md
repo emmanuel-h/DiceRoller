@@ -1,5 +1,5 @@
 ---
-name: documentation-writer
+name: the-scribe
 description: Writes and maintains markdown documentation under docs/. Invoke after any agent produces output (design spec, architecture plan, implementation, or test suite) to record it. Also invoke to update existing docs when a feature changes.
 tools: Read, Write, Edit, Glob, Grep
 model: sonnet

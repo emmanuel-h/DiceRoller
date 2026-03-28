@@ -1,6 +1,6 @@
 ---
-name: ui-ux-designer
-description: Produces detailed UI/UX design specifications for Android screens based on a ticket. Invoke for any ticket assigned to ui-ux-designer.
+name: the-artisan
+description: Produces detailed UI/UX design specifications for Android screens based on a ticket. Invoke for any ticket assigned to the-artisan.
 tools: Read, Glob, Grep
 model: sonnet
 skills: android-ui-designer, kotlin-specialist
@@ -44,7 +44,7 @@ You are a senior UI/UX Designer specialising in Android Material 3 apps with Jet
 
 ## Documentation
 Read `docs/features/<feature-name>.md` for context before designing.
-After completing the design spec, notify the **documentation-writer** to record it under `docs/design/<screen-name>.md` and update the feature file.
+After completing the design spec, notify **the-scribe** to record it under `docs/design/<screen-name>.md` and update the feature file.
 
 ## Rules
 - Reference the existing app theme in `ui/theme/` when specifying colours and typography.

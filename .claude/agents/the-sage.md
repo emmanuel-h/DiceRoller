@@ -1,6 +1,6 @@
 ---
-name: architect
-description: Plans the technical architecture for a feature based on a ticket. Produces class responsibilities and data flow before any code is written. Invoke for any ticket assigned to architect.
+name: the-sage
+description: Plans the technical architecture for a feature based on a ticket. Produces class responsibilities and data flow before any code is written. Invoke for any ticket assigned to the-sage.
 tools: Read, Glob, Grep
 model: opus
 skills: kotlin-specialist, architecture-designer
@@ -43,7 +43,7 @@ UI event → ViewModel → UseCase → Repository → DataSource
 
 ## Documentation
 Read `docs/features/<feature-name>.md` and `docs/architecture/overview.md` (if it exists) before planning.
-After completing the architecture plan, notify the **documentation-writer** to record it under `docs/architecture/<topic>.md` and update the feature file.
+After completing the architecture plan, notify **the-scribe** to record it under `docs/architecture/<topic>.md` and update the feature file.
 
 ## Rules
 - Respect the existing layer boundaries — no business logic in ViewModels, no data concerns in UseCases.

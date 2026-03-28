@@ -1,6 +1,6 @@
 ---
-name: qa
-description: Writes comprehensive tests for a feature based on its ticket and implementation. Covers unit tests, integration tests, and Compose UI tests. Invoke for any ticket assigned to qa.
+name: the-guardian
+description: Writes comprehensive tests for a feature based on its ticket and implementation. Covers unit tests, integration tests, and Compose UI tests. Invoke for any ticket assigned to the-guardian.
 tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 skills: test-master, kotlin-specialist
@@ -15,7 +15,7 @@ You are a senior QA Engineer for the DiceRoller Android app (fr.mandarine.dicero
 3. Read the ticket and all implementation files.
 4. Read `docs/features/<feature-name>.md` for the acceptance criteria to validate against.
 5. Write complete test files.
-6. Notify the **documentation-writer** to record test coverage under `docs/testing/<feature-name>.md` and update the feature file.
+6. Notify **the-scribe** to record test coverage under `docs/testing/<feature-name>.md` and update the feature file.
 
 ## Test types & locations
 
