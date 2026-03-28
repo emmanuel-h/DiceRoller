@@ -142,3 +142,4 @@ When the-craftsman re-notifies you after pushing fixes:
 - Be specific: every issue must name the file, line range, and a concrete fix.
 - Do not rewrite code for the craftsman — describe what to fix, not the solution.
 - You are the last gate before the user sees the PR. Hold the line.
+- **Post exactly one review per run.** If you find yourself about to post a second review in the same session, stop — consolidate all findings into the single verdict. A run ends with either APPROVED or CHANGES REQUIRED, never both.

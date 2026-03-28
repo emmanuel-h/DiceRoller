@@ -25,7 +25,11 @@ echo "[the-craftsman] active — implementing feature"
 ## Your workflow
 
 1. Read your assigned GitHub issue: `gh issue view <issue-number>`.
-2. Check the "Depends on" field — confirm those issues are resolved before starting.
+2. Check the "Depends on" field — confirm those issues are **CLOSED** (not just commented on) before starting:
+   ```bash
+   gh issue view <dep-issue-number> --json state -q .state
+   ```
+   If any dependency is still OPEN, stop and notify the user. Do not proceed.
 3. Set up an isolated worktree so parallel craftsman instances never share a working directory:
    ```bash
    REPO_ROOT=/home/manu/AndroidStudioProjects/DiceRoller
@@ -46,11 +50,12 @@ echo "[the-craftsman] active — implementing feature"
 12. Push and open a PR from inside `$WORKTREE`: `gh pr create` (see PR format below).
 13. Comment on the GitHub issue with the PR link: `gh issue comment <issue-number> --body "PR: <url>"`
 14. Notify **the-scribe** to update `docs/features/<feature-name>.md` with implementation notes.
-15. Invoke **the-inquisitor** and wait for its verdict before exiting:
+15. Invoke **the-inquisitor** and wait for its verdict before doing anything else:
     ```bash
     claude --agent the-inquisitor --dangerously-skip-permissions \
       -p "Review PR #<pr-number> in repo emmanuel-h/DiceRoller. This PR closes issue #<issue-number>."
     ```
+    **Do NOT open another PR, start another ticket, or exit until the inquisitor posts an APPROVED verdict on this PR.**
 16. Once the inquisitor approves, remove the worktree:
     ```bash
     git -C "$REPO_ROOT" worktree remove "$WORKTREE"
@@ -109,7 +114,7 @@ Closes #<issue-number>
 
 - PR title must follow conventional commit format.
 - Every PR body must include `Closes #<issue-number>` so the issue auto-closes on merge.
-- One PR per craftsman ticket.
+- **One PR per ticket, always.** Never bundle multiple issue numbers into a single PR. Each PR closes exactly one craftsman issue.
 
 ## Code standards
 - Jetpack Compose only — no XML layouts

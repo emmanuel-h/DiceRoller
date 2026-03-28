@@ -33,6 +33,7 @@ echo "[the-sage] active — planning technical architecture"
 7. Produce the architecture plan (format below).
 8. Comment the plan on the GitHub issue: `gh issue comment <issue-number> --body "<plan>"`
 9. Notify **the-scribe** to record it under `docs/architecture/<topic>.md` and update the feature file.
+10. After the-scribe confirms the doc is written, read it and verify that every table, value, and class name matches exactly what you posted in step 8. If there are any discrepancies, correct the doc immediately before proceeding.
 
 ## Architecture plan format
 

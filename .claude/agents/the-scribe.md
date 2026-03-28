@@ -27,7 +27,11 @@ echo "[the-scribe] active — writing/updating documentation"
    - Design spec → `docs/design/<screen-name>.md` + update feature file
    - Architecture plan → `docs/architecture/<topic>.md` + update feature file
    - Test suite → `docs/testing/<feature-name>.md` + update feature file
-3. Always update `docs/README.md` index to include any new file.
+3. **REQUIRED:** After writing any new file, immediately update `docs/README.md` to list it. Then verify no file is missing:
+   ```bash
+   find docs/ -name "*.md" | sort
+   ```
+   Compare the output against the entries in `docs/README.md`. Add any missing entries before committing.
 
 ### When called to update existing docs:
 1. Read the existing file first.
