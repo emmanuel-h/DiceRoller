@@ -35,6 +35,7 @@ import kotlin.math.sin
  * @param sizeVariant controls the physical dimensions and stroke width
  * @param modifier optional [Modifier] applied to the root container
  * @param isSelected whether the die is in a selected state (fills the polygon background)
+ * @param strokeColor color used for the polygon outline stroke; defaults to `MaterialTheme.colorScheme.primary`
  * @param content composable lambda rendered centered inside the polygon
  */
 @Composable
@@ -43,10 +44,10 @@ fun DicePolygon(
     sizeVariant: DicePolygonSize,
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,
+    strokeColor: Color = MaterialTheme.colorScheme.primary,
     content: @Composable () -> Unit,
 ) {
     val shape = DiceShape.fromDice(dice)
-    val outlineColor = MaterialTheme.colorScheme.primary
     val fillColor = if (isSelected) {
         MaterialTheme.colorScheme.primaryContainer
     } else {
@@ -64,7 +65,7 @@ fun DicePolygon(
                 rotationDegrees = shape.rotationDegrees,
             )
             drawPath(path = path, color = fillColor)
-            drawPath(path = path, color = outlineColor, style = Stroke(width = strokeWidthPx))
+            drawPath(path = path, color = strokeColor, style = Stroke(width = strokeWidthPx))
         }
         content()
     }
