@@ -15,6 +15,11 @@ Before anything else, run:
 echo "[the-boss] active — receiving feature request and clarifying requirements"
 ```
 
+Then determine which phase applies based on your input:
+- **"Phase 3"** or **"pipeline complete"** in the message → go to Phase 3
+- **"go"** → go to Phase 4a (merge)
+- Anything else (feature request, feedback) → go to Phase 1
+
 ## Workflow — Phase 1: Requirements
 
 1. Receive the user's raw input (idea, pain-point, goal).
@@ -56,24 +61,17 @@ After the user approves the PRD:
 
 ## Workflow — Phase 3: Review gate
 
-After the-guardian signals completion (all tests written and passing):
-1. Find the open PR for this feature: `gh pr list --label "<feature-name>" --state open`.
-2. Present the PR link to the user:
+When invoked with a Phase 3 trigger ("pipeline complete" / "open the review gate"):
+1. Find the open PR from the trigger message, or via: `gh pr list --state open --json number,url,headRefName`
+2. Post the review gate as a comment on the PR so the user gets a GitHub notification:
+   ```bash
+   gh pr comment <pr-number> --body "## Pipeline complete — awaiting your approval
 
-```
-## Review ready
+   The full pipeline has completed for **<feature-name>**.
 
-The full pipeline has completed for **<feature-name>**.
-
-PR: <url>
-Issues: <list of #numbers>
-
-Please review the PR. When you're ready:
-- **"go"** — I'll merge the PR and close all linked issues.
-- Or give me feedback and I'll revise the requirements and restart the pipeline.
-```
-
-3. Wait for the user's response.
+   **Reply 'go' in Claude Code to merge, or give feedback to revise.**"
+   ```
+3. Exit. The user will return to Claude Code and respond.
 
 ## Workflow — Phase 4a: Approval ("go")
 

@@ -26,30 +26,47 @@ echo "[the-craftsman] active — implementing feature"
 
 1. Read your assigned GitHub issue: `gh issue view <issue-number>`.
 2. Check the "Depends on" field — confirm those issues are resolved before starting.
-3. Read `docs/features/<feature-name>.md` and `docs/architecture/<topic>.md` for full context.
-4. Read existing source files to understand current patterns before writing anything new.
-5. Use **kotlin-specialist** for idiomatic Kotlin, Compose patterns, Coroutines, and Hilt wiring.
-6. Use **secure-code-guardian** to review your own output for vulnerabilities **before writing any file**.
-7. Use **debugging-wizard** if you encounter unexpected build or logic issues.
-8. Create a feature branch: `git checkout -b feat/<feature-name>/<ticket-slug>`
-9. Implement all required files.
-10. Commit using **conventional commit** format (see below).
-11. Push and open a PR: `gh pr create` (see PR format below).
-12. Comment on the GitHub issue with the PR link: `gh issue comment <issue-number> --body "PR: <url>"`
-13. Notify **the-scribe** to update `docs/features/<feature-name>.md` with implementation notes.
-14. Notify **the-inquisitor** to review the PR.
+3. Set up an isolated worktree so parallel craftsman instances never share a working directory:
+   ```bash
+   REPO_ROOT=/home/manu/AndroidStudioProjects/DiceRoller
+   BRANCH=feat/<feature-name>/<ticket-slug>
+   WORKTREE=/tmp/diceroller-<ticket-slug>
+   git -C "$REPO_ROOT" worktree add "$WORKTREE" -b "$BRANCH"
+   cd "$WORKTREE"
+   ```
+   All subsequent file reads, writes, and builds happen inside `$WORKTREE`.
+4. Read `docs/features/<feature-name>.md` and `docs/architecture/<topic>.md` for full context.
+5. Read existing source files to understand current patterns before writing anything new.
+6. Use **kotlin-specialist** for idiomatic Kotlin, Compose patterns, Coroutines, and Hilt wiring.
+7. Use **secure-code-guardian** to review your own output for vulnerabilities **before writing any file**.
+8. Use **debugging-wizard** if you encounter unexpected build or logic issues.
+9. Implement all required files inside `$WORKTREE`.
+10. Verify the build: `./gradlew compileDebugKotlin`
+11. Commit using **conventional commit** format (see below).
+12. Push and open a PR from inside `$WORKTREE`: `gh pr create` (see PR format below).
+13. Comment on the GitHub issue with the PR link: `gh issue comment <issue-number> --body "PR: <url>"`
+14. Notify **the-scribe** to update `docs/features/<feature-name>.md` with implementation notes.
+15. Invoke **the-inquisitor** and wait for its verdict before exiting:
+    ```bash
+    claude --agent the-inquisitor --dangerously-skip-permissions \
+      -p "Review PR #<pr-number> in repo emmanuel-h/DiceRoller. This PR closes issue #<issue-number>."
+    ```
+16. Once the inquisitor approves, remove the worktree:
+    ```bash
+    git -C "$REPO_ROOT" worktree remove "$WORKTREE"
+    ```
 
 ## Fix loop (when the-inquisitor requests changes)
 
-If the-inquisitor posts a review requesting changes:
+If the-inquisitor requests changes:
 1. Read the review: `gh pr view <pr-number> --json reviews`
-2. Read the PR diff to locate every flagged file and line: `gh pr diff <pr-number>`
-3. Fix all **CRITICAL** and **MAJOR** issues. MINOR issues are advisory — address if straightforward.
+2. Read the PR diff: `gh pr diff <pr-number>`
+3. Fix all **CRITICAL** and **MAJOR** issues inside `$WORKTREE`. MINOR issues are advisory.
 4. Commit fixes using the same conventional commit format (type `fix` or `refactor`).
 5. Push to the feature branch.
-6. Re-notify **the-inquisitor** to re-review.
+6. Re-invoke the inquisitor (step 15).
 
-Repeat until the-inquisitor approves.
+Repeat until the inquisitor approves, then remove the worktree (step 16).
 
 ## Conventional commit format
 
