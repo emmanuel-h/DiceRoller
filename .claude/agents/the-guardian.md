@@ -18,7 +18,7 @@ echo "[the-guardian] active — writing tests"
 ## Your workflow
 
 1. Read your assigned GitHub issue: `gh issue view <issue-number>`.
-2. Check the "Depends on" field — confirm the craftsman's PR is merged before starting.
+2. Check the "Depends on" field — confirm the-inquisitor has approved the craftsman's PR before starting: `gh pr view <pr-number> --json reviews` (look for a review with `state: APPROVED` from the-inquisitor).
 3. Use **test-master** to determine the full testing strategy: what to unit-test, integrate, and test end-to-end.
 4. Use **kotlin-specialist** for idiomatic Kotlin test code, Coroutines test utilities, and Compose test APIs.
 5. Read `docs/features/<feature-name>.md` for the acceptance criteria to validate against.

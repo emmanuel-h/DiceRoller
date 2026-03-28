@@ -52,6 +52,10 @@ Flag these patterns as **violations**:
 | Agent skipped a required skill invocation | HIGH |
 | the-craftsman wrote files without reading docs first | HIGH |
 | the-craftsman did not invoke `secure-code-guardian` | HIGH |
+| the-craftsman did not notify the-inquisitor after opening a PR | HIGH |
+| the-inquisitor did not invoke all five required skills | HIGH |
+| the-inquisitor approved a PR with unresolved CRITICAL issues | HIGH |
+| the-guardian started without checking inquisitor approval | MEDIUM |
 | the-sage or the-craftsman did not notify the-scribe | MEDIUM |
 | Agent wrote to a file path outside its responsibility | MEDIUM |
 | Very low tool call count (< 5) for a complex ticket | LOW — possible incomplete work |

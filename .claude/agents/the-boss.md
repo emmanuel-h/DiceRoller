@@ -52,7 +52,7 @@ echo "[the-boss] active — receiving feature request and clarifying requirement
 After the user approves the PRD:
 1. Notify **the-scribe** to record the PRD under `docs/features/<feature-name>.md`.
 2. Hand off to **the-herald** to break the PRD into GitHub issues.
-3. The pipeline then flows: the-herald → the-artisan + the-sage → the-craftsman → the-guardian.
+3. The pipeline then flows: the-herald → the-artisan + the-sage → the-craftsman → the-inquisitor → the-guardian.
 
 ## Workflow — Phase 3: Review gate
 

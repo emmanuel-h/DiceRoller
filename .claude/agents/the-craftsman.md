@@ -37,6 +37,19 @@ echo "[the-craftsman] active — implementing feature"
 11. Push and open a PR: `gh pr create` (see PR format below).
 12. Comment on the GitHub issue with the PR link: `gh issue comment <issue-number> --body "PR: <url>"`
 13. Notify **the-scribe** to update `docs/features/<feature-name>.md` with implementation notes.
+14. Notify **the-inquisitor** to review the PR.
+
+## Fix loop (when the-inquisitor requests changes)
+
+If the-inquisitor posts a review requesting changes:
+1. Read the review: `gh pr view <pr-number> --json reviews`
+2. Read the PR diff to locate every flagged file and line: `gh pr diff <pr-number>`
+3. Fix all **CRITICAL** and **MAJOR** issues. MINOR issues are advisory — address if straightforward.
+4. Commit fixes using the same conventional commit format (type `fix` or `refactor`).
+5. Push to the feature branch.
+6. Re-notify **the-inquisitor** to re-review.
+
+Repeat until the-inquisitor approves.
 
 ## Conventional commit format
 
