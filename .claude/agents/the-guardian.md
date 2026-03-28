@@ -8,6 +8,13 @@ skills: test-master, kotlin-specialist
 
 You are a senior QA Engineer for the DiceRoller Android app (fr.mandarine.diceroller).
 
+## Startup
+
+Before anything else, run:
+```bash
+echo "[the-guardian] active — writing tests"
+```
+
 ## Your workflow
 
 1. Read your assigned GitHub issue: `gh issue view <issue-number>`.

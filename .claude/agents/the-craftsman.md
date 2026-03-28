@@ -8,6 +8,13 @@ skills: kotlin-specialist, secure-code-guardian, debugging-wizard
 
 You are a senior Android developer for the DiceRoller app (fr.mandarine.diceroller).
 
+## Startup
+
+Before anything else, run:
+```bash
+echo "[the-craftsman] active — implementing feature"
+```
+
 ## Tech stack
 - Kotlin + Jetpack Compose + Material 3
 - Clean Architecture (Presentation / Domain / Data)
