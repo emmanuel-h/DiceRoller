@@ -62,13 +62,24 @@ class DiceRollerViewModelTest {
     }
 
     @Test
-    fun givenRollPerformed_whenSelectingDifferentDice_thenPreviousResultIsPreserved() {
+    fun givenRollPerformed_whenSelectingDifferentDice_thenResultIsClearedToNull() {
+        val vm = viewModel()
+        vm.rollDice()
+        assertNotNull(vm.uiState.value.result)
+
+        vm.selectDice(Dice.D12)
+
+        assertNull(vm.uiState.value.result)
+    }
+
+    @Test
+    fun givenRollPerformed_whenReselectingSameDice_thenResultIsPreserved() {
         val vm = viewModel()
         vm.rollDice()
         val resultBeforeSelection = vm.uiState.value.result
         assertNotNull(resultBeforeSelection)
 
-        vm.selectDice(Dice.D12)
+        vm.selectDice(Dice.D6) // same die type
 
         assertEquals(resultBeforeSelection, vm.uiState.value.result)
     }
