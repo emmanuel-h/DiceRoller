@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"\nconst chunks = [];\nprocess.stdin.on('data', c => chunks.push(c));\nprocess.stdin.on('end', () => {\n  try {\n    const data = JSON.parse(Buffer.concat(chunks).toString());\n    const entry = JSON.stringify({\n      ts: new Date().toISOString(),\n      event: 'PostToolUse',\n      agent_id: data.agent_id || null,\n      agent_type: data.agent_type || null,\n      session_id: data.session_id || null,\n      tool: data.tool_name || null,\n      input: data.tool_input || null,\n      response_summary: typeof data.tool_response === 'string'\n        ? data.tool_response.slice(0, 300)\n        : JSON.stringify(data.tool_response || '').slice(0, 300)\n    });\n    const fs = require('fs');\n    fs.mkdirSync('.claude/spy', { recursive: true });\n    fs.appendFileSync('.claude/spy/activity.jsonl', entry + '\\n');\n  } catch(e) {}\n});\n\""
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"\nconst chunks = [];\nprocess.stdin.on('data', c => chunks.push(c));\nprocess.stdin.on('end', () => {\n  try {\n    const data = JSON.parse(Buffer.concat(chunks).toString());\n    const entry = JSON.stringify({\n      ts: new Date().toISOString(),\n      event: 'SubagentStop',\n      agent_id: data.agent_id || null,\n      agent_type: data.agent_type || null,\n      session_id: data.session_id || null\n    });\n    const fs = require('fs');\n    fs.mkdirSync('.claude/spy', { recursive: true });\n    fs.appendFileSync('.claude/spy/activity.jsonl', entry + '\\n');\n  } catch(e) {}\n});\n\""
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"\nconst chunks = [];\nprocess.stdin.on('data', c => chunks.push(c));\nprocess.stdin.on('end', () => {\n  try {\n    const data = JSON.parse(Buffer.concat(chunks).toString());\n    const entry = JSON.stringify({\n      ts: new Date().toISOString(),\n      event: 'TaskCompleted',\n      agent_id: data.agent_id || null,\n      session_id: data.session_id || null,\n      result_summary: typeof data.result === 'string'\n        ? data.result.slice(0, 500)\n        : JSON.stringify(data.result || '').slice(0, 500)\n    });\n    const fs = require('fs');\n    fs.mkdirSync('.claude/spy', { recursive: true });\n    fs.appendFileSync('.claude/spy/activity.jsonl', entry + '\\n');\n  } catch(e) {}\n});\n\""
+          }
+        ]
+      }
+    ]
+  }
+}
