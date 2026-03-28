@@ -38,22 +38,19 @@ fun DiceResultDisplay(
     result: Int?,
     modifier: Modifier = Modifier,
 ) {
-    val isEmpty = result == null
-    val strokeColor = if (isEmpty) {
-        MaterialTheme.colorScheme.outlineVariant
-    } else {
-        MaterialTheme.colorScheme.primary
-    }
-
     DicePolygon(
         dice = selectedDice,
         sizeVariant = DicePolygonSize.Large,
         modifier = modifier.semantics { liveRegion = LiveRegionMode.Polite },
-        isSelected = !isEmpty,
-        strokeColor = strokeColor,
+        isSelected = result != null,
+        strokeColor = if (result == null) {
+            MaterialTheme.colorScheme.outlineVariant
+        } else {
+            MaterialTheme.colorScheme.primary
+        },
     ) {
         when {
-            isEmpty -> {
+            result == null -> {
                 Text(
                     text = "\u2013",
                     style = MaterialTheme.typography.titleMedium,
@@ -62,7 +59,7 @@ fun DiceResultDisplay(
             }
             selectedDice == Dice.D6 && result in 1..6 -> {
                 D6Pips(
-                    result = result!!,
+                    result = result,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(24.dp),
