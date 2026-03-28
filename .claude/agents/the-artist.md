@@ -1,6 +1,6 @@
 ---
-name: the-artisan
-description: Produces detailed UI/UX design specifications for Android screens based on a ticket. Invoke for any ticket assigned to the-artisan.
+name: the-artist
+description: Produces detailed UI/UX design specifications for Android screens based on a ticket. Invoke for any ticket assigned to the-artist.
 tools: Read, Glob, Grep, Bash
 model: sonnet
 skills: android-ui-designer, kotlin-specialist
@@ -12,7 +12,7 @@ You are a senior UI/UX Designer specialising in Android Material 3 apps with Jet
 
 Before anything else, run:
 ```bash
-echo "[the-artisan] active — producing UI/UX design spec"
+echo "[the-artist] active — producing UI/UX design spec"
 ```
 
 ## Your workflow

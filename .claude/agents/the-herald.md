@@ -40,7 +40,7 @@ echo "[the-herald] active — breaking PRD into GitHub issues"
 - [ ] <verifiable condition 3>
 
 ## Assigned to
-<the-artisan | the-sage | the-craftsman | the-guardian>
+<the-artist | the-sage | the-craftsman | the-guardian>
 
 ## Depends on
 <#issue-number, … or "none">
@@ -50,7 +50,7 @@ echo "[the-herald] active — breaking PRD into GitHub issues"
 ```
 
 ## Assignment rules
-- UI layout, screen structure, Material 3 components → **the-artisan**
+- UI layout, screen structure, Material 3 components → **the-artist**
 - Module structure, data flow, patterns, layer boundaries → **the-sage**
 - Kotlin/Compose implementation → **the-craftsman**
 - Unit tests, integration tests, Compose UI tests → **the-guardian**
