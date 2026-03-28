@@ -27,11 +27,18 @@ class DiceRollerViewModel(
     /**
      * Selects the given [dice] type.
      *
-     * The previous roll result is preserved until the next roll,
-     * as specified by the design spec.
+     * When the die type changes, the previous roll result is cleared to null
+     * so the result display shows the empty state for the newly selected shape.
+     * If the same die type is re-selected, the state is unchanged.
      */
     fun selectDice(dice: Dice) {
-        _uiState.update { it.copy(selectedDice = dice) }
+        _uiState.update { state ->
+            if (state.selectedDice == dice) {
+                state
+            } else {
+                state.copy(selectedDice = dice, result = null)
+            }
+        }
     }
 
     /**

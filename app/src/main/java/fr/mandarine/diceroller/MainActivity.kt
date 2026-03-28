@@ -5,7 +5,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,17 +19,21 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -35,6 +41,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.presentation.DiceRollerUiState
 import fr.mandarine.diceroller.presentation.DiceRollerViewModel
+import fr.mandarine.diceroller.presentation.component.DicePolygon
+import fr.mandarine.diceroller.presentation.component.DicePolygonSize
+import fr.mandarine.diceroller.presentation.component.DiceResultDisplay
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 
 class MainActivity : ComponentActivity() {
@@ -98,11 +107,37 @@ fun DiceRollerScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Dice.entries.forEach { dice ->
-                        FilterChip(
-                            selected = uiState.selectedDice == dice,
-                            onClick = { onSelectDice(dice) },
-                            label = { Text(dice.name) },
-                        )
+                        val isSelected = uiState.selectedDice == dice
+                        DicePolygon(
+                            dice = dice,
+                            sizeVariant = DicePolygonSize.Small,
+                            modifier = Modifier
+                                .semantics {
+                                    role = Role.RadioButton
+                                    selected = isSelected
+                                    contentDescription = "Select ${dice.name}"
+                                }
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = ripple(
+                                        bounded = true,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    ),
+                                    onClick = { onSelectDice(dice) },
+                                ),
+                            isSelected = isSelected,
+                        ) {
+                            Text(
+                                text = dice.name,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -111,22 +146,13 @@ fun DiceRollerScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .semantics { liveRegion = LiveRegionMode.Polite },
+                    .weight(1f),
                 contentAlignment = Alignment.Center,
             ) {
-                if (uiState.result != null) {
-                    Text(
-                        text = uiState.result.toString(),
-                        style = MaterialTheme.typography.displayLarge,
-                    )
-                } else {
-                    Text(
-                        text = "\u2013",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                DiceResultDisplay(
+                    selectedDice = uiState.selectedDice,
+                    result = uiState.result,
+                )
             }
 
             // Roll button
