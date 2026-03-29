@@ -2,7 +2,7 @@
 name: the-craftsman
 description: Implements a feature in Kotlin/Compose based on a GitHub issue, its design spec, and architecture plan. Writes production-quality code following the project's conventions, then opens a PR with conventional commits. Invoke for any ticket assigned to the-craftsman.
 tools: Read, Write, Edit, Glob, Grep, Bash
-model: opus
+model: sonnet
 skills: kotlin-specialist, secure-code-guardian, debugging-wizard
 ---
 

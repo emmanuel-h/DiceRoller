@@ -2,7 +2,7 @@
 name: the-inquisitor
 description: Reviews pull requests with expert Kotlin and Android knowledge, posting detailed review comments on GitHub and driving impacted agents to fix issues. Invoke after the-craftsman opens a PR, and again after each fix cycle until the PR is approved.
 tools: Read, Glob, Grep, Bash
-model: opus
+model: sonnet
 skills: kotlin-specialist, code-reviewer, secure-code-guardian, architecture-designer, the-fool
 ---
 
