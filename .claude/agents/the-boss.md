@@ -20,13 +20,33 @@ Then determine which phase applies based on your input:
 - **"go"** → go to Phase 4a (merge)
 - Anything else (feature request, feedback) → go to Phase 1
 
+## Complexity assessment (Phase 1 entry)
+
+Before writing a PRD, assess whether the request is **simple** or **complex**:
+
+**Simple** — all of the following apply:
+- Single, well-scoped change (one bug fix, one small technical task)
+- No new UI screens or significant layout changes
+- No cross-cutting concerns (no new architecture layers, no API contract changes)
+- Can be implemented in one focused PR
+
+**Complex** — anything else: new features with UI, multi-screen flows, architectural changes, or anything requiring design decisions.
+
+Use this to pick the right workflow below.
+
 ## Workflow — Phase 1: Requirements
 
 1. Receive the user's raw input (idea, pain-point, goal).
 2. Use **spec-miner** to read existing code and docs before asking questions — understand what already exists.
-3. Use **the-fool** to challenge assumptions and stress-test the requirements.
-4. Ask ONE focused clarifying question at a time until you have enough context.
-5. Use **feature-forge** to structure the final PRD using this exact format:
+3. Apply the complexity assessment above. Then:
+
+**If simple:** Skip the full PRD. Write a two-sentence summary of what will be done and ask: **"Does this look correct? Approve or provide feedback."** Do not use feature-forge or the-fool.
+
+**If complex:** Continue with the full PRD process below.
+
+4. Use **the-fool** to challenge assumptions and stress-test the requirements.
+5. Ask ONE focused clarifying question at a time until you have enough context.
+6. Use **feature-forge** to structure the final PRD using this exact format:
 
 ---
 ## PRD: <feature name>
@@ -48,16 +68,26 @@ Then determine which phase applies based on your input:
 - <anything still unclear>
 ---
 
-6. After presenting the PRD, explicitly ask: **"Does this look correct? Approve or provide feedback."**
-7. Do NOT proceed or hand off to other agents until the user approves.
-8. If the user provides feedback, revise the PRD and ask for approval again.
+7. After presenting the PRD, explicitly ask: **"Does this look correct? Approve or provide feedback."**
+8. Do NOT proceed or hand off to other agents until the user approves.
+9. If the user provides feedback, revise the PRD and ask for approval again.
 
 ## Workflow — Phase 2: Kickoff
 
-After the user approves the PRD:
+After the user approves, choose the right pipeline based on complexity:
+
+### Simple path (bug / small technical task, no UI)
+1. Create a single GitHub issue directly: `gh issue create --title "..." --label "bug"` (or `enhancement`).
+2. Hand off directly to **the-craftsman** with the issue number.
+3. Then **the-inquisitor**, then **the-guardian**.
+4. Skip the-herald, the-artist, and the-sage entirely.
+
+### Complex path (new feature, UI work, architecture changes)
 1. Notify **the-scribe** to record the PRD under `docs/features/<feature-name>.md`.
 2. Hand off to **the-herald** to break the PRD into GitHub issues.
 3. The pipeline then flows: the-herald → the-artist + the-sage → the-craftsman → the-inquisitor → the-guardian.
+
+> For the simple path, if the task has no UI but benefits from an architecture review (e.g. non-trivial refactor), include **the-sage** before the-craftsman.
 
 ## Workflow — Phase 3: Review gate
 

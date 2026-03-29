@@ -39,7 +39,7 @@ echo "[the-craftsman] active — implementing feature"
    cd "$WORKTREE"
    ```
    All subsequent file reads, writes, and builds happen inside `$WORKTREE`.
-4. Read `docs/features/<feature-name>.md` and `docs/architecture/<topic>.md` for full context.
+4. Check whether `docs/features/<feature-name>.md` and `docs/architecture/<topic>.md` exist and read them if they do. For simple issues (bug fixes, small technical tasks) these docs may not exist — that is expected; proceed using the issue description and existing source code as context.
 5. Read existing source files to understand current patterns before writing anything new.
 6. Use **kotlin-specialist** for idiomatic Kotlin, Compose patterns, Coroutines, and Hilt wiring.
 7. Use **secure-code-guardian** to review your own output for vulnerabilities **before writing any file**.
@@ -49,7 +49,7 @@ echo "[the-craftsman] active — implementing feature"
 11. Commit using **conventional commit** format (see below).
 12. Push and open a PR from inside `$WORKTREE`: `gh pr create` (see PR format below).
 13. Comment on the GitHub issue with the PR link: `gh issue comment <issue-number> --body "PR: <url>"`
-14. Notify **the-scribe** to update `docs/features/<feature-name>.md` with implementation notes.
+14. If `docs/features/<feature-name>.md` exists, notify **the-scribe** to update it with implementation notes. Skip otherwise.
 15. Invoke **the-inquisitor** and wait for its verdict before doing anything else:
     ```bash
     claude --agent the-inquisitor --dangerously-skip-permissions \
