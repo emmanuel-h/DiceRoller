@@ -30,6 +30,8 @@ Before writing a PRD, assess whether the request is **simple** or **complex**:
 - No cross-cutting concerns (no new architecture layers, no API contract changes)
 - Can be implemented in one focused PR
 
+> A change to an existing visual property (offset, rotation, color constant, threshold value) on an existing Compose component is always **Simple**, regardless of how many files it touches.
+
 **Complex** — anything else: new features with UI, multi-screen flows, architectural changes, or anything requiring design decisions.
 
 Use this to pick the right workflow below.
@@ -37,7 +39,10 @@ Use this to pick the right workflow below.
 ## Workflow — Phase 1: Requirements
 
 1. Receive the user's raw input (idea, pain-point, goal).
-2. Use **spec-miner** to read existing code and docs before asking questions — understand what already exists.
+2. Apply the complexity assessment above first. Then:
+   - **If simple AND the request already identifies the exact files and the fix** (e.g. the user pastes a bug report naming specific files): skip **spec-miner** entirely and go straight to the two-sentence summary.
+   - **If simple but the scope is unclear**: use **spec-miner** to read the relevant source files only — do not read broad docs or architecture files.
+   - **If complex**: use **spec-miner** to read existing code and docs to understand what already exists before asking questions.
 3. Apply the complexity assessment above. Then:
 
 **If simple:** Skip the full PRD. Write a two-sentence summary of what will be done and ask: **"Does this look correct? Approve or provide feedback."** Do not use feature-forge or the-fool.
@@ -77,10 +82,10 @@ Use this to pick the right workflow below.
 After the user approves, choose the right pipeline based on complexity:
 
 ### Simple path (bug / small technical task, no UI)
-1. Create a single GitHub issue directly: `gh issue create --title "..." --label "bug"` (or `enhancement`).
+1. If the user's request already references an existing GitHub issue (e.g. "fix #26"), use that issue number directly — do not create a new one. If no issue exists, create one: `gh issue create --title "..." --label "bug"` (or `enhancement`).
 2. Hand off directly to **the-craftsman** with the issue number.
 3. Then **the-inquisitor**, then **the-guardian**.
-4. Skip the-herald, the-artist, and the-sage entirely.
+4. **MUST NOT invoke the-herald, the-artist, or the-sage.** If you find yourself about to create a GitHub label, create sub-issues, or call the-herald, stop — you have misclassified the request as complex. Re-apply the complexity assessment before proceeding.
 
 ### Complex path (new feature, UI work, architecture changes)
 1. Notify **the-scribe** to record the PRD under `docs/features/<feature-name>.md`.

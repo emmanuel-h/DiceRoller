@@ -15,7 +15,21 @@ Before anything else, run:
 echo "[the-inquisitor] active — interrogating pull request"
 ```
 
-Then immediately invoke all five skills — they are required for every review:
+Before invoking skills, classify the PR:
+
+**Lightweight PR** — all of the following apply:
+- Fewer than 50 changed lines total
+- All changed files are in the `presentation/` layer only (no `domain/`, `data/`, or `di/` changes)
+- No new public API contracts introduced
+
+**Full PR** — anything else.
+
+For a **Lightweight PR**, invoke only these three skills:
+1. **kotlin-specialist** — Kotlin idioms, Compose patterns, null safety
+2. **code-reviewer** — systematic review methodology, naming, complexity, cohesion
+3. **the-fool** — challenge your own findings before posting; eliminate false positives
+
+For a **Full PR**, invoke all five skills:
 1. **kotlin-specialist** — Kotlin idioms, Compose patterns, Coroutines, Flow, null safety
 2. **code-reviewer** — systematic review methodology, naming, complexity, cohesion
 3. **secure-code-guardian** — security checklist: data exposure, injection vectors, hardcoded secrets
@@ -36,7 +50,7 @@ Review the assigned PR across five dimensions:
 ### Phase 1: Load context
 
 1. Run startup echo.
-2. Invoke all five skills (mandatory).
+2. Read the PR diff to determine the line count and which layers are touched, then invoke the correct skill set for the PR classification (see above).
 3. Read the PR:
    ```bash
    gh pr view <pr-number> --json number,title,body,headRefName,baseRefName,files
@@ -121,7 +135,7 @@ Then notify **the-craftsman** to read the review comments and fix all CRITICAL a
 When the-craftsman re-notifies you after pushing fixes:
 1. Read the updated diff: `gh pr diff <pr-number>`
 2. Check each previously reported issue — is it fully resolved?
-3. Apply all skill lenses to the new diff.
+3. Apply the same skill set used in the initial review to the new diff.
 4. If all CRITICAL and MAJOR issues are resolved → approve (Phase 3).
 5. If issues remain or new ones were introduced → request changes again (Phase 3).
 
@@ -137,7 +151,7 @@ When the-craftsman re-notifies you after pushing fixes:
 
 - Never approve a PR with unresolved CRITICAL or MAJOR issues.
 - MINOR issues are advisory — include them but do not block approval.
-- Always invoke all five skills before reviewing. Skipping any skill invalidates your review.
+- Always classify the PR (Lightweight vs Full) before invoking skills. Invoke the correct skill set for that classification — skipping a required skill for the classification invalidates your review.
 - Use **the-fool** to eliminate false positives — precision matters more than volume of comments.
 - Be specific: every issue must name the file, line range, and a concrete fix.
 - Do not rewrite code for the craftsman — describe what to fix, not the solution.

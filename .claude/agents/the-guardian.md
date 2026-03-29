@@ -32,12 +32,18 @@ echo "[the-guardian] active — writing tests"
 5. Use **kotlin-specialist** for idiomatic Kotlin test code, Coroutines test utilities, and Compose test APIs.
 6. Read `docs/features/<feature-name>.md` for the acceptance criteria to validate against.
 7. Read the implementation files written by the-craftsman (inside `$WORKTREE`).
-8. Write complete test files inside `$WORKTREE`.
-9. Commit using **conventional commit** format: `test(<scope>): <description>` and push to the feature branch.
-10. Remove the worktree: `git -C "$REPO_ROOT" worktree remove "$WORKTREE"`
-11. Comment on your GitHub issue: `gh issue comment <issue-number> --body "Tests written. Coverage: <summary>"`
-12. Notify **the-scribe** to record test coverage under `docs/testing/<feature-name>.md` and update the feature file.
-13. Invoke **the-boss** to open the review gate:
+8. Before writing any test file, check whether an existing test file already covers the relevant class:
+   ```bash
+   find "$WORKTREE/app/src/test" -name "*.kt" | xargs grep -l "<ClassName>" 2>/dev/null
+   find "$WORKTREE/app/src/androidTest" -name "*.kt" | xargs grep -l "<ClassName>" 2>/dev/null
+   ```
+   If a test file already exists for the class, add new cases to that file rather than creating a new one.
+9. Write complete test files inside `$WORKTREE`.
+10. Commit using **conventional commit** format: `test(<scope>): <description>` and push to the feature branch.
+11. Remove the worktree: `git -C "$REPO_ROOT" worktree remove "$WORKTREE"`
+12. Comment on your GitHub issue: `gh issue comment <issue-number> --body "Tests written. Coverage: <summary>"`
+13. Notify **the-scribe** to record test coverage under `docs/testing/<feature-name>.md` and update the feature file.
+14. Invoke **the-boss** to open the review gate:
     ```bash
     claude --agent the-boss --dangerously-skip-permissions \
       -p "Phase 3: pipeline complete for feature <feature-name>. PR: <pr-url>. Open the review gate."
