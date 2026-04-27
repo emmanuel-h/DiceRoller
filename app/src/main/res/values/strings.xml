@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">DiceRoller</string>
+    <!-- DiceImage content description. Parameter: die name e.g. "D6" -->
+    <string name="dice_image_content_description">%1$s die</string>
 </resources>
