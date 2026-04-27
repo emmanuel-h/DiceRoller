@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    D6 — cube viewed face-on.
+    Front face (square) + top face (parallelogram) + right face (parallelogram)
+    to create a classic 3-D isometric cube silhouette.
+    Single-color paths; tint applied at runtime by DiceImage.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Front face: square -->
+    <path
+        android:pathData="M3,10 L3,22 L15,22 L15,10 Z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.2"
+        android:fillColor="#00000000" />
+
+    <!-- Top face: parallelogram (front-top-left to front-top-right to back-top-right to back-top-left) -->
+    <path
+        android:pathData="M3,10 L9,2 L21,2 L15,10 Z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.2"
+        android:fillColor="#00000000" />
+
+    <!-- Right face: parallelogram -->
+    <path
+        android:pathData="M15,10 L21,2 L21,14 L15,22 Z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.2"
+        android:fillColor="#00000000" />
+
+</vector>

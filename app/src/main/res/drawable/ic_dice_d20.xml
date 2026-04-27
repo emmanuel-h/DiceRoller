@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    D20 — equilateral triangle with icosahedron face markings.
+    Outer triangle + horizontal midpoint line + two lines from midpoints to center.
+    This is the canonical D20 symbol: the triangular face of an icosahedron
+    with its three medial lines connecting edge midpoints.
+    Single-color paths; tint applied at runtime by DiceImage.
+
+    Outer triangle (point-up, inset 1.5dp):
+      Top:   12.0,  1.5
+      BR:    22.5, 21.5
+      BL:     1.5, 21.5
+
+    Edge midpoints:
+      Top-right:  17.25, 11.5
+      Bottom:     12.0,  21.5
+      Top-left:    6.75, 11.5
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Outer triangle -->
+    <path
+        android:pathData="M12,1.5 L22.5,21.5 L1.5,21.5 Z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.2"
+        android:fillColor="#00000000" />
+
+    <!-- Horizontal midpoint line (left-midpoint to right-midpoint) -->
+    <path
+        android:pathData="M6.75,11.5 L17.25,11.5"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="0.9"
+        android:fillColor="#00000000" />
+
+    <!-- Left midpoint to bottom midpoint -->
+    <path
+        android:pathData="M6.75,11.5 L12,21.5"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="0.9"
+        android:fillColor="#00000000" />
+
+    <!-- Right midpoint to bottom midpoint -->
+    <path
+        android:pathData="M17.25,11.5 L12,21.5"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="0.9"
+        android:fillColor="#00000000" />
+
+</vector>

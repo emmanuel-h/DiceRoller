@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    D12 — pentagon, point-up.
+    Outer pentagon + inner pentagon ring + five lines from inner corners to center.
+    Single-color paths; tint applied at runtime by DiceImage.
+
+    Outer pentagon vertices (point-up, center 12,12.5, radius ~10.5):
+      Top:    12.00,  2.00
+      Right:  21.97,  9.04
+      BR:     17.51, 21.50
+      BL:      6.49, 21.50
+      Left:    2.03,  9.04
+
+    Inner pentagon (center 12,12.5, radius ~5.5):
+      Top:    12.00,  7.00
+      Right:  17.23, 10.90
+      BR:     15.24, 17.00
+      BL:      8.76, 17.00
+      Left:    6.77, 10.90
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Outer pentagon -->
+    <path
+        android:pathData="M12,2 L22,9 L17.5,21.5 L6.5,21.5 L2,9 Z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.2"
+        android:fillColor="#00000000" />
+
+    <!-- Inner pentagon ring -->
+    <path
+        android:pathData="M12,7 L17.2,10.9 L15.2,17 L8.8,17 L6.8,10.9 Z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="0.8"
+        android:fillColor="#00000000" />
+
+    <!-- Lines from inner corners to center (12, 12.5) -->
+    <path
+        android:pathData="M12,7 L12,12.5"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="0.6"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M17.2,10.9 L12,12.5"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="0.6"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M15.2,17 L12,12.5"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="0.6"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M8.8,17 L12,12.5"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="0.6"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M6.8,10.9 L12,12.5"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="0.6"
+        android:fillColor="#00000000" />
+
+</vector>
