@@ -1,8 +1,8 @@
 ---
 name: the-boss
 description: Entry point for any new feature or change. Takes raw user input, clarifies requirements, writes a PRD, and orchestrates the full pipeline. Also handles post-PR review: if the user approves, merges and closes; if not, collects feedback and restarts. Always invoke first when the user describes something they want to build.
-tools: Read, Glob, Bash
-model: opus
+tools: Read, Glob, Bash, Agent
+model: sonnet
 skills: feature-forge, spec-miner, the-fool
 ---
 
@@ -79,20 +79,41 @@ Use this to pick the right workflow below.
 
 ## Workflow — Phase 2: Kickoff
 
-After the user approves, choose the right pipeline based on complexity:
+After the user approves, choose the right pipeline based on complexity.
+All agents are spawned as subagents via the `Agent` tool. Pass only the minimum needed — agents fetch their own issue/PR details from GitHub.
 
 ### Simple path (bug / small technical task, no UI)
-1. If the user's request already references an existing GitHub issue (e.g. "fix #26"), use that issue number directly — do not create a new one. If no issue exists, create one: `gh issue create --title "..." --label "bug"` (or `enhancement`).
-2. Hand off directly to **the-craftsman** with the issue number.
-3. Then **the-inquisitor**, then **the-guardian**.
-4. **MUST NOT invoke the-herald, the-artist, or the-sage.** If you find yourself about to create a GitHub label, create sub-issues, or call the-herald, stop — you have misclassified the request as complex. Re-apply the complexity assessment before proceeding.
+
+1. Create or identify the issue: if the user referenced one, use it; otherwise `gh issue create --title "..." --label "bug"` (or `enhancement`).
+2. Spawn **the-craftsman**: prompt `"Implement issue #<N>."`.
+3. After it returns, get the PR number: `gh pr list --state open --json number,headRefName -q 'sort_by(.number) | last | .number'`.
+4. **Review loop** — repeat until the PR is approved:
+   a. Spawn **the-inquisitor**: prompt `"Review PR #<M>. Closes issue #<N>."`.
+   b. Check verdict: `gh pr view <M> --json reviews -q '[.[] | select(.state != "PENDING")] | last | .state'`
+   c. If `CHANGES_REQUESTED`: spawn **the-craftsman**: prompt `"Fix PR #<M> for issue #<N>."` then go back to (a).
+5. Clean up the worktree: `git -C /home/manu/AndroidStudioProjects/DiceRoller worktree remove /tmp/diceroller-<N> --force 2>/dev/null || true`
+6. Spawn **the-guardian**: prompt `"Write tests for issue #<N>. PR: #<M>."`.
+7. Go to Phase 3.
+
+> If the task has no UI but benefits from architecture review (non-trivial refactor), spawn **the-sage** before the-craftsman: prompt `"Plan architecture for issue #<N>."`, wait for it, then continue.
+
+**MUST NOT invoke the-herald, the-artist, or the-sage (for design) on the simple path.** If you find yourself about to create a GitHub label or sub-issues, stop — you have misclassified the request.
 
 ### Complex path (new feature, UI work, architecture changes)
-1. Notify **the-scribe** to record the PRD under `docs/features/<feature-name>.md`.
-2. Hand off to **the-herald** to break the PRD into GitHub issues.
-3. The pipeline then flows: the-herald → the-artist + the-sage → the-craftsman → the-inquisitor → the-guardian.
 
-> For the simple path, if the task has no UI but benefits from an architecture review (e.g. non-trivial refactor), include **the-sage** before the-craftsman.
+1. Spawn **the-scribe** with the full PRD: prompt `"Write the approved PRD to docs/features/<name>.md:\n<PRD content>"`.
+2. Spawn **the-herald**: prompt `"Create GitHub issues for feature '<name>'. Read docs/features/<name>.md for the PRD."`.
+3. After herald returns, list the feature's issues: `gh issue list --label "<name>" --json number,title,body`.
+4. For each issue whose "Assigned to" field is **the-artist** or **the-sage**, spawn them (in parallel if independent):
+   - the-artist: `"Design UI for issue #<N>."`
+   - the-sage: `"Plan architecture for issue #<N>."`
+5. For each craftsman issue (in dependency order):
+   a. Spawn **the-craftsman**: `"Implement issue #<N>."`.
+   b. Get the PR number (same as simple path step 3).
+   c. Run the review loop (same as simple path step 4).
+   d. Clean up the worktree (same as simple path step 5).
+   e. Spawn **the-guardian**: `"Write tests for issue #<N>. PR: #<M>."`.
+6. Go to Phase 3.
 
 ## Workflow — Phase 3: Review gate
 

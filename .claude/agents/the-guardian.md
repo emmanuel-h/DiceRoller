@@ -41,13 +41,7 @@ echo "[the-guardian] active — writing tests"
 9. Write complete test files inside `$WORKTREE`.
 10. Commit using **conventional commit** format: `test(<scope>): <description>` and push to the feature branch.
 11. Remove the worktree: `git -C "$REPO_ROOT" worktree remove "$WORKTREE"`
-12. Comment on your GitHub issue: `gh issue comment <issue-number> --body "Tests written. Coverage: <summary>"`
-13. Notify **the-scribe** to record test coverage under `docs/testing/<feature-name>.md` and update the feature file.
-14. Invoke **the-boss** to open the review gate:
-    ```bash
-    claude --agent the-boss --dangerously-skip-permissions \
-      -p "Phase 3: pipeline complete for feature <feature-name>. PR: <pr-url>. Open the review gate."
-    ```
+12. Comment on your GitHub issue: `gh issue comment <issue-number> --body "Tests written. Coverage: <summary>. Done."`
 
 ## Conventional commit format for test commits
 ```

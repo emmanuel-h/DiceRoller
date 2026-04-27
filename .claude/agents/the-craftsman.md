@@ -34,7 +34,7 @@ echo "[the-craftsman] active — implementing feature"
    ```bash
    REPO_ROOT=/home/manu/AndroidStudioProjects/DiceRoller
    BRANCH=feat/<feature-name>/<ticket-slug>
-   WORKTREE=/tmp/diceroller-<ticket-slug>
+   WORKTREE=/tmp/diceroller-<issue-number>
    git -C "$REPO_ROOT" worktree add "$WORKTREE" -b "$BRANCH"
    cd "$WORKTREE"
    ```
@@ -48,30 +48,26 @@ echo "[the-craftsman] active — implementing feature"
 10. Verify the build: `./gradlew compileDebugKotlin`
 11. Commit using **conventional commit** format (see below).
 12. Push and open a PR from inside `$WORKTREE`: `gh pr create` (see PR format below).
-13. Comment on the GitHub issue with the PR link: `gh issue comment <issue-number> --body "PR: <url>"`
-14. If `docs/features/<feature-name>.md` exists, notify **the-scribe** to update it with implementation notes. Skip otherwise.
-15. Invoke **the-inquisitor** and wait for its verdict before doing anything else:
-    ```bash
-    claude --agent the-inquisitor --dangerously-skip-permissions \
-      -p "Review PR #<pr-number> in repo emmanuel-h/DiceRoller. This PR closes issue #<issue-number>."
-    ```
-    **Do NOT open another PR, start another ticket, or exit until the inquisitor posts an APPROVED verdict on this PR.**
-16. Once the inquisitor approves, remove the worktree:
-    ```bash
-    git -C "$REPO_ROOT" worktree remove "$WORKTREE"
-    ```
+13. Comment on the GitHub issue with the PR link: `gh issue comment <issue-number> --body "PR: <url>"` and return. The boss orchestrates the review loop.
 
-## Fix loop (when the-inquisitor requests changes)
+## Fix mode — invoked with "Fix PR #\<M\> for issue #\<N\>"
 
-If the-inquisitor requests changes:
-1. Read the review: `gh pr view <pr-number> --json reviews`
-2. Read the PR diff: `gh pr diff <pr-number>`
-3. Fix all **CRITICAL** and **MAJOR** issues inside `$WORKTREE`. MINOR issues are advisory.
-4. Commit fixes using the same conventional commit format (type `fix` or `refactor`).
-5. Push to the feature branch.
-6. Re-invoke the inquisitor (step 15).
-
-Repeat until the inquisitor approves, then remove the worktree (step 16).
+1. Run startup echo.
+2. Locate the worktree:
+   ```bash
+   REPO_ROOT=/home/manu/AndroidStudioProjects/DiceRoller
+   WORKTREE=/tmp/diceroller-<N>
+   if [ ! -d "$WORKTREE" ]; then
+     BRANCH=$(gh pr view <M> --json headRefName -q .headRefName)
+     git -C "$REPO_ROOT" worktree add "$WORKTREE" "$BRANCH"
+   fi
+   cd "$WORKTREE"
+   ```
+3. Read the latest review: `gh pr view <M> --json reviews -q '.reviews | last | .body'`
+4. Read the diff: `gh pr diff <M>`
+5. Fix all **CRITICAL** and **MAJOR** issues inside `$WORKTREE`. MINOR issues are advisory.
+6. Commit using type `fix` or `refactor`, push to the feature branch.
+7. Return. The boss will re-invoke the inquisitor.
 
 ## Conventional commit format
 

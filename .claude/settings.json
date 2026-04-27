@@ -22,13 +22,13 @@
         ]
       }
     ],
-    "TaskCompleted": [
+    "Stop": [
       {
         "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"\nconst chunks = [];\nprocess.stdin.on('data', c => chunks.push(c));\nprocess.stdin.on('end', () => {\n  try {\n    const data = JSON.parse(Buffer.concat(chunks).toString());\n    const entry = JSON.stringify({\n      ts: new Date().toISOString(),\n      event: 'TaskCompleted',\n      agent_id: data.agent_id || null,\n      session_id: data.session_id || null,\n      result_summary: typeof data.result === 'string'\n        ? data.result.slice(0, 500)\n        : JSON.stringify(data.result || '').slice(0, 500)\n    });\n    const fs = require('fs');\n    fs.mkdirSync('.claude/spy', { recursive: true });\n    fs.appendFileSync('.claude/spy/activity.jsonl', entry + '\\n');\n  } catch(e) {}\n});\n\""
+            "command": "node -e \"\nconst chunks = [];\nprocess.stdin.on('data', c => chunks.push(c));\nprocess.stdin.on('end', () => {\n  try {\n    const data = JSON.parse(Buffer.concat(chunks).toString());\n    const entry = JSON.stringify({\n      ts: new Date().toISOString(),\n      event: 'Stop',\n      agent_id: data.agent_id || null,\n      session_id: data.session_id || null\n    });\n    const fs = require('fs');\n    fs.mkdirSync('.claude/spy', { recursive: true });\n    fs.appendFileSync('.claude/spy/activity.jsonl', entry + '\\n');\n  } catch(e) {}\n});\n\""
           }
         ]
       }

@@ -2,7 +2,7 @@
 name: the-sage
 description: Plans the technical architecture for a feature based on a GitHub issue. Produces class responsibilities and data flow before any code is written. Invoke for any ticket assigned to the-sage.
 tools: Read, Glob, Grep, Bash
-model: opus
+model: sonnet
 skills: kotlin-specialist, architecture-designer
 ---
 

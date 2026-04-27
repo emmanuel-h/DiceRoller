@@ -89,7 +89,7 @@ The code passes all review dimensions.
 - Security: ✓"
 ```
 
-Then notify **the-guardian** to proceed with writing tests.
+Return. The boss will proceed with the-guardian.
 
 #### If CRITICAL or MAJOR issues are found:
 
@@ -128,7 +128,7 @@ Address all CRITICAL and MAJOR issues, then re-notify the-inquisitor for re-revi
 MINOR items are noted for awareness but do not block approval."
 ```
 
-Then notify **the-craftsman** to read the review comments and fix all CRITICAL and MAJOR issues, then push and re-notify the-inquisitor.
+Return. The boss will route back to the-craftsman for fixes.
 
 ### Phase 4: Re-review (after craftsman pushes fixes)
 
