@@ -16,19 +16,19 @@ import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 
 /**
- * Displays the dice roll result inside a large [DicePolygon].
+ * Displays the dice roll result inside a large [DiceImage].
  *
- * - **Empty state** (result is null): polygon outline in `outlineVariant`, no fill,
+ * - **Empty state** (result is null): die asset tinted in `outlineVariant`
  *   with an en-dash placeholder centered inside.
- * - **D6 with result 1-6**: polygon outline in `primary`, filled with `primaryContainer`,
- *   with [D6Pips] rendered inside.
- * - **All other dice with a result**: polygon outline in `primary`, filled with
- *   `primaryContainer`, with the result number in `displayLarge` typography.
+ * - **D6 with result 1–6**: die asset tinted in `primary` with [D6Pips]
+ *   rendered on top.
+ * - **All other dice with a result**: die asset tinted in `primary` with
+ *   the result number in `displayLarge` typography centered on top.
  *
  * The composable carries `liveRegion = LiveRegionMode.Polite` semantics so
  * accessibility services announce result changes.
  *
- * @param selectedDice the currently selected die type whose shape to display
+ * @param selectedDice the currently selected die type whose asset to display
  * @param result the roll result, or null when no roll has been performed yet
  * @param modifier optional [Modifier] applied to the root container
  */
@@ -38,21 +38,22 @@ fun DiceResultDisplay(
     result: Int?,
     modifier: Modifier = Modifier,
 ) {
-    DicePolygon(
+    val tintColor = if (result == null) {
+        MaterialTheme.colorScheme.outlineVariant
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+
+    DiceImage(
         dice = selectedDice,
-        sizeVariant = DicePolygonSize.Large,
+        sizeVariant = DiceImageSize.Large,
         modifier = modifier.semantics { liveRegion = LiveRegionMode.Polite },
-        isSelected = result != null,
-        strokeColor = if (result == null) {
-            MaterialTheme.colorScheme.outlineVariant
-        } else {
-            MaterialTheme.colorScheme.primary
-        },
+        tintColor = tintColor,
     ) {
         when {
             result == null -> {
                 Text(
-                    text = "\u2013",
+                    text = "–",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

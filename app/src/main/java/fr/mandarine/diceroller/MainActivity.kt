@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,12 +30,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -41,10 +43,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.presentation.DiceRollerUiState
 import fr.mandarine.diceroller.presentation.DiceRollerViewModel
-import fr.mandarine.diceroller.presentation.component.DicePolygon
-import fr.mandarine.diceroller.presentation.component.DicePolygonSize
+import fr.mandarine.diceroller.presentation.component.DiceImage
+import fr.mandarine.diceroller.presentation.component.DiceImageSize
 import fr.mandarine.diceroller.presentation.component.DiceResultDisplay
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
+
+/** Corner radius for the selected die chip background. */
+private val CHIP_CORNER_RADIUS = 8.dp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -108,36 +113,11 @@ fun DiceRollerScreen(
                 ) {
                     Dice.entries.forEach { dice ->
                         val isSelected = uiState.selectedDice == dice
-                        DicePolygon(
+                        DiceChip(
                             dice = dice,
-                            sizeVariant = DicePolygonSize.Small,
-                            modifier = Modifier
-                                .semantics {
-                                    role = Role.RadioButton
-                                    selected = isSelected
-                                    contentDescription = "Select ${dice.name}"
-                                }
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = ripple(
-                                        bounded = true,
-                                        color = MaterialTheme.colorScheme.primary,
-                                    ),
-                                    onClick = { onSelectDice(dice) },
-                                ),
                             isSelected = isSelected,
-                        ) {
-                            Text(
-                                text = dice.name,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                            )
-                        }
+                            onClick = { onSelectDice(dice) },
+                        )
                     }
                 }
             }
@@ -164,6 +144,61 @@ fun DiceRollerScreen(
             }
         }
     }
+}
+
+/**
+ * A tappable die selector chip showing the [DiceImage] for the given [dice].
+ *
+ * When [isSelected], the chip background is filled with `primaryContainer`
+ * and the asset is tinted with `onPrimaryContainer`. When unselected, there
+ * is no background and the asset uses `onSurfaceVariant`.
+ *
+ * @param dice the die type this chip represents
+ * @param isSelected whether this chip is currently selected
+ * @param onClick callback invoked when the chip is tapped
+ * @param modifier optional [Modifier]
+ */
+@Composable
+private fun DiceChip(
+    dice: Dice,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val chipShape = RoundedCornerShape(CHIP_CORNER_RADIUS)
+    val backgroundModifier = if (isSelected) {
+        Modifier
+            .clip(chipShape)
+            .background(MaterialTheme.colorScheme.primaryContainer)
+    } else {
+        Modifier
+    }
+    val tintColor = if (isSelected) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    DiceImage(
+        dice = dice,
+        sizeVariant = DiceImageSize.Small,
+        modifier = modifier
+            .then(backgroundModifier)
+            .semantics {
+                role = Role.RadioButton
+                selected = isSelected
+                contentDescription = "Select ${dice.name}"
+            }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(
+                    bounded = true,
+                    color = MaterialTheme.colorScheme.primary,
+                ),
+                onClick = onClick,
+            ),
+        tintColor = tintColor,
+    )
 }
 
 @Preview(showBackground = true)
