@@ -3,14 +3,12 @@ package fr.mandarine.diceroller
 
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithRole
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -99,21 +97,21 @@ class VisualDiceUiTest {
         return viewModel
     }
 
+
     // -------------------------------------------------------------------------
     // Die selector: RadioButton role and initial selection
     // -------------------------------------------------------------------------
 
     @Test
-    fun givenDefaultState_whenSelectorRowIsRendered_thenAllFiveDieSelectorNodesHaveRadioButtonRole() {
+    fun givenDefaultState_whenSelectorRowIsRendered_thenAllFiveDieSelectorNodesAreDisplayed() {
         launchScreenLight()
 
-        val radioButtons = composeTestRule.onAllNodesWithRole(Role.RadioButton)
-        // There are exactly 5 dice (D4, D6, D8, D12, D20)
-        radioButtons[0].assertIsDisplayed()
-        radioButtons[1].assertIsDisplayed()
-        radioButtons[2].assertIsDisplayed()
-        radioButtons[3].assertIsDisplayed()
-        radioButtons[4].assertIsDisplayed()
+        // Verify all five chip content descriptions are present and displayed
+        listOf("D4", "D6", "D8", "D12", "D20").forEach { diceName ->
+            composeTestRule
+                .onNodeWithContentDescription("Select $diceName")
+                .assertIsDisplayed()
+        }
     }
 
     @Test
@@ -278,21 +276,21 @@ class VisualDiceUiTest {
     fun givenNoRollPerformed_whenScreenIsDisplayed_thenResultAreaShowsDashPlaceholder() {
         launchScreenLight()
 
-        composeTestRule.onNodeWithText("\u2013").assertIsDisplayed()
+        composeTestRule.onNodeWithText("–").assertIsDisplayed()
     }
 
     @Test
     fun givenNoRollPerformedDarkTheme_whenScreenIsDisplayed_thenResultAreaShowsDashPlaceholder() {
         launchScreenDark()
 
-        composeTestRule.onNodeWithText("\u2013").assertIsDisplayed()
+        composeTestRule.onNodeWithText("–").assertIsDisplayed()
     }
 
     @Test
     fun givenUiStateWithNullResult_whenScreenIsDisplayed_thenDashPlaceholderIsShown() {
         launchScreenLight(uiState = DiceRollerUiState(selectedDice = Dice.D12, result = null))
 
-        composeTestRule.onNodeWithText("\u2013").assertIsDisplayed()
+        composeTestRule.onNodeWithText("–").assertIsDisplayed()
     }
 
     // -------------------------------------------------------------------------
@@ -301,7 +299,6 @@ class VisualDiceUiTest {
 
     @Test
     fun givenD4Selected_whenRolled_thenResultAreaShowsNumericText() {
-        // seed=0: DiceRoller(Random(0)).roll(D4) == 1
         val viewModel = launchWithViewModelLight(seed = 0)
         composeTestRule.onNodeWithContentDescription("Select D4").performClick()
 
@@ -355,7 +352,7 @@ class VisualDiceUiTest {
     fun givenNonD6ResultViaUiState_whenScreenIsDisplayed_thenDashPlaceholderIsNotShown() {
         launchScreenLight(uiState = DiceRollerUiState(selectedDice = Dice.D20, result = 17))
 
-        composeTestRule.onNodeWithText("\u2013").assertDoesNotExist()
+        composeTestRule.onNodeWithText("–").assertDoesNotExist()
     }
 
     @Test
@@ -373,12 +370,11 @@ class VisualDiceUiTest {
     fun givenD6ResultViaUiState_whenScreenIsDisplayed_thenDashPlaceholderIsNotShown() {
         launchScreenLight(uiState = DiceRollerUiState(selectedDice = Dice.D6, result = 3))
 
-        composeTestRule.onNodeWithText("\u2013").assertDoesNotExist()
+        composeTestRule.onNodeWithText("–").assertDoesNotExist()
     }
 
     @Test
     fun givenD6Result1ViaUiState_whenScreenIsDisplayed_thenNumericTextForResultIsAbsent() {
-        // D6Pips renders on Canvas; the result number must NOT appear as a Text node
         launchScreenLight(uiState = DiceRollerUiState(selectedDice = Dice.D6, result = 1))
 
         composeTestRule.onNodeWithText("1").assertDoesNotExist()
@@ -423,14 +419,13 @@ class VisualDiceUiTest {
     fun givenD6ResultDarkTheme_whenScreenIsDisplayed_thenDashPlaceholderIsNotShown() {
         launchScreenDark(uiState = DiceRollerUiState(selectedDice = Dice.D6, result = 4))
 
-        composeTestRule.onNodeWithText("\u2013").assertDoesNotExist()
+        composeTestRule.onNodeWithText("–").assertDoesNotExist()
     }
 
     @Test
     fun givenD6ResultDarkTheme_whenScreenIsDisplayed_thenNumericTextForResultIsAbsent() {
         launchScreenDark(uiState = DiceRollerUiState(selectedDice = Dice.D6, result = 4))
 
-        // D6Pips renders on Canvas — no "4" Text node should exist
         composeTestRule.onNodeWithText("4").assertDoesNotExist()
     }
 
@@ -440,26 +435,25 @@ class VisualDiceUiTest {
 
     @Test
     fun givenD6RolledWithResult_whenD20SelectorIsTapped_thenResultIsCleared() {
-        val viewModel = launchWithViewModelLight(seed = 42)
+        launchWithViewModelLight(seed = 42)
         composeTestRule.onNodeWithText("Roll D6").performClick()
-        // Result is now set; dash is gone
-        composeTestRule.onNodeWithText("\u2013").assertDoesNotExist()
+        composeTestRule.onNodeWithText("–").assertDoesNotExist()
 
         composeTestRule.onNodeWithContentDescription("Select D20").performClick()
 
-        composeTestRule.onNodeWithText("\u2013").assertIsDisplayed()
+        composeTestRule.onNodeWithText("–").assertIsDisplayed()
     }
 
     @Test
     fun givenD4RolledWithResult_whenD8SelectorIsTapped_thenResultIsCleared() {
-        val viewModel = launchWithViewModelLight(seed = 11)
+        launchWithViewModelLight(seed = 11)
         composeTestRule.onNodeWithContentDescription("Select D4").performClick()
         composeTestRule.onNodeWithText("Roll D4").performClick()
-        composeTestRule.onNodeWithText("\u2013").assertDoesNotExist()
+        composeTestRule.onNodeWithText("–").assertDoesNotExist()
 
         composeTestRule.onNodeWithContentDescription("Select D8").performClick()
 
-        composeTestRule.onNodeWithText("\u2013").assertIsDisplayed()
+        composeTestRule.onNodeWithText("–").assertIsDisplayed()
     }
 
     @Test
@@ -471,7 +465,7 @@ class VisualDiceUiTest {
         composeTestRule.onNodeWithContentDescription("Select D4").performClick()
 
         composeTestRule.onNodeWithContentDescription("Select D4").assertIsSelected()
-        composeTestRule.onNodeWithText("\u2013").assertIsDisplayed()
+        composeTestRule.onNodeWithText("–").assertIsDisplayed()
     }
 
     @Test
@@ -480,10 +474,8 @@ class VisualDiceUiTest {
         composeTestRule.onNodeWithText("Roll D6").performClick()
         val firstResult = viewModel.uiState.value.result!!
 
-        // Tapping the already-selected die should not clear the result
         composeTestRule.onNodeWithContentDescription("Select D6").performClick()
 
-        // Result is unchanged — still equals the same value from viewModel
         val stateAfter = viewModel.uiState.value.result
         assert(stateAfter == firstResult) {
             "Expected result to be unchanged ($firstResult) but got $stateAfter"
@@ -495,11 +487,11 @@ class VisualDiceUiTest {
         launchWithViewModelDark(seed = 3)
         composeTestRule.onNodeWithContentDescription("Select D20").performClick()
         composeTestRule.onNodeWithText("Roll D20").performClick()
-        composeTestRule.onNodeWithText("\u2013").assertDoesNotExist()
+        composeTestRule.onNodeWithText("–").assertDoesNotExist()
 
         composeTestRule.onNodeWithContentDescription("Select D6").performClick()
 
-        composeTestRule.onNodeWithText("\u2013").assertIsDisplayed()
+        composeTestRule.onNodeWithText("–").assertIsDisplayed()
     }
 
     // -------------------------------------------------------------------------

@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -20,6 +21,12 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/**
+ * Compose UI tests for the main DiceRollerScreen.
+ *
+ * Die selector chips are now image-only (no text label) — nodes are located
+ * via contentDescription ("Select D4", "Select D6", etc.) rather than text.
+ */
 @RunWith(AndroidJUnit4::class)
 class DiceRollerScreenTest {
 
@@ -59,14 +66,14 @@ class DiceRollerScreenTest {
     fun givenAppLaunch_whenScreenIsDisplayed_thenD6ChipIsSelected() {
         launchScreen()
 
-        composeTestRule.onNodeWithText("D6").assertIsSelected()
+        composeTestRule.onNodeWithContentDescription("Select D6").assertIsSelected()
     }
 
     @Test
     fun givenAppLaunch_whenScreenIsDisplayed_thenD4ChipIsNotSelected() {
         launchScreen()
 
-        composeTestRule.onNodeWithText("D4").assertIsNotSelected()
+        composeTestRule.onNodeWithContentDescription("Select D4").assertIsNotSelected()
     }
 
     @Test
@@ -74,7 +81,9 @@ class DiceRollerScreenTest {
         launchScreen()
 
         Dice.entries.forEach { dice ->
-            composeTestRule.onNodeWithText(dice.name).assertIsDisplayed()
+            composeTestRule
+                .onNodeWithContentDescription("Select ${dice.name}")
+                .assertIsDisplayed()
         }
     }
 
@@ -82,8 +91,7 @@ class DiceRollerScreenTest {
     fun givenNoRollPerformed_whenScreenIsDisplayed_thenPlaceholderDashIsShown() {
         launchScreen()
 
-        // The en-dash "\u2013" is the placeholder text before any roll
-        composeTestRule.onNodeWithText("\u2013").assertIsDisplayed()
+        composeTestRule.onNodeWithText("–").assertIsDisplayed()
     }
 
     @Test
@@ -99,25 +107,25 @@ class DiceRollerScreenTest {
     fun givenD6SelectedByDefault_whenD20ChipIsTapped_thenD20ChipBecomesSelected() {
         launchWithViewModel()
 
-        composeTestRule.onNodeWithText("D20").performClick()
+        composeTestRule.onNodeWithContentDescription("Select D20").performClick()
 
-        composeTestRule.onNodeWithText("D20").assertIsSelected()
+        composeTestRule.onNodeWithContentDescription("Select D20").assertIsSelected()
     }
 
     @Test
     fun givenD6SelectedByDefault_whenD20ChipIsTapped_thenD6ChipBecomesDeselected() {
         launchWithViewModel()
 
-        composeTestRule.onNodeWithText("D20").performClick()
+        composeTestRule.onNodeWithContentDescription("Select D20").performClick()
 
-        composeTestRule.onNodeWithText("D6").assertIsNotSelected()
+        composeTestRule.onNodeWithContentDescription("Select D6").assertIsNotSelected()
     }
 
     @Test
     fun givenD6SelectedByDefault_whenD4ChipIsTapped_thenRollButtonUpdatesToD4() {
         launchWithViewModel()
 
-        composeTestRule.onNodeWithText("D4").performClick()
+        composeTestRule.onNodeWithContentDescription("Select D4").performClick()
 
         composeTestRule.onNodeWithText("Roll D4").assertIsDisplayed()
     }
@@ -126,7 +134,7 @@ class DiceRollerScreenTest {
     fun givenD6SelectedByDefault_whenD12ChipIsTapped_thenRollButtonUpdatesToD12() {
         launchWithViewModel()
 
-        composeTestRule.onNodeWithText("D12").performClick()
+        composeTestRule.onNodeWithContentDescription("Select D12").performClick()
 
         composeTestRule.onNodeWithText("Roll D12").assertIsDisplayed()
     }
@@ -139,13 +147,12 @@ class DiceRollerScreenTest {
 
         composeTestRule.onNodeWithText("Roll D6").performClick()
 
-        // After rolling, the en-dash must no longer be visible
-        composeTestRule.onNodeWithText("\u2013").assertDoesNotExist()
+        composeTestRule.onNodeWithText("–").assertDoesNotExist()
     }
 
     @Test
     fun givenRollResultDisplayed_whenRollButtonIsTappedAgain_thenPreviousResultIsReplaced() {
-        // seed=1 gives two different consecutive D6 values so the result node text changes
+        // seed=1 gives two different consecutive D6 values
         val vm = launchWithViewModel(seed = 1)
 
         composeTestRule.onNodeWithText("Roll D6").performClick()
@@ -154,7 +161,6 @@ class DiceRollerScreenTest {
         composeTestRule.onNodeWithText("Roll D6").performClick()
         val secondResult = vm.uiState.value.result!!.toString()
 
-        // The second roll's text is visible; the first roll's text is gone
         composeTestRule.onNodeWithText(secondResult).assertIsDisplayed()
         composeTestRule.onNodeWithText(firstResult).assertDoesNotExist()
     }
@@ -172,7 +178,7 @@ class DiceRollerScreenTest {
     fun givenUiStateWithResult_whenScreenIsDisplayed_thenPlaceholderDashIsNotShown() {
         launchScreen(uiState = DiceRollerUiState(selectedDice = Dice.D6, result = 5))
 
-        composeTestRule.onNodeWithText("\u2013").assertDoesNotExist()
+        composeTestRule.onNodeWithText("–").assertDoesNotExist()
     }
 
     @Test
