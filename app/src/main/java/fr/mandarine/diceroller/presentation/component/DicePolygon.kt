@@ -63,6 +63,7 @@ fun DicePolygon(
             val path = buildPolygonPath(
                 vertexCount = shape.vertexCount,
                 rotationDegrees = shape.rotationDegrees,
+                verticalOffsetFraction = shape.verticalOffsetFraction,
             )
             drawPath(path = path, color = fillColor)
             drawPath(path = path, color = strokeColor, style = Stroke(width = strokeWidthPx))
@@ -80,15 +81,20 @@ fun DicePolygon(
  *
  * @param vertexCount number of vertices (e.g. 3 for triangle, 4 for square)
  * @param rotationDegrees initial rotation offset in degrees
+ * @param verticalOffsetFraction fraction of the polygon radius added to the
+ *        center Y coordinate. Negative values shift the polygon upward,
+ *        correcting optical misalignment for triangle shapes.
  */
 private fun DrawScope.buildPolygonPath(
     vertexCount: Int,
     rotationDegrees: Float,
+    verticalOffsetFraction: Float = 0f,
 ): Path {
     val cx = size.width / 2f
     val cy = size.height / 2f
     val strokeInset = 4f // pixels to keep the stroke fully inside the canvas
     val radius = min(cx, cy) - strokeInset
+    val offsetCy = cy + verticalOffsetFraction * radius
     val angleStep = 2.0 * PI / vertexCount
     val startAngle = rotationDegrees * PI / 180.0
 
@@ -96,7 +102,7 @@ private fun DrawScope.buildPolygonPath(
         for (i in 0 until vertexCount) {
             val angle = startAngle + i * angleStep
             val x = cx + (radius * cos(angle)).toFloat()
-            val y = cy + (radius * sin(angle)).toFloat()
+            val y = offsetCy + (radius * sin(angle)).toFloat()
             if (i == 0) moveTo(x, y) else lineTo(x, y)
         }
         close()
