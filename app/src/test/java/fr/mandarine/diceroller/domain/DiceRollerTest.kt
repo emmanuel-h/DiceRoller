@@ -170,4 +170,125 @@ class DiceRollerTest {
             }
         }
     }
+
+    // --- rollPool: empty pool ---
+
+    @Test
+    fun givenEmptyPool_whenRollingPool_thenResultHasNoGroupsAndZeroTotal() {
+        val result = DiceRoller().rollPool(DicePool())
+
+        assertTrue(result.groups.isEmpty())
+        assertEquals(0, result.total)
+    }
+
+    // --- rollPool: group shape ---
+
+    @Test
+    fun givenSingleDieTypePool_whenRollingPool_thenOneGroupWithMatchingPoolCount() {
+        val pool = DicePool(mapOf(Dice.D6 to 5))
+
+        val result = DiceRoller(random = Random(seed = 1)).rollPool(pool)
+
+        assertEquals(1, result.groups.size)
+        assertEquals(Dice.D6, result.groups[0].dice)
+        assertEquals(5, result.groups[0].poolCount)
+    }
+
+    @Test
+    fun givenMixedPool_whenRollingPool_thenGroupsOrderedSmallestToLargest() {
+        val pool = DicePool(mapOf(Dice.D20 to 2, Dice.D4 to 3, Dice.D8 to 1))
+
+        val result = DiceRoller().rollPool(pool)
+
+        assertEquals(listOf(Dice.D4, Dice.D8, Dice.D20), result.groups.map { it.dice })
+    }
+
+    // --- rollPool: tally correctness ---
+
+    @Test
+    fun givenPool_whenRollingPool_thenTalliesSumToPoolCountPerGroup() {
+        val pool = DicePool(mapOf(Dice.D6 to 10, Dice.D8 to 6))
+
+        val result = DiceRoller().rollPool(pool)
+
+        result.groups.forEach { group ->
+            assertEquals(group.poolCount, group.tallies.sumOf { it.count })
+        }
+    }
+
+    @Test
+    fun givenPool_whenRollingPool_thenEveryTalliedValueIsWithinDiceFaceRange() {
+        val pool = DicePool(mapOf(Dice.D4 to 20, Dice.D20 to 20))
+
+        val result = DiceRoller().rollPool(pool)
+
+        result.groups.forEach { group ->
+            group.tallies.forEach { tally ->
+                assertTrue(
+                    "Expected value in 1..${group.dice.faces}, got ${tally.value}",
+                    tally.value in 1..group.dice.faces,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun givenPool_whenRollingPool_thenTalliesWithinGroupAreSortedDescendingByValue() {
+        val pool = DicePool(mapOf(Dice.D6 to 20))
+
+        val result = DiceRoller().rollPool(pool)
+
+        val values = result.groups.first().tallies.map { it.value }
+        assertEquals(values.sortedDescending(), values)
+    }
+
+    @Test
+    fun givenPool_whenRollingPool_thenNoZeroCountTalliesAppear() {
+        val pool = DicePool(mapOf(Dice.D6 to 20))
+
+        val result = DiceRoller().rollPool(pool)
+
+        result.groups.forEach { group ->
+            group.tallies.forEach { tally -> assertTrue(tally.count > 0) }
+        }
+    }
+
+    // --- rollPool: total ---
+
+    @Test
+    fun givenPool_whenRollingPool_thenTotalEqualsSumOfAllRolledValues() {
+        val pool = DicePool(mapOf(Dice.D6 to 4, Dice.D8 to 2))
+
+        val result = DiceRoller().rollPool(pool)
+
+        val expectedTotal = result.groups.sumOf { group ->
+            group.tallies.sumOf { it.value * it.count }
+        }
+        assertEquals(expectedTotal, result.total)
+    }
+
+    // --- rollPool: existing single-die roll is unaffected ---
+
+    @Test
+    fun givenSameSeed_whenRollingPoolOfOne_thenMatchesDirectRollCall() {
+        val poolRoller = DiceRoller(random = Random(seed = 7))
+        val directRoller = DiceRoller(random = Random(seed = 7))
+
+        val poolResult = poolRoller.rollPool(DicePool(mapOf(Dice.D6 to 1)))
+        val directResult = directRoller.roll(Dice.D6)
+
+        assertEquals(directResult, poolResult.groups.first().tallies.first().value)
+    }
+
+    // --- rollPool: determinism ---
+
+    @Test
+    fun givenSameSeed_whenRollingPoolTwice_thenResultsAreEqual() {
+        val pool = DicePool(mapOf(Dice.D6 to 4, Dice.D8 to 2))
+
+        val first = DiceRoller(random = Random(seed = 55)).rollPool(pool)
+        val second = DiceRoller(random = Random(seed = 55)).rollPool(pool)
+
+        assertEquals(first, second)
+    }
 }
