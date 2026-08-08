@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import fr.mandarine.diceroller.data.DataStoreDiceColorStore
 import fr.mandarine.diceroller.domain.Dice
+import fr.mandarine.diceroller.domain.DicePool
 import fr.mandarine.diceroller.domain.DiceRoller
 import fr.mandarine.diceroller.presentation.model.DiceColor
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,9 +22,10 @@ import kotlinx.coroutines.launch
 /**
  * ViewModel for the dice roller screen.
  *
- * Holds the current [DiceRollerUiState] and exposes actions for selecting a
- * die, choosing a color and rolling. The color is restored from [colorStore]
- * on creation and written back whenever the user picks a new one.
+ * Holds the current [DiceRollerUiState] and exposes actions for adjusting the dice pool,
+ * choosing a color and rolling. The color is restored from [colorStore] on creation and written
+ * back whenever the user picks a new one. The pool itself is not persisted — every new instance
+ * starts empty, per the multi-dice-roll PRD.
  */
 class DiceRollerViewModel(
     private val diceRoller: DiceRoller = DiceRoller(),
@@ -43,18 +45,39 @@ class DiceRollerViewModel(
     }
 
     /**
-     * Selects the given [dice] type.
+     * Increments the pool count for [dice] by one, clamped to [DicePool.MAX_DICE_PER_TYPE].
      *
-     * When the die type changes, the previous roll result is cleared to null
-     * so the result display shows the empty state for the newly selected die.
-     * If the same die type is re-selected, the state is unchanged.
+     * Clears the previous roll result, since the pool that would be rolled has changed. If the
+     * count is already at the cap, this is a no-op and the state is left untouched.
      */
-    fun selectDice(dice: Dice) {
+    fun incrementCount(dice: Dice) {
+        updateCount(dice) { count -> (count + 1).coerceAtMost(DicePool.MAX_DICE_PER_TYPE) }
+    }
+
+    /**
+     * Decrements the pool count for [dice] by one, clamped to a floor of 0.
+     *
+     * Clears the previous roll result, since the pool that would be rolled has changed. If the
+     * count is already at 0, this is a no-op and the state is left untouched.
+     */
+    fun decrementCount(dice: Dice) {
+        updateCount(dice) { count -> (count - 1).coerceAtLeast(0) }
+    }
+
+    /**
+     * Applies [transform] to the current count for [dice] and stores the result, clearing the
+     * roll result if the count actually changed. Leaves the state untouched when [transform]
+     * yields the same count, mirroring the previous "re-select same die = no-op" pattern so the
+     * "count change clears result" rule stays exact.
+     */
+    private fun updateCount(dice: Dice, transform: (Int) -> Int) {
         _uiState.update { state ->
-            if (state.selectedDice == dice) {
+            val currentCount = state.pool[dice] ?: 0
+            val newCount = transform(currentCount)
+            if (newCount == currentCount) {
                 state
             } else {
-                state.copy(selectedDice = dice, result = null)
+                state.copy(pool = state.pool + (dice to newCount), result = null)
             }
         }
     }
@@ -62,8 +85,8 @@ class DiceRollerViewModel(
     /**
      * Selects the given [color] variant and persists it.
      *
-     * Unlike [selectDice] this deliberately preserves [DiceRollerUiState.result]
-     * — recoloring the dice set is a cosmetic change, not a new roll.
+     * Unlike [incrementCount]/[decrementCount] this deliberately preserves
+     * [DiceRollerUiState.result] — recoloring the dice set is a cosmetic change, not a new roll.
      */
     fun selectColor(color: DiceColor) {
         _uiState.update { state -> state.copy(selectedColor = color) }
@@ -73,11 +96,18 @@ class DiceRollerViewModel(
     }
 
     /**
-     * Rolls the currently selected die and updates the result.
+     * Rolls every die currently in the pool and updates the result with the tallied outcome.
+     *
+     * A no-op when the pool is empty ([DiceRollerUiState.canRoll] is false), matching
+     * [DiceRoller.rollPool]'s own defensive no-op for an empty pool.
      */
     fun rollDice() {
         _uiState.update { state ->
-            state.copy(result = diceRoller.roll(state.selectedDice))
+            if (!state.canRoll) {
+                state
+            } else {
+                state.copy(result = diceRoller.rollPool(DicePool(state.pool)))
+            }
         }
     }
 

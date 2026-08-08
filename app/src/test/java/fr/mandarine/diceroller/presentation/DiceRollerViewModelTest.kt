@@ -3,16 +3,16 @@ package fr.mandarine.diceroller.presentation
 
 import fr.mandarine.diceroller.MainDispatcherRule
 import fr.mandarine.diceroller.domain.Dice
+import fr.mandarine.diceroller.domain.DicePool
 import fr.mandarine.diceroller.domain.DiceRoller
 import fr.mandarine.diceroller.presentation.model.DiceColor
 import kotlin.random.Random
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -29,13 +29,20 @@ class DiceRollerViewModelTest {
         colorStore = colorStore,
     )
 
-    // --- Initial state ---
+    // --- Initial state: pool ---
 
     @Test
-    fun givenNewViewModel_whenReadingState_thenSelectedDiceIsD6() {
+    fun givenNewViewModel_whenReadingState_thenPoolStartsEmpty() {
         val state = viewModel().uiState.value
 
-        assertEquals(Dice.D6, state.selectedDice)
+        assertEquals(Dice.entries.associateWith { 0 }, state.pool)
+    }
+
+    @Test
+    fun givenNewViewModel_whenReadingState_thenCanRollIsFalse() {
+        val state = viewModel().uiState.value
+
+        assertFalse(state.canRoll)
     }
 
     @Test
@@ -45,202 +52,6 @@ class DiceRollerViewModelTest {
         assertNull(state.result)
     }
 
-    // --- selectDice ---
-
-    @Test
-    fun givenD6Selected_whenSelectingD4_thenSelectedDiceChangesToD4() {
-        val vm = viewModel()
-
-        vm.selectDice(Dice.D4)
-
-        assertEquals(Dice.D4, vm.uiState.value.selectedDice)
-    }
-
-    @Test
-    fun givenD6Selected_whenSelectingD20_thenSelectedDiceChangesToD20() {
-        val vm = viewModel()
-
-        vm.selectDice(Dice.D20)
-
-        assertEquals(Dice.D20, vm.uiState.value.selectedDice)
-    }
-
-    @Test
-    fun givenNoRollYet_whenSelectingDice_thenResultRemainsNull() {
-        val vm = viewModel()
-
-        vm.selectDice(Dice.D12)
-
-        assertNull(vm.uiState.value.result)
-    }
-
-    @Test
-    fun givenRollPerformed_whenSelectingDifferentDice_thenResultIsClearedToNull() {
-        val vm = viewModel()
-        vm.rollDice()
-        assertNotNull(vm.uiState.value.result)
-
-        vm.selectDice(Dice.D12)
-
-        assertNull(vm.uiState.value.result)
-    }
-
-    @Test
-    fun givenRollPerformed_whenReselectingSameDice_thenResultIsPreserved() {
-        val vm = viewModel()
-        vm.rollDice()
-        val resultBeforeSelection = vm.uiState.value.result
-        assertNotNull(resultBeforeSelection)
-
-        vm.selectDice(Dice.D6) // same die type
-
-        assertEquals(resultBeforeSelection, vm.uiState.value.result)
-    }
-
-    @Test
-    fun givenRollPerformed_whenSelectingDifferentDice_thenNewDiceIsReflectedInState() {
-        val vm = viewModel()
-        vm.rollDice()
-
-        vm.selectDice(Dice.D12)
-
-        assertEquals(Dice.D12, vm.uiState.value.selectedDice)
-    }
-
-    // --- rollDice ---
-
-    @Test
-    fun givenNullResult_whenRolling_thenResultIsNotNull() {
-        val vm = viewModel()
-
-        vm.rollDice()
-
-        assertNotNull(vm.uiState.value.result)
-    }
-
-    @Test
-    fun givenD6Selected_whenRolling_thenResultIsWithinD6Range() {
-        val vm = viewModel()
-
-        vm.rollDice()
-
-        val result = vm.uiState.value.result!!
-        assertTrue("Expected 1..6, got $result", result in 1..6)
-    }
-
-    @Test
-    fun givenD4Selected_whenRolling_thenResultIsWithinD4Range() {
-        val vm = viewModel()
-        vm.selectDice(Dice.D4)
-
-        vm.rollDice()
-
-        val result = vm.uiState.value.result!!
-        assertTrue("Expected 1..4, got $result", result in 1..4)
-    }
-
-    @Test
-    fun givenD8Selected_whenRolling_thenResultIsWithinD8Range() {
-        val vm = viewModel()
-        vm.selectDice(Dice.D8)
-
-        vm.rollDice()
-
-        val result = vm.uiState.value.result!!
-        assertTrue("Expected 1..8, got $result", result in 1..8)
-    }
-
-    @Test
-    fun givenD12Selected_whenRolling_thenResultIsWithinD12Range() {
-        val vm = viewModel()
-        vm.selectDice(Dice.D12)
-
-        vm.rollDice()
-
-        val result = vm.uiState.value.result!!
-        assertTrue("Expected 1..12, got $result", result in 1..12)
-    }
-
-    @Test
-    fun givenD20Selected_whenRolling_thenResultIsWithinD20Range() {
-        val vm = viewModel()
-        vm.selectDice(Dice.D20)
-
-        vm.rollDice()
-
-        val result = vm.uiState.value.result!!
-        assertTrue("Expected 1..20, got $result", result in 1..20)
-    }
-
-    @Test
-    fun givenFirstRollDone_whenRollingAgain_thenResultIsUpdated() {
-        // seed=1 produces two consecutive D6 values: 2 then 6 (verified empirically)
-        val vm = DiceRollerViewModel(diceRoller = DiceRoller(random = Random(seed = 1)))
-
-        vm.rollDice()
-        val firstResult = vm.uiState.value.result
-
-        vm.rollDice()
-        val secondResult = vm.uiState.value.result
-
-        assertNotNull(firstResult)
-        assertNotNull(secondResult)
-        assertNotEquals(
-            "Two consecutive seeded rolls must produce different values for seed=1 on D6",
-            firstResult,
-            secondResult,
-        )
-    }
-
-    @Test
-    fun givenRollDoneWithD6_whenSwitchingToD20AndRolling_thenResultIsWithinD20Range() {
-        val vm = viewModel()
-        vm.rollDice()
-
-        vm.selectDice(Dice.D20)
-        vm.rollDice()
-
-        val result = vm.uiState.value.result!!
-        assertTrue("Expected 1..20 after switching to D20, got $result", result in 1..20)
-    }
-
-    @Test
-    fun givenRollDoneWithD20_whenSwitchingToD4AndRolling_thenResultIsWithinD4Range() {
-        val vm = viewModel()
-        vm.selectDice(Dice.D20)
-        vm.rollDice()
-
-        vm.selectDice(Dice.D4)
-        vm.rollDice()
-
-        val result = vm.uiState.value.result!!
-        assertTrue("Expected 1..4 after switching to D4, got $result", result in 1..4)
-    }
-
-    @Test
-    fun givenRolling_whenRollingAgain_thenSelectedDiceIsUnchanged() {
-        val vm = viewModel()
-        vm.selectDice(Dice.D8)
-        vm.rollDice()
-
-        vm.rollDice()
-
-        assertEquals(Dice.D8, vm.uiState.value.selectedDice)
-    }
-
-    @Test
-    fun givenD10Selected_whenRolling_thenResultIsWithinD10Range() {
-        val vm = viewModel()
-        vm.selectDice(Dice.D10)
-
-        vm.rollDice()
-
-        val result = vm.uiState.value.result!!
-        assertTrue("Expected 1..10, got $result", result in 1..10)
-    }
-
-    // --- selectColor ---
-
     @Test
     fun givenNewViewModel_whenReadingState_thenSelectedColorIsTheDefault() {
         val state = viewModel().uiState.value
@@ -248,18 +59,152 @@ class DiceRollerViewModelTest {
         assertEquals(DiceColor.Default, state.selectedColor)
     }
 
+    // --- incrementCount ---
+
     @Test
-    fun givenDefaultColor_whenSelectingRuby_thenSelectedColorChangesToRuby() {
+    fun givenEmptyPool_whenIncrementingD6_thenCountBecomesOne() {
         val vm = viewModel()
 
-        vm.selectColor(DiceColor.Ruby)
+        vm.incrementCount(Dice.D6)
 
-        assertEquals(DiceColor.Ruby, vm.uiState.value.selectedColor)
+        assertEquals(1, vm.uiState.value.pool[Dice.D6])
     }
+
+    @Test
+    fun givenCountBelowMax_whenIncrementing_thenOtherDiceTypesAreUnaffected() {
+        val vm = viewModel()
+
+        vm.incrementCount(Dice.D6)
+
+        val pool = vm.uiState.value.pool
+        Dice.entries.filter { it != Dice.D6 }.forEach { dice ->
+            assertEquals("Expected $dice to remain at 0, got ${pool[dice]}", 0, pool[dice])
+        }
+    }
+
+    @Test
+    fun givenCountBelowMax_whenIncrementingRepeatedly_thenCountIncreasesByOneEachTime() {
+        val vm = viewModel()
+
+        repeat(5) { vm.incrementCount(Dice.D8) }
+
+        assertEquals(5, vm.uiState.value.pool[Dice.D8])
+    }
+
+    // --- incrementCount: clamping at the cap (acceptance criterion) ---
+
+    @Test
+    fun givenCountAtMax_whenIncrementingAgain_thenCountHasNoFurtherEffect() {
+        val vm = viewModel()
+        repeat(DicePool.MAX_DICE_PER_TYPE) { vm.incrementCount(Dice.D6) }
+        assertEquals(DicePool.MAX_DICE_PER_TYPE, vm.uiState.value.pool[Dice.D6])
+
+        vm.incrementCount(Dice.D6)
+
+        assertEquals(DicePool.MAX_DICE_PER_TYPE, vm.uiState.value.pool[Dice.D6])
+    }
+
+    @Test
+    fun givenCountWellPastMax_whenIncrementingManyMoreTimes_thenCountStaysClampedAtMax() {
+        val vm = viewModel()
+
+        repeat(DicePool.MAX_DICE_PER_TYPE + 30) { vm.incrementCount(Dice.D20) }
+
+        assertEquals(DicePool.MAX_DICE_PER_TYPE, vm.uiState.value.pool[Dice.D20])
+    }
+
+    // --- decrementCount ---
+
+    @Test
+    fun givenCountAboveZero_whenDecrementing_thenCountDecreasesByOne() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D12)
+        vm.incrementCount(Dice.D12)
+
+        vm.decrementCount(Dice.D12)
+
+        assertEquals(1, vm.uiState.value.pool[Dice.D12])
+    }
+
+    // --- decrementCount: clamping at the floor (acceptance criterion) ---
+
+    @Test
+    fun givenCountAtZero_whenDecrementing_thenCountHasNoFurtherEffect() {
+        val vm = viewModel()
+
+        vm.decrementCount(Dice.D6)
+
+        assertEquals(0, vm.uiState.value.pool[Dice.D6])
+    }
+
+    @Test
+    fun givenCountAtZero_whenDecrementingManyTimes_thenCountStaysClampedAtZero() {
+        val vm = viewModel()
+
+        repeat(10) { vm.decrementCount(Dice.D4) }
+
+        assertEquals(0, vm.uiState.value.pool[Dice.D4])
+    }
+
+    // --- Result-clearing rules: count changes clear the result ---
+
+    @Test
+    fun givenRollPerformed_whenIncrementingCount_thenResultIsClearedToNull() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        assertNotNull(vm.uiState.value.result)
+
+        vm.incrementCount(Dice.D8)
+
+        assertNull(vm.uiState.value.result)
+    }
+
+    @Test
+    fun givenRollPerformed_whenDecrementingCount_thenResultIsClearedToNull() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        assertNotNull(vm.uiState.value.result)
+
+        vm.decrementCount(Dice.D6)
+
+        assertNull(vm.uiState.value.result)
+    }
+
+    @Test
+    fun givenRollPerformed_whenIncrementingAtCap_thenResultIsPreservedBecauseCountDidNotActuallyChange() {
+        val vm = viewModel()
+        repeat(DicePool.MAX_DICE_PER_TYPE) { vm.incrementCount(Dice.D6) }
+        vm.rollDice()
+        val resultBeforeIncrement = vm.uiState.value.result
+        assertNotNull(resultBeforeIncrement)
+
+        vm.incrementCount(Dice.D6) // already at the cap, no-op
+
+        assertEquals(resultBeforeIncrement, vm.uiState.value.result)
+    }
+
+    @Test
+    fun givenRollPerformed_whenDecrementingAtFloor_thenResultIsPreservedBecauseCountDidNotActuallyChange() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        val resultBeforeDecrement = vm.uiState.value.result
+        assertNotNull(resultBeforeDecrement)
+
+        vm.decrementCount(Dice.D4) // already at 0, no-op
+
+        assertEquals(resultBeforeDecrement, vm.uiState.value.result)
+    }
+
+    // --- Result-clearing rules: selectColor never clears the result ---
 
     @Test
     fun givenRollPerformed_whenSelectingColor_thenResultIsPreserved() {
         val vm = viewModel()
+        vm.incrementCount(Dice.D6)
         vm.rollDice()
         val resultBeforeSelection = vm.uiState.value.result
         assertNotNull(resultBeforeSelection)
@@ -270,40 +215,120 @@ class DiceRollerViewModelTest {
     }
 
     @Test
-    fun givenRollPerformed_whenSelectingColor_thenSelectedDiceIsUnchanged() {
+    fun givenRollPerformed_whenSelectingColor_thenPoolIsUnchanged() {
         val vm = viewModel()
-        vm.selectDice(Dice.D20)
+        vm.incrementCount(Dice.D6)
+        vm.incrementCount(Dice.D20)
         vm.rollDice()
+        val poolBeforeSelection = vm.uiState.value.pool
 
         vm.selectColor(DiceColor.Moss)
 
-        assertEquals(Dice.D20, vm.uiState.value.selectedDice)
+        assertEquals(poolBeforeSelection, vm.uiState.value.pool)
     }
 
-    @Test
-    fun givenColorSelected_whenSelectingDifferentDice_thenResultIsClearedButColorRemains() {
-        val vm = viewModel()
-        vm.selectColor(DiceColor.Indigo)
-        vm.rollDice()
-        assertNotNull(vm.uiState.value.result)
+    // --- rollDice: empty pool ---
 
-        vm.selectDice(Dice.D10)
+    @Test
+    fun givenEmptyPool_whenRolling_thenResultRemainsNull() {
+        val vm = viewModel()
+
+        vm.rollDice()
 
         assertNull(vm.uiState.value.result)
-        assertEquals(DiceColor.Indigo, vm.uiState.value.selectedColor)
     }
 
     @Test
-    fun givenEveryColor_whenSelected_thenStateReflectsIt() {
+    fun givenPoolEmptiedAfterIncrementThenDecrement_whenRolling_thenResultRemainsNull() {
         val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        vm.decrementCount(Dice.D6) // back to empty
 
-        DiceColor.entries.forEach { color ->
-            vm.selectColor(color)
-            assertEquals(color, vm.uiState.value.selectedColor)
-        }
+        vm.rollDice()
+
+        assertNull(vm.uiState.value.result)
     }
 
-    // --- Color persistence ---
+    // --- rollDice: non-empty pool matches the domain pool-rolling API ---
+
+    @Test
+    fun givenNonEmptyPool_whenRolling_thenResultIsNotNull() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+
+        vm.rollDice()
+
+        assertNotNull(vm.uiState.value.result)
+    }
+
+    @Test
+    fun givenSingleDieTypePool_whenRolling_thenResultMatchesDicePoolResultFromDomainApi() {
+        val seed = 123L
+        val vm = viewModel(seed = seed)
+        vm.incrementCount(Dice.D6)
+        vm.incrementCount(Dice.D6)
+        val poolBeforeRoll = vm.uiState.value.pool
+
+        vm.rollDice()
+
+        val expected = DiceRoller(random = Random(seed)).rollPool(DicePool(poolBeforeRoll))
+        assertEquals(expected, vm.uiState.value.result)
+    }
+
+    @Test
+    fun givenMixedDieTypePool_whenRolling_thenResultMatchesDicePoolResultFromDomainApi() {
+        val seed = 2024L
+        val vm = viewModel(seed = seed)
+        vm.incrementCount(Dice.D4)
+        vm.incrementCount(Dice.D4)
+        vm.incrementCount(Dice.D4)
+        vm.incrementCount(Dice.D20)
+        val poolBeforeRoll = vm.uiState.value.pool
+
+        vm.rollDice()
+
+        val expected = DiceRoller(random = Random(seed)).rollPool(DicePool(poolBeforeRoll))
+        assertEquals(expected, vm.uiState.value.result)
+    }
+
+    @Test
+    fun givenFirstRollDone_whenChangingPoolAndRollingAgain_thenResultIsUpdatedToTheNewSeededRoll() {
+        val seed = 7L
+        val vm = viewModel(seed = seed)
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        val firstResult = vm.uiState.value.result
+        assertNotNull(firstResult)
+
+        vm.incrementCount(Dice.D8)
+        val poolBeforeSecondRoll = vm.uiState.value.pool
+        vm.rollDice()
+
+        val replayRoller = DiceRoller(random = Random(seed))
+        replayRoller.rollPool(DicePool(mapOf(Dice.D6 to 1))) // replays the first roll's random draw
+        val expectedSecondResult = replayRoller.rollPool(DicePool(poolBeforeSecondRoll))
+        assertEquals(expectedSecondResult, vm.uiState.value.result)
+    }
+
+    // --- Pool starts empty / color restoration is unchanged ---
+
+    @Test
+    fun givenStoreHoldingAColor_whenViewModelIsCreated_thenThatColorIsRestored() {
+        val store = InMemoryDiceColorStore(initial = DiceColor.Sapphire)
+
+        val vm = viewModel(colorStore = store)
+
+        assertEquals(DiceColor.Sapphire, vm.uiState.value.selectedColor)
+    }
+
+    @Test
+    fun givenStoreHoldingAColor_whenViewModelIsCreated_thenPoolAndResultAreUntouched() {
+        val store = InMemoryDiceColorStore(initial = DiceColor.Smoke)
+
+        val vm = viewModel(colorStore = store)
+
+        assertEquals(Dice.entries.associateWith { 0 }, vm.uiState.value.pool)
+    }
 
     @Test
     fun givenColorSelected_whenReadingTheStore_thenTheChoiceWasWrittenThrough() = runTest {
@@ -313,15 +338,6 @@ class DiceRollerViewModelTest {
         vm.selectColor(DiceColor.Bronze)
 
         assertEquals(DiceColor.Bronze, store.selectedColor.first())
-    }
-
-    @Test
-    fun givenStoreHoldingAColor_whenViewModelIsCreated_thenThatColorIsRestored() {
-        val store = InMemoryDiceColorStore(initial = DiceColor.Sapphire)
-
-        val vm = viewModel(colorStore = store)
-
-        assertEquals(DiceColor.Sapphire, vm.uiState.value.selectedColor)
     }
 
     @Test
@@ -335,12 +351,12 @@ class DiceRollerViewModelTest {
     }
 
     @Test
-    fun givenStoreHoldingAColor_whenViewModelIsCreated_thenDiceAndResultAreUntouched() {
-        val store = InMemoryDiceColorStore(initial = DiceColor.Smoke)
+    fun givenEveryColor_whenSelected_thenStateReflectsIt() {
+        val vm = viewModel()
 
-        val vm = viewModel(colorStore = store)
-
-        assertEquals(Dice.D6, vm.uiState.value.selectedDice)
-        assertNull(vm.uiState.value.result)
+        DiceColor.entries.forEach { color ->
+            vm.selectColor(color)
+            assertEquals(color, vm.uiState.value.selectedColor)
+        }
     }
 }
