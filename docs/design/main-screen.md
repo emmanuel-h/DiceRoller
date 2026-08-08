@@ -1,6 +1,8 @@
 # Main Screen Design Spec
 
 > Covers GitHub Issues #7 and #9.
+>
+> **Superseded:** the die-selector portion below (the single-select `FilterChip` row) has been replaced by the per-die-type stepper chip selector. See [Multi-Dice Roll — Design Spec](multi-dice-roll.md) for the current design (issues #44 and #45). The rest of this document (app bar, general layout shell) still applies; content below is kept for history.
 
 ## Screen layout
 

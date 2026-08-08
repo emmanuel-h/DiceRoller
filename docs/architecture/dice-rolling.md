@@ -1,6 +1,8 @@
 # Architecture: Dice Rolling Feature
 
 > Covers GitHub Issues #8 and #10.
+>
+> **Superseded for the pool-rolling model:** as of issues #46/#47, single-die selection is being replaced by a dice pool (multiple die types and counts rolled together). The pool data model, `DiceRoller.rollPool` contract, and the pool-aware `DiceRollerUiState`/`DiceRollerViewModel` redesign are documented in [Architecture: Multi-Dice Roll (Pool Rolling)](multi-dice-roll.md). This file is kept for historical reference on the single-die design it describes below.
 
 ## Overview
 

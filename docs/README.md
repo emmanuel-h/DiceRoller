@@ -8,11 +8,13 @@
 - [Roll Multiple Dice at Once](features/multi-dice-roll.md)
 
 ## Architecture
-- [Dice Rolling](architecture/dice-rolling.md)
+- [Dice Rolling](architecture/dice-rolling.md) (superseded for pool rolling — see below)
+- [Multi-Dice Roll (Pool Rolling)](architecture/multi-dice-roll.md)
 - [Visual Dice Shapes](architecture/visual-dice-shapes.md)
 
 ## Design
-- [Main Screen](design/main-screen.md)
+- [Main Screen](design/main-screen.md) (die-selector portion superseded — see below)
+- [Multi-Dice Roll](design/multi-dice-roll.md)
 - [Polygon Geometry and Visual States](design/polygon-geometry-and-visual-states.md)
 
 ## Testing

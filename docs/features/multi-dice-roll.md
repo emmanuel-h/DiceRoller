@@ -78,10 +78,20 @@ Face ladder, filtered to values actually rolled:
 ```
 
 ## Design
-Not yet written. Will land at `docs/design/main-screen.md` (update) or a new `docs/design/multi-dice-roll.md`, covering the stepper chip layout, the per-die-type result groups, and the demoted total line.
+> Last updated: linked to the new design spec covering issues #44 and #45.
+
+See [Multi-Dice Roll — Design Spec](../design/multi-dice-roll.md), covering two areas:
+- **Stepper chip selector and Roll button (issue #44)** — the per-die-type `− count +` stepper chips replacing the old single-select `FilterChip` row, the pool-aware Roll button label, and the bottom-bar layout restructure.
+- **Result face-ladder and total line (issue #45)** — the per-die-type result groups (face ladder), row anatomy, and the demoted total line.
+
+This supersedes the die-selector portion of [Main Screen Design Spec](../design/main-screen.md), which described the retired single-select `FilterChip` model.
 
 ## Architecture
-Not yet written. Will land at `docs/architecture/multi-dice-roll.md`, covering the pool data model (die type → count), the tally computation (grouping rolled values per die type), and the ViewModel/UiState changes needed to replace single-die selection with a pool.
+See [Architecture: Multi-Dice Roll (Pool Rolling)](../architecture/multi-dice-roll.md), covering two issues:
+- **Domain (issue #46):** the pool data model (`DicePool`, `DicePoolResult`, `DiceGroupResult`, `ValueTally`) and the `DiceRoller.rollPool(pool): DicePoolResult` contract — grouping, tallying, ordering, and zero-count exclusion all happen in the domain layer.
+- **Presentation (issue #47):** reshaping `DiceRollerUiState` to hold a `pool: Map<Dice, Int>` and a structured `result`, and replacing `DiceRollerViewModel.selectDice` with `incrementCount`/`decrementCount`, clamped to 0–20 per die type.
+
+This supersedes the single-die model documented in [Architecture: Dice Rolling](../architecture/dice-rolling.md), which now points back to the new doc.
 
 ## Testing
 Not yet written. Will land at `docs/testing/multi-dice-roll.md`.
@@ -89,10 +99,14 @@ Not yet written. Will land at `docs/testing/multi-dice-roll.md`.
 ### Related docs
 - [Dice Selection and Roll (superseded single-die flow)](dice-selection-and-roll.md)
 - [Fantasy Dices Pack art with color picker](fantasy-dice-art.md)
-- [Architecture: Dice Rolling](../architecture/dice-rolling.md)
-- [Main Screen Design Spec](../design/main-screen.md)
+- [Multi-Dice Roll — Design Spec](../design/multi-dice-roll.md)
+- [Architecture: Multi-Dice Roll (Pool Rolling)](../architecture/multi-dice-roll.md)
+- [Architecture: Dice Rolling (superseded for pool rolling)](../architecture/dice-rolling.md)
+- [Main Screen Design Spec (superseded die-selector portion)](../design/main-screen.md)
 
 ## Changelog
 | Date | Change |
 |------|--------|
 | 2026-08-08 | Initial version — approved PRD for rolling multiple dice at once |
+| 2026-08-08 | Added Architecture section — links to `docs/architecture/multi-dice-roll.md` (issues #46, #47) |
+| 2026-08-08 | Added Design section — links to `docs/design/multi-dice-roll.md` (issues #44, #45) |
