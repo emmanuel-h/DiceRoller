@@ -10,6 +10,7 @@ enum class Dice(val faces: Int) {
     D4(faces = 4),
     D6(faces = 6),
     D8(faces = 8),
+    D10(faces = 10),
     D12(faces = 12),
     D20(faces = 20),
 }

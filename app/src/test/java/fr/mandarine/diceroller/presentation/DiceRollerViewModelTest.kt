@@ -1,20 +1,33 @@
 // app/src/test/java/fr/mandarine/diceroller/presentation/DiceRollerViewModelTest.kt
 package fr.mandarine.diceroller.presentation
 
+import fr.mandarine.diceroller.MainDispatcherRule
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DiceRoller
+import fr.mandarine.diceroller.presentation.model.DiceColor
 import kotlin.random.Random
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
 
 class DiceRollerViewModelTest {
 
-    private fun viewModel(seed: Long = 42): DiceRollerViewModel =
-        DiceRollerViewModel(diceRoller = DiceRoller(random = Random(seed)))
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
+    private fun viewModel(
+        seed: Long = 42,
+        colorStore: DiceColorStore = InMemoryDiceColorStore(),
+    ): DiceRollerViewModel = DiceRollerViewModel(
+        diceRoller = DiceRoller(random = Random(seed)),
+        colorStore = colorStore,
+    )
 
     // --- Initial state ---
 
@@ -213,5 +226,121 @@ class DiceRollerViewModelTest {
         vm.rollDice()
 
         assertEquals(Dice.D8, vm.uiState.value.selectedDice)
+    }
+
+    @Test
+    fun givenD10Selected_whenRolling_thenResultIsWithinD10Range() {
+        val vm = viewModel()
+        vm.selectDice(Dice.D10)
+
+        vm.rollDice()
+
+        val result = vm.uiState.value.result!!
+        assertTrue("Expected 1..10, got $result", result in 1..10)
+    }
+
+    // --- selectColor ---
+
+    @Test
+    fun givenNewViewModel_whenReadingState_thenSelectedColorIsTheDefault() {
+        val state = viewModel().uiState.value
+
+        assertEquals(DiceColor.Default, state.selectedColor)
+    }
+
+    @Test
+    fun givenDefaultColor_whenSelectingRuby_thenSelectedColorChangesToRuby() {
+        val vm = viewModel()
+
+        vm.selectColor(DiceColor.Ruby)
+
+        assertEquals(DiceColor.Ruby, vm.uiState.value.selectedColor)
+    }
+
+    @Test
+    fun givenRollPerformed_whenSelectingColor_thenResultIsPreserved() {
+        val vm = viewModel()
+        vm.rollDice()
+        val resultBeforeSelection = vm.uiState.value.result
+        assertNotNull(resultBeforeSelection)
+
+        vm.selectColor(DiceColor.Jade)
+
+        assertEquals(resultBeforeSelection, vm.uiState.value.result)
+    }
+
+    @Test
+    fun givenRollPerformed_whenSelectingColor_thenSelectedDiceIsUnchanged() {
+        val vm = viewModel()
+        vm.selectDice(Dice.D20)
+        vm.rollDice()
+
+        vm.selectColor(DiceColor.Moss)
+
+        assertEquals(Dice.D20, vm.uiState.value.selectedDice)
+    }
+
+    @Test
+    fun givenColorSelected_whenSelectingDifferentDice_thenResultIsClearedButColorRemains() {
+        val vm = viewModel()
+        vm.selectColor(DiceColor.Indigo)
+        vm.rollDice()
+        assertNotNull(vm.uiState.value.result)
+
+        vm.selectDice(Dice.D10)
+
+        assertNull(vm.uiState.value.result)
+        assertEquals(DiceColor.Indigo, vm.uiState.value.selectedColor)
+    }
+
+    @Test
+    fun givenEveryColor_whenSelected_thenStateReflectsIt() {
+        val vm = viewModel()
+
+        DiceColor.entries.forEach { color ->
+            vm.selectColor(color)
+            assertEquals(color, vm.uiState.value.selectedColor)
+        }
+    }
+
+    // --- Color persistence ---
+
+    @Test
+    fun givenColorSelected_whenReadingTheStore_thenTheChoiceWasWrittenThrough() = runTest {
+        val store = InMemoryDiceColorStore()
+        val vm = viewModel(colorStore = store)
+
+        vm.selectColor(DiceColor.Bronze)
+
+        assertEquals(DiceColor.Bronze, store.selectedColor.first())
+    }
+
+    @Test
+    fun givenStoreHoldingAColor_whenViewModelIsCreated_thenThatColorIsRestored() {
+        val store = InMemoryDiceColorStore(initial = DiceColor.Sapphire)
+
+        val vm = viewModel(colorStore = store)
+
+        assertEquals(DiceColor.Sapphire, vm.uiState.value.selectedColor)
+    }
+
+    @Test
+    fun givenColorSelected_whenANewViewModelSharesTheStore_thenTheChoiceSurvives() {
+        val store = InMemoryDiceColorStore()
+        viewModel(colorStore = store).selectColor(DiceColor.Orchid)
+
+        val restarted = viewModel(colorStore = store)
+
+        assertEquals(DiceColor.Orchid, restarted.uiState.value.selectedColor)
+    }
+
+    @Test
+    fun givenStoreHoldingAColor_whenViewModelIsCreated_thenDiceAndResultAreUntouched() {
+        val store = InMemoryDiceColorStore(initial = DiceColor.Smoke)
+
+        val vm = viewModel(colorStore = store)
+
+        assertEquals(Dice.D6, vm.uiState.value.selectedDice)
+        assertNull(vm.uiState.value.result)
     }
 }

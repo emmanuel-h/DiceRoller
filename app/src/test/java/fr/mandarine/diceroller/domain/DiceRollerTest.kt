@@ -11,8 +11,16 @@ class DiceRollerTest {
     // --- Dice enum ---
 
     @Test
-    fun givenDiceEnum_whenCountingEntries_thenFiveDiceAreAvailable() {
-        assertEquals(5, Dice.entries.size)
+    fun givenDiceEnum_whenCountingEntries_thenSixDiceAreAvailable() {
+        assertEquals(6, Dice.entries.size)
+    }
+
+    @Test
+    fun givenDiceEnum_whenReadingOrder_thenDiceAscendByFaceCount() {
+        assertEquals(
+            listOf(Dice.D4, Dice.D6, Dice.D8, Dice.D10, Dice.D12, Dice.D20),
+            Dice.entries,
+        )
     }
 
     @Test
@@ -28,6 +36,11 @@ class DiceRollerTest {
     @Test
     fun givenD8_whenReadingFaces_thenFaceCountIs8() {
         assertEquals(8, Dice.D8.faces)
+    }
+
+    @Test
+    fun givenD10_whenReadingFaces_thenFaceCountIs10() {
+        assertEquals(10, Dice.D10.faces)
     }
 
     @Test
@@ -67,6 +80,23 @@ class DiceRollerTest {
             val result = roller.roll(Dice.D8)
             assertTrue("Expected 1..8, got $result", result in 1..8)
         }
+    }
+
+    @Test
+    fun givenD10_whenRolledManyTimes_thenResultIsAlwaysInRange() {
+        val roller = DiceRoller()
+        repeat(200) {
+            val result = roller.roll(Dice.D10)
+            assertTrue("Expected 1..10, got $result", result in 1..10)
+        }
+    }
+
+    @Test
+    fun givenD10_whenRolledManyTimes_thenBothBoundsAreReachable() {
+        val results = (1..1000).map { DiceRoller(random = Random(it.toLong())).roll(Dice.D10) }
+
+        assertTrue("Lower bound 1 must be reachable on D10", results.any { it == 1 })
+        assertTrue("Upper bound 10 must be reachable on D10", results.any { it == 10 })
     }
 
     @Test
