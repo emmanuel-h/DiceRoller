@@ -24,11 +24,12 @@ import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
  * @param sizeVariant controls the box the artwork is fitted into
  * @param modifier optional [Modifier] applied to the image
  * @param alpha opacity applied to the artwork, used to dim the empty state
- * @param contentDescription accessibility label; defaults to `"D20, amethyst"` form.
- *        Callers that wrap the image in their own labelled control should pass a
- *        distinct label so the two do not collide in the semantics tree, or pass
- *        `null` to mark the artwork as purely decorative when an ancestor node
- *        (e.g. a merged row) already carries the accessible description.
+ * @param contentDescription accessibility label; defaults to `"D20, amethyst"` form. Callers
+ *        that wrap the image in their own labelled control should pass a distinct label so the
+ *        two do not collide in the semantics tree, or `null` to mark the artwork decorative when
+ *        an adjacent element already conveys everything the image would — e.g. a "D6" text label
+ *        or a stepper button's own description (stepper chips), or an ancestor node such as a
+ *        merged row that already carries the accessible description (result face-ladder rows).
  */
 @Composable
 fun DiceImage(

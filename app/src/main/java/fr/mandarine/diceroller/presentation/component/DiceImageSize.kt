@@ -11,6 +11,9 @@ import androidx.compose.ui.unit.dp
  */
 enum class DiceImageSize(val sizeDp: Dp) {
 
+    /** Micro variant used inside a [DiceStepperChip], alongside its "D6"-style label. */
+    Micro(sizeDp = 28.dp),
+
     /** Small variant used in the dice selector row. */
     Small(sizeDp = 56.dp),
 
