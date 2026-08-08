@@ -1,11 +1,12 @@
 // app/src/main/java/fr/mandarine/diceroller/presentation/component/DiceResultDisplay.kt
 package fr.mandarine.diceroller.presentation.component
 
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -13,99 +14,100 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import fr.mandarine.diceroller.domain.Dice
+import fr.mandarine.diceroller.presentation.model.DiceColor
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 
+/** Opacity applied to the die artwork before the first roll. */
+private const val EMPTY_STATE_ALPHA = 0.4f
+
+/** Placeholder shown in place of the number before the first roll. */
+private const val EMPTY_STATE_PLACEHOLDER = "–"
+
 /**
- * Displays the dice roll result inside a large [DicePolygon].
+ * Displays the selected die's artwork with the roll result underneath.
  *
- * - **Empty state** (result is null): polygon outline in `outlineVariant`, no fill,
- *   with an en-dash placeholder centered inside.
- * - **D6 with result 1-6**: polygon outline in `primary`, filled with `primaryContainer`,
- *   with [D6Pips] rendered inside.
- * - **All other dice with a result**: polygon outline in `primary`, filled with
- *   `primaryContainer`, with the result number in `displayLarge` typography.
+ * The pack artwork carries its own painted numerals, so it cannot show the
+ * rolled value — the die is decorative and the result is a large number below
+ * it, rendered on the surface so it stays legible against every color variant
+ * in both light and dark themes.
  *
- * The composable carries `liveRegion = LiveRegionMode.Polite` semantics so
- * accessibility services announce result changes.
+ * - **Empty state** (result is null): artwork dimmed to [EMPTY_STATE_ALPHA],
+ *   with an en-dash in place of the number.
+ * - **Rolled**: artwork at full opacity, result in `displayLarge`.
  *
- * @param selectedDice the currently selected die type whose shape to display
+ * The result text carries `liveRegion = LiveRegionMode.Polite` semantics so
+ * accessibility services announce each new roll.
+ *
+ * @param selectedDice the currently selected die type
+ * @param selectedColor the currently selected color variant
  * @param result the roll result, or null when no roll has been performed yet
  * @param modifier optional [Modifier] applied to the root container
  */
 @Composable
 fun DiceResultDisplay(
     selectedDice: Dice,
+    selectedColor: DiceColor,
     result: Int?,
     modifier: Modifier = Modifier,
 ) {
-    DicePolygon(
-        dice = selectedDice,
-        sizeVariant = DicePolygonSize.Large,
-        modifier = modifier.semantics { liveRegion = LiveRegionMode.Polite },
-        isSelected = result != null,
-        strokeColor = if (result == null) {
-            MaterialTheme.colorScheme.outlineVariant
-        } else {
-            MaterialTheme.colorScheme.primary
-        },
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        when {
-            result == null -> {
-                Text(
-                    text = "\u2013",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            selectedDice == Dice.D6 && result in 1..6 -> {
-                D6Pips(
-                    result = result,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                )
-            }
-            else -> {
-                Text(
-                    text = result.toString(),
-                    style = MaterialTheme.typography.displayLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            }
-        }
+        DiceImage(
+            dice = selectedDice,
+            color = selectedColor,
+            sizeVariant = DiceImageSize.Large,
+            alpha = if (result == null) EMPTY_STATE_ALPHA else 1f,
+        )
+        Text(
+            text = result?.toString() ?: EMPTY_STATE_PLACEHOLDER,
+            style = MaterialTheme.typography.displayLarge,
+            color = if (result == null) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
     }
 }
 
 // -- Previews -----------------------------------------------------------------
 
-@Preview(name = "Empty state - D6", showBackground = true)
+@Preview(name = "Empty state - D6 amethyst", showBackground = true)
 @Composable
 private fun DiceResultDisplayEmptyPreview() {
     DiceRollerTheme(dynamicColor = false) {
-        DiceResultDisplay(selectedDice = Dice.D6, result = null)
+        DiceResultDisplay(
+            selectedDice = Dice.D6,
+            selectedColor = DiceColor.Amethyst,
+            result = null,
+        )
     }
 }
 
-@Preview(name = "D6 result = 5", showBackground = true)
-@Composable
-private fun DiceResultDisplayD6Preview() {
-    DiceRollerTheme(dynamicColor = false) {
-        DiceResultDisplay(selectedDice = Dice.D6, result = 5)
-    }
-}
-
-@Preview(name = "D4 result = 3", showBackground = true)
-@Composable
-private fun DiceResultDisplayD4Preview() {
-    DiceRollerTheme(dynamicColor = false) {
-        DiceResultDisplay(selectedDice = Dice.D4, result = 3)
-    }
-}
-
-@Preview(name = "D20 result = 17", showBackground = true)
+@Preview(name = "D20 ruby result = 17", showBackground = true)
 @Composable
 private fun DiceResultDisplayD20Preview() {
     DiceRollerTheme(dynamicColor = false) {
-        DiceResultDisplay(selectedDice = Dice.D20, result = 17)
+        DiceResultDisplay(
+            selectedDice = Dice.D20,
+            selectedColor = DiceColor.Ruby,
+            result = 17,
+        )
+    }
+}
+
+@Preview(name = "D10 jade result = 7", showBackground = true)
+@Composable
+private fun DiceResultDisplayD10Preview() {
+    DiceRollerTheme(dynamicColor = false) {
+        DiceResultDisplay(
+            selectedDice = Dice.D10,
+            selectedColor = DiceColor.Jade,
+            result = 7,
+        )
     }
 }

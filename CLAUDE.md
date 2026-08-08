@@ -30,17 +30,20 @@ Single-module Android app (`app/`) using Jetpack Compose and MVVM.
 
 **Layers:**
 
-- `domain/` — pure Kotlin, no Android imports. `Dice` (enum of D4/D6/D8/D12/D20 with face counts) and `DiceRoller` (stateless, takes an injectable `Random` for deterministic testing).
-- `presentation/` — ViewModel (`DiceRollerViewModel`) holds `DiceRollerUiState` as a `StateFlow`. Selecting a different die clears the result to null; re-selecting the same die preserves it.
-- `presentation/model/` — pure Kotlin presentation models with no Compose imports. `DiceShape` is a sealed class mapping each `Dice` to polygon parameters (`vertexCount`, `rotationDegrees`). `D6PipLayout` maps roll results 1–6 to `PipPosition` lists in unit-square coordinates (`0f..1f`).
-- `presentation/component/` — Compose components. `DicePolygon` draws any die shape as a regular polygon using Canvas math (center + radius + angle step). `DiceResultDisplay` composes `DicePolygon` + result: D6 shows `D6Pips`, others show the number as text. `DicePolygonSize` (enum: Small/Large) controls dimensions and stroke width.
-- `MainActivity` owns the single screen: a die selector row (horizontally scrollable `DicePolygon` chips), a centered `DiceResultDisplay`, and a roll button.
+- `domain/` — pure Kotlin, no Android imports. `Dice` (enum of D4/D6/D8/D10/D12/D20 with face counts) and `DiceRoller` (stateless, takes an injectable `Random` for deterministic testing).
+- `presentation/` — ViewModel (`DiceRollerViewModel`) holds `DiceRollerUiState` as a `StateFlow`. Selecting a different die clears the result to null; re-selecting the same die preserves it. Selecting a *color* never clears the result. `DiceColorStore` abstracts color persistence, with `InMemoryDiceColorStore` for tests.
+- `presentation/model/` — `DiceColor`, the 12 Fantasy Dices Pack variants, each carrying a `label`, a `swatch` color, and `drawableFor(dice)`.
+- `presentation/component/` — Compose components. `DiceImage` renders one pack drawable with `ContentScale.Fit`. `DiceImageSize` (enum: Small/Large) sets the box it is fitted into. `DiceResultDisplay` stacks the die art over the result number. `DiceColorSwatchRow` is the 12-dot color picker.
+- `data/` — `DataStoreDiceColorStore`, the DataStore Preferences implementation of `DiceColorStore`. Persists by enum `name`, not ordinal.
+- `MainActivity` owns the single screen: the color swatch row, a wrapping die selector (`FlowRow` of art chips) below it, the artwork attribution, a centered `DiceResultDisplay`, and a roll button.
 
-**Key invariant:** `DiceShape.fromDice()` is the only place that maps `Dice` → polygon parameters. When adding a new die type, update `Dice`, `DiceShape`, and ensure the `when` branch is exhaustive (compiler-enforced).
+**Key invariant:** `DiceColor.drawableFor()` is the only place that maps `(color, die)` → drawable resource. When adding a die type or a color variant, update `Dice`/`DiceColor`, add the 6 or 12 artwork files, and keep both `when` branches exhaustive (compiler-enforced).
+
+**Artwork:** the dice art is a fixed render with numerals painted on the faces, so the rolled value can never be drawn on the die — it is always a separate number below it. Art is CC BY 4.0 and the in-app credit line is required; see `docs/licenses/third-party-assets.md`.
 
 **Testing approach:**
-- Unit tests (`src/test/`) test `DiceRoller` and `DiceRollerViewModel` with injected `Random` seeds for determinism. No mocking frameworks — constructor injection only.
-- Instrumented tests (`src/androidTest/`) use `createComposeRule()` and test the full `DiceRollerScreen` via `DiceRollerUiState` parameters or a real ViewModel with a seeded `Random`.
+- Unit tests (`src/test/`) test `DiceRoller`, `DiceRollerViewModel` and `DiceColor` with injected `Random` seeds for determinism. No mocking frameworks — constructor injection only. `MainDispatcherRule` swaps `Dispatchers.Main` so `viewModelScope` works off-device.
+- Instrumented tests (`src/androidTest/`) use `createComposeRule()` and test the full `DiceRollerScreen` via `DiceRollerUiState` parameters or a real ViewModel with a seeded `Random`. Artwork is asserted through its content description (`"D20, amethyst"`).
 
 ## Multi-agent pipeline
 
