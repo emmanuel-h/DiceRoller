@@ -26,7 +26,9 @@ import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
  * @param alpha opacity applied to the artwork, used to dim the empty state
  * @param contentDescription accessibility label; defaults to `"D20, amethyst"` form.
  *        Callers that wrap the image in their own labelled control should pass a
- *        distinct label so the two do not collide in the semantics tree.
+ *        distinct label so the two do not collide in the semantics tree, or pass
+ *        `null` to mark the artwork as purely decorative when an ancestor node
+ *        (e.g. a merged row) already carries the accessible description.
  */
 @Composable
 fun DiceImage(
@@ -35,7 +37,7 @@ fun DiceImage(
     sizeVariant: DiceImageSize,
     modifier: Modifier = Modifier,
     alpha: Float = 1f,
-    contentDescription: String = "${dice.name}, ${color.label}",
+    contentDescription: String? = "${dice.name}, ${color.label}",
 ) {
     Image(
         painter = painterResource(id = color.drawableFor(dice)),
