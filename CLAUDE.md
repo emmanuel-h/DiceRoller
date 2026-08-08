@@ -35,7 +35,7 @@ Single-module Android app (`app/`) using Jetpack Compose and MVVM.
 - `presentation/model/` — `DiceColor`, the 12 Fantasy Dices Pack variants, each carrying a `label`, a `swatch` color, and `drawableFor(dice)`.
 - `presentation/component/` — Compose components. `DiceImage` renders one pack drawable with `ContentScale.Fit`. `DiceImageSize` (enum: Small/Large) sets the box it is fitted into. `DiceResultDisplay` stacks the die art over the result number. `DiceColorSwatchRow` is the 12-dot color picker.
 - `data/` — `DataStoreDiceColorStore`, the DataStore Preferences implementation of `DiceColorStore`. Persists by enum `name`, not ordinal.
-- `MainActivity` owns the single screen: a wrapping die selector (`FlowRow` of art chips), the color swatch row, the artwork attribution, a centered `DiceResultDisplay`, and a roll button.
+- `MainActivity` owns the single screen: the color swatch row, a wrapping die selector (`FlowRow` of art chips) below it, the artwork attribution, a centered `DiceResultDisplay`, and a roll button.
 
 **Key invariant:** `DiceColor.drawableFor()` is the only place that maps `(color, die)` → drawable resource. When adding a die type or a color variant, update `Dice`/`DiceColor`, add the 6 or 12 artwork files, and keep both `when` branches exhaustive (compiler-enforced).
 

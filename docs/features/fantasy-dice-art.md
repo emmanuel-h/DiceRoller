@@ -16,11 +16,11 @@ a swatch row, and `D10` joins the roster.
   ┌────────────────────────┐          ┌────────────────────────┐
   │      Dice Roller       │          │      Dice Roller       │
   ├────────────────────────┤          ├────────────────────────┤
-  │ Select a die           │          │ Select a die           │
-  │ (△)(◇)(⬡)(⬠)(△)        │          │ (d4)(d6)(d8)(d10)      │
-  │  DicePolygon chips     │          │     (d12)(d20)  ← art  │
-  │                        │          │ Color                  │
-  │                        │          │ ●●⦿●●●●●●●●●  ← 12 dots│
+  │ Select a die           │          │ Color                  │
+  │ (△)(◇)(⬡)(⬠)(△)        │          │ ●●⦿●●●●●●●●●  ← 12 dots│
+  │  DicePolygon chips     │          │ Select a die           │
+  │                        │          │ (d4)(d6)(d8)(d10)      │
+  │                        │          │     (d12)(d20)  ← art  │
   │        ╱‾‾‾‾‾╲         │          │ Dice art by Aeynit…    │
   │       │  17   │        │          │                        │
   │        ╲_____╱         │          │       ◢ d20  ◣  ← art  │

@@ -101,8 +101,19 @@ fun DiceRollerScreen(
                 .padding(horizontal = 24.dp, vertical = 32.dp),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            // Dice selection section
+            // Selection section: color first, since it recolors the die chips below it
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Color",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                DiceColorSwatchRow(
+                    selectedColor = uiState.selectedColor,
+                    onSelectColor = onSelectColor,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
                 Text(
                     text = "Select a die",
                     style = MaterialTheme.typography.labelLarge,
@@ -123,16 +134,6 @@ fun DiceRollerScreen(
                     }
                 }
 
-                Text(
-                    text = "Color",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                DiceColorSwatchRow(
-                    selectedColor = uiState.selectedColor,
-                    onSelectColor = onSelectColor,
-                    modifier = Modifier.fillMaxWidth(),
-                )
                 Text(
                     text = ART_ATTRIBUTION,
                     style = MaterialTheme.typography.labelSmall,
