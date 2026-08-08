@@ -181,6 +181,16 @@ class DiceRollerTest {
         assertEquals(0, result.total)
     }
 
+    @Test
+    fun givenPoolWhereEveryCountIsZero_whenRollingPool_thenResultHasNoGroupsAndZeroTotal() {
+        val pool = DicePool(mapOf(Dice.D6 to 0, Dice.D8 to 0, Dice.D20 to 0))
+
+        val result = DiceRoller().rollPool(pool)
+
+        assertTrue(result.groups.isEmpty())
+        assertEquals(0, result.total)
+    }
+
     // --- rollPool: group shape ---
 
     @Test
@@ -192,6 +202,16 @@ class DiceRollerTest {
         assertEquals(1, result.groups.size)
         assertEquals(Dice.D6, result.groups[0].dice)
         assertEquals(5, result.groups[0].poolCount)
+    }
+
+    @Test
+    fun givenSingleDiePoolOfCountOne_whenRollingPool_thenGroupHasExactlyOneTallyOfCountOne() {
+        val pool = DicePool(mapOf(Dice.D8 to 1))
+
+        val result = DiceRoller(random = Random(seed = 3)).rollPool(pool)
+
+        val group = result.groups.single()
+        assertEquals(1, group.tallies.single().count)
     }
 
     @Test
@@ -251,6 +271,53 @@ class DiceRollerTest {
         result.groups.forEach { group ->
             group.tallies.forEach { tally -> assertTrue(tally.count > 0) }
         }
+    }
+
+    @Test
+    fun givenSeededMixedPool_whenRollingPool_thenEachGroupRollsExactlyItsPoolCountIndependently() {
+        val pool = DicePool(mapOf(Dice.D6 to 4, Dice.D8 to 2))
+
+        val result = DiceRoller(random = Random(seed = 2024)).rollPool(pool)
+
+        assertEquals(listOf(4, 2), result.groups.map { it.poolCount })
+        assertEquals(listOf(4, 2), result.groups.map { group -> group.tallies.sumOf { it.count } })
+    }
+
+    @Test
+    fun givenSeededMixedPool_whenRollingPool_thenTalliesMatchIndependentlyReplayedRolls() {
+        val seed = 2024L
+        val pool = DicePool(mapOf(Dice.D6 to 4, Dice.D8 to 2))
+
+        val result = DiceRoller(random = Random(seed)).rollPool(pool)
+
+        // Replay the same die-by-die, group-by-group sequence with a fresh roller seeded
+        // identically, to independently derive what the per-value tallies should be.
+        val replayRoller = DiceRoller(random = Random(seed))
+        val expectedTalliesPerGroup = pool.entries.map { (dice, count) ->
+            List(count) { replayRoller.roll(dice) }.groupingBy { it }.eachCount()
+        }
+
+        result.groups.forEachIndexed { index, group ->
+            val actualTallyMap = group.tallies.associate { it.value to it.count }
+            assertEquals(expectedTalliesPerGroup[index], actualTallyMap)
+        }
+    }
+
+    @Test
+    fun givenPool_whenRollingPool_thenValuesNeverRolledAreAbsentFromTallies() {
+        // A D6 pool of size 3 has at most 3 distinct rolled values out of 6 possible faces,
+        // so at least some face values are guaranteed to be absent from the tally.
+        val pool = DicePool(mapOf(Dice.D6 to 3))
+
+        val result = DiceRoller(random = Random(seed = 11)).rollPool(pool)
+
+        val talliedValues = result.groups.single().tallies.map { it.value }.toSet()
+        val possibleValues = (1..Dice.D6.faces).toSet()
+        assertTrue(
+            "Expected at least one untallied value, tallied=$talliedValues",
+            talliedValues.size < possibleValues.size,
+        )
+        assertTrue(possibleValues.containsAll(talliedValues))
     }
 
     // --- rollPool: total ---
