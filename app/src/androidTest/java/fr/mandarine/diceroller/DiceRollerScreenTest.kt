@@ -6,12 +6,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasAnySibling
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasNoClickAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import fr.mandarine.diceroller.domain.Dice
+import fr.mandarine.diceroller.domain.DicePool
 import fr.mandarine.diceroller.domain.DiceRoller
 import fr.mandarine.diceroller.presentation.DiceRollerUiState
 import fr.mandarine.diceroller.presentation.DiceRollerViewModel
@@ -39,6 +44,17 @@ class DiceRollerScreenTest {
 
     private fun increaseButton(dice: Dice) =
         composeTestRule.onNodeWithContentDescription("Increase ${dice.name} count")
+
+    /**
+     * The chip's count text, disambiguated from the other five chips (which may show the same
+     * digit) by requiring it sit alongside that specific [dice]'s two stepper buttons, and from
+     * the buttons themselves by excluding clickable nodes.
+     */
+    private fun countText(dice: Dice) = composeTestRule.onNode(
+        hasAnySibling(hasContentDescription("Increase ${dice.name} count")) and
+            hasAnySibling(hasContentDescription("Decrease ${dice.name} count")) and
+            hasNoClickAction(),
+    )
 
     private fun launchScreen(uiState: DiceRollerUiState = DiceRollerUiState()) {
         composeTestRule.setContent {
@@ -123,6 +139,20 @@ class DiceRollerScreenTest {
     }
 
     @Test
+    fun givenAMixedPoolWithMultipleCountsPerType_whenScreenIsDisplayed_thenRollButtonLabelMatchesPoolCompositionAndOrdering() {
+        val pool = Dice.entries.associateWith { dice ->
+            when (dice) {
+                Dice.D6 -> 4
+                Dice.D8 -> 2
+                else -> 0
+            }
+        }
+        launchScreen(uiState = DiceRollerUiState(pool = pool))
+
+        composeTestRule.onNodeWithText("Roll 4D6 + 2D8").assertIsDisplayed().assertIsEnabled()
+    }
+
+    @Test
     fun givenANonEmptyPool_whenTheDieIsDecrementedBackToZero_thenRollButtonReturnsToThePlaceholder() {
         launchWithViewModel()
         increaseButton(Dice.D6).performClick()
@@ -130,6 +160,77 @@ class DiceRollerScreenTest {
         decreaseButton(Dice.D6).performClick()
 
         composeTestRule.onNodeWithText("Add dice to roll").assertIsDisplayed().assertIsNotEnabled()
+    }
+
+    // --- Stepper count display ---
+
+    @Test
+    fun givenAZeroCountChip_whenIncrementIsTappedOnce_thenTheDisplayedCountBecomesOne() {
+        launchWithViewModel()
+
+        increaseButton(Dice.D6).performClick()
+
+        countText(Dice.D6).assertTextEquals("1")
+    }
+
+    @Test
+    fun givenAOneCountChip_whenIncrementIsTappedAgain_thenTheDisplayedCountBecomesTwo() {
+        launchWithViewModel()
+        increaseButton(Dice.D6).performClick()
+
+        increaseButton(Dice.D6).performClick()
+
+        countText(Dice.D6).assertTextEquals("2")
+    }
+
+    @Test
+    fun givenATwoCountChip_whenDecrementIsTapped_thenTheDisplayedCountBecomesOne() {
+        launchWithViewModel()
+        increaseButton(Dice.D6).performClick()
+        increaseButton(Dice.D6).performClick()
+
+        decreaseButton(Dice.D6).performClick()
+
+        countText(Dice.D6).assertTextEquals("1")
+    }
+
+    @Test
+    fun givenIncrementingOneChip_whenAnotherChipIsUntouched_thenItsDisplayedCountStaysZero() {
+        launchWithViewModel()
+
+        increaseButton(Dice.D6).performClick()
+
+        countText(Dice.D8).assertTextEquals("0")
+    }
+
+    // --- Stepper bounds ---
+
+    @Test
+    fun givenAChipAtMaxCount_whenScreenIsDisplayed_thenTheIncreaseControlIsDisabled() {
+        val pool = Dice.entries.associateWith { dice ->
+            if (dice == Dice.D6) DicePool.MAX_DICE_PER_TYPE else 0
+        }
+        launchScreen(uiState = DiceRollerUiState(pool = pool))
+
+        increaseButton(Dice.D6).assertIsNotEnabled()
+    }
+
+    @Test
+    fun givenAChipOneBelowMaxCount_whenScreenIsDisplayed_thenTheIncreaseControlIsStillEnabled() {
+        val pool = Dice.entries.associateWith { dice ->
+            if (dice == Dice.D6) DicePool.MAX_DICE_PER_TYPE - 1 else 0
+        }
+        launchScreen(uiState = DiceRollerUiState(pool = pool))
+
+        increaseButton(Dice.D6).assertIsEnabled()
+    }
+
+    @Test
+    fun givenANonZeroCountChip_whenScreenIsDisplayed_thenTheDecreaseControlIsEnabled() {
+        val pool = Dice.entries.associateWith { dice -> if (dice == Dice.D6) 1 else 0 }
+        launchScreen(uiState = DiceRollerUiState(pool = pool))
+
+        decreaseButton(Dice.D6).assertIsEnabled()
     }
 
     // --- Rolling produces a result ---
