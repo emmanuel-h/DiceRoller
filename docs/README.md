@@ -19,6 +19,7 @@
 
 ## Testing
 - [Fix Triangle Dice Alignment](testing/fix-triangle-dice-alignment.md)
+- [Roll Multiple Dice at Once](testing/multi-dice-roll.md)
 
 ## Licenses
 - [Third-Party Assets](licenses/third-party-assets.md)

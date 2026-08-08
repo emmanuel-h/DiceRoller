@@ -94,7 +94,15 @@ See [Architecture: Multi-Dice Roll (Pool Rolling)](../architecture/multi-dice-ro
 This supersedes the single-die model documented in [Architecture: Dice Rolling](../architecture/dice-rolling.md), which now points back to the new doc.
 
 ## Testing
-Not yet written. Will land at `docs/testing/multi-dice-roll.md`.
+> Last updated: linked to the new testing notes covering issues #53–#56 and the PR #61 screen-integration branch.
+
+See [Testing: Roll Multiple Dice at Once](../testing/multi-dice-roll.md), covering:
+- **Domain (issue #53):** `DicePool`/`DicePoolResult`/`DiceGroupResult`/`ValueTally` and `DiceRoller.rollPool()` — validation bounds, ordering, zero-count exclusion, a golden-value tally-correctness test, and single-die-pool parity with the old roll path.
+- **Presentation (issue #54):** the pool-aware `DiceRollerViewModel` — count clamping, result-clearing rules, and the `rollButtonLabel` formatter.
+- **UI components (issues #50, #45/#51):** standalone Compose tests for `DiceStepperChip` and the `DiceResultDisplay` face-ladder.
+- **Screen integration (issue #55, PR #61):** end-to-end `DiceRollerScreenTest` and the rewritten `FantasyDiceArtUiTest`.
+
+All unit tests (`src/test/`) were run and pass. **Instrumented tests (`src/androidTest/`) have only been compile-verified — no emulator/device was available to this pipeline, so none have actually been run.** This is flagged as an open item in the testing doc.
 
 ### Related docs
 - [Dice Selection and Roll (superseded single-die flow)](dice-selection-and-roll.md)
@@ -103,6 +111,7 @@ Not yet written. Will land at `docs/testing/multi-dice-roll.md`.
 - [Architecture: Multi-Dice Roll (Pool Rolling)](../architecture/multi-dice-roll.md)
 - [Architecture: Dice Rolling (superseded for pool rolling)](../architecture/dice-rolling.md)
 - [Main Screen Design Spec (superseded die-selector portion)](../design/main-screen.md)
+- [Testing: Roll Multiple Dice at Once](../testing/multi-dice-roll.md)
 
 ## Changelog
 | Date | Change |
@@ -110,3 +119,4 @@ Not yet written. Will land at `docs/testing/multi-dice-roll.md`.
 | 2026-08-08 | Initial version — approved PRD for rolling multiple dice at once |
 | 2026-08-08 | Added Architecture section — links to `docs/architecture/multi-dice-roll.md` (issues #46, #47) |
 | 2026-08-08 | Added Design section — links to `docs/design/multi-dice-roll.md` (issues #44, #45) |
+| 2026-08-08 | Added Testing section — links to `docs/testing/multi-dice-roll.md` (issues #53–#56, PR #61) |
