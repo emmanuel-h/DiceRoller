@@ -16,6 +16,8 @@ private const val EMPTY_POOL_LABEL = "Add dice to roll"
  *
  * An empty pool (all counts 0) renders as [EMPTY_POOL_LABEL] instead, matching the Roll button's
  * disabled empty state.
+ *
+ * @param pool the dice pool to format a label for
  */
 fun rollButtonLabel(pool: DicePool): String {
     if (pool.isEmpty) return EMPTY_POOL_LABEL

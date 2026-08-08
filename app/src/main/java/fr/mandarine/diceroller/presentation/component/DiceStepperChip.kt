@@ -45,6 +45,34 @@ private val CHIP_BORDER_WIDTH = 1.dp
 private val CHIP_PADDING = 8.dp
 private val CHIP_ROW_SPACING = 4.dp
 
+/** The container/border/content color triple for one of [DiceStepperChip]'s two visual states. */
+private data class ChipColors(
+    val container: Color,
+    val border: Color,
+    val content: Color,
+)
+
+/**
+ * Resolves the single [ChipColors] triple for [isIncluded], replacing three independent
+ * `if (isIncluded) X else Y` branches with one lookup so the "excluded"/"included" state
+ * mapping lives in exactly one place — matching the table already documented on
+ * [DiceStepperChip].
+ */
+@Composable
+private fun chipColorsFor(isIncluded: Boolean): ChipColors = if (isIncluded) {
+    ChipColors(
+        container = MaterialTheme.colorScheme.primaryContainer,
+        border = MaterialTheme.colorScheme.primary,
+        content = MaterialTheme.colorScheme.onPrimaryContainer,
+    )
+} else {
+    ChipColors(
+        container = Color.Transparent,
+        border = MaterialTheme.colorScheme.outlineVariant,
+        content = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
 /**
  * One die type's `- count +` stepper control within the dice pool selector.
  *
@@ -70,30 +98,16 @@ fun DiceStepperChip(
     modifier: Modifier = Modifier,
 ) {
     val isIncluded = count > 0
-    val containerColor = if (isIncluded) {
-        MaterialTheme.colorScheme.primaryContainer
-    } else {
-        Color.Transparent
-    }
-    val borderColor = if (isIncluded) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.outlineVariant
-    }
-    val contentColor = if (isIncluded) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    val chipColors = chipColorsFor(isIncluded)
 
     Box(
         modifier = modifier
             .clip(CHIP_SHAPE)
-            .background(containerColor)
-            .border(width = CHIP_BORDER_WIDTH, color = borderColor, shape = CHIP_SHAPE)
+            .background(chipColors.container)
+            .border(width = CHIP_BORDER_WIDTH, color = chipColors.border, shape = CHIP_SHAPE)
             .padding(CHIP_PADDING),
     ) {
-        CompositionLocalProvider(LocalContentColor provides contentColor) {
+        CompositionLocalProvider(LocalContentColor provides chipColors.content) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(CHIP_ROW_SPACING),
