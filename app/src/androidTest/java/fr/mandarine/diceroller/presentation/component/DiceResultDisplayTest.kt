@@ -25,9 +25,10 @@ import org.junit.runner.RunWith
 
 /**
  * Compose UI tests for [DiceResultDisplay] — the per-die-type result face-ladder and total line
- * (issue #45 / #51). Covers the acceptance criteria: grouped rows sorted descending by value with
- * unrolled values omitted, a fixed-width count column, a demoted total line, the two-caption
- * empty/pre-roll state, and the selected color reaching every rendered die.
+ * (issues #45 / #51, densified in #63). Covers the acceptance criteria: grouped entries sorted
+ * descending by value with unrolled values omitted, entries wrapping along a line rather than
+ * stacking, a demoted total line, the two-caption empty/pre-roll state, and the selected color
+ * reaching every rendered die.
  */
 @RunWith(AndroidJUnit4::class)
 class DiceResultDisplayTest {
@@ -86,8 +87,17 @@ class DiceResultDisplayTest {
         }
     }
 
-    private fun rowArt(dice: Dice, value: Int, color: DiceColor) =
-        composeTestRule.onNode(hasTestTag("dice-row-art-${dice.name}-$value-${color.name}"))
+    /**
+     * The die art inside one entry.
+     *
+     * Read from the unmerged tree: an entry merges its descendants into a single node so it is
+     * announced as one unit ("Value 6, rolled 1 time"), which by design hides the art and count
+     * nodes from the merged tree.
+     */
+    private fun rowArt(dice: Dice, value: Int, color: DiceColor) = composeTestRule.onNode(
+        hasTestTag("dice-row-art-${dice.name}-$value-${color.name}"),
+        useUnmergedTree = true,
+    )
 
     /** Vertical position of the row/line identified by [contentDescription], for ordering checks. */
     private fun topOf(contentDescription: String): Float =
@@ -96,6 +106,33 @@ class DiceResultDisplayTest {
             .fetchSemanticsNode()
             .boundsInRoot
             .top
+
+    /**
+     * Reading-order position of the entry identified by [contentDescription]: line first, then
+     * position along that line.
+     *
+     * Entries now wrap, so two entries of the same group commonly share a `top` and are ordered
+     * left to right; comparing `top` alone would call them equal.
+     */
+    private fun readingOrderOf(contentDescription: String): Pair<Float, Float> {
+        val bounds = composeTestRule
+            .onNodeWithContentDescription(contentDescription)
+            .fetchSemanticsNode()
+            .boundsInRoot
+        return bounds.top to bounds.left
+    }
+
+    /** Asserts [earlier] is read before [later]: on an earlier line, or further left on the same. */
+    private fun assertReadsBefore(earlier: String, later: String) {
+        val (earlierTop, earlierLeft) = readingOrderOf(earlier)
+        val (laterTop, laterLeft) = readingOrderOf(later)
+
+        assertTrue(
+            "Expected \"$earlier\" ($earlierTop, $earlierLeft) to be read before " +
+                "\"$later\" ($laterTop, $laterLeft)",
+            earlierTop < laterTop || (earlierTop == laterTop && earlierLeft < laterLeft),
+        )
+    }
 
     /** Asserts that the row identified by [rowDescription] contains both the die art tagged
      * [artTestTag] and the count text [countText] — i.e. the row pairs the correct art with the
@@ -106,6 +143,9 @@ class DiceResultDisplayTest {
                 hasContentDescription(rowDescription) and
                     hasAnyDescendant(hasTestTag(artTestTag)) and
                     hasAnyDescendant(hasText(countText)),
+                // The entry's descendants only exist as separate nodes in the unmerged tree;
+                // merged, they collapse into the single node this same matcher describes.
+                useUnmergedTree = true,
             )
             .assertExists()
     }
@@ -207,11 +247,13 @@ class DiceResultDisplayTest {
     }
 
     @Test
-    fun givenPopulatedResult_whenDisplayed_thenCountColumnShowsMultiplier() {
+    fun givenPopulatedResult_whenDisplayed_thenEveryEntryShowsItsOwnMultiplier() {
         launch(result = sampleResult)
 
-        composeTestRule.onNodeWithText("×1").assertExists()
-        composeTestRule.onNodeWithText("×2").assertExists()
+        // The sample rolled four values once (D6 6, D6 3, D8 7, D8 2) and one value twice (D6 4),
+        // so the multipliers are counted, not merely shown to exist somewhere.
+        composeTestRule.onAllNodesWithText("×1", useUnmergedTree = true).assertCountEquals(4)
+        composeTestRule.onAllNodesWithText("×2", useUnmergedTree = true).assertCountEquals(1)
     }
 
     @Test
@@ -229,46 +271,52 @@ class DiceResultDisplayTest {
         composeTestRule.onNodeWithContentDescription("Value 14, rolled 1 time").assertDoesNotExist()
     }
 
-    // --- Populated state: row ordering (descending by value, within and across groups) ---
+    // --- Populated state: entry ordering (descending by value, within and across groups) ---
 
     @Test
-    fun givenPopulatedResult_whenDisplayed_thenTheD6SixRowAppearsAboveTheD6FourRow() {
+    fun givenPopulatedResult_whenDisplayed_thenTheD6SixEntryIsReadBeforeTheD6FourEntry() {
         launch(result = sampleResult)
 
-        val sixTop = topOf("Value 6, rolled 1 time")
-        val fourTop = topOf("Value 4, rolled 2 times")
-
-        assertTrue(sixTop < fourTop)
+        assertReadsBefore("Value 6, rolled 1 time", "Value 4, rolled 2 times")
     }
 
     @Test
-    fun givenPopulatedResult_whenDisplayed_thenTheD6FourRowAppearsAboveTheD6ThreeRow() {
+    fun givenPopulatedResult_whenDisplayed_thenTheD6FourEntryIsReadBeforeTheD6ThreeEntry() {
         launch(result = sampleResult)
 
-        val fourTop = topOf("Value 4, rolled 2 times")
-        val threeTop = topOf("Value 3, rolled 1 time")
-
-        assertTrue(fourTop < threeTop)
+        assertReadsBefore("Value 4, rolled 2 times", "Value 3, rolled 1 time")
     }
 
     @Test
-    fun givenPopulatedResult_whenDisplayed_thenTheD8SevenRowAppearsAboveTheD8TwoRow() {
+    fun givenPopulatedResult_whenDisplayed_thenTheD8SevenEntryIsReadBeforeTheD8TwoEntry() {
         launch(result = sampleResult)
 
-        val sevenTop = topOf("Value 7, rolled 1 time")
-        val twoTop = topOf("Value 2, rolled 1 time")
-
-        assertTrue(sevenTop < twoTop)
+        assertReadsBefore("Value 7, rolled 1 time", "Value 2, rolled 1 time")
     }
 
     @Test
     fun givenPopulatedResult_whenDisplayed_thenTheD8GroupAppearsBelowTheD6Group() {
         launch(result = sampleResult)
 
-        val lastD6RowTop = topOf("Value 3, rolled 1 time")
-        val firstD8RowTop = topOf("Value 7, rolled 1 time")
+        // Across groups the separation is still strictly vertical, wrapping or not.
+        val lastD6EntryTop = topOf("Value 3, rolled 1 time")
+        val firstD8EntryTop = topOf("Value 7, rolled 1 time")
 
-        assertTrue(lastD6RowTop < firstD8RowTop)
+        assertTrue(lastD6EntryTop < firstD8EntryTop)
+    }
+
+    @Test
+    fun givenAGroupWithSeveralValues_whenDisplayed_thenItsEntriesShareALineInsteadOfStacking() {
+        launch(result = sampleResult)
+
+        // The density goal of issue #63: a die type costs about one line, not one per value.
+        val sixTop = topOf("Value 6, rolled 1 time")
+        val fourTop = topOf("Value 4, rolled 2 times")
+
+        assertTrue(
+            "Expected the D6 entries to wrap onto one line, got tops $sixTop and $fourTop",
+            sixTop == fourTop,
+        )
     }
 
     // --- Populated state: each row pairs its own die art with its own count ---

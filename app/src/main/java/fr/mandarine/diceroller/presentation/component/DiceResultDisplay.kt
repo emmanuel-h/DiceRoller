@@ -4,17 +4,14 @@ package fr.mandarine.diceroller.presentation.component
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -48,8 +45,17 @@ private const val EMPTY_POOL_CAPTION = "Add dice above to build your pool."
 /** Shown when the pool has dice queued but the roll button has not been pressed yet. */
 private const val NOT_ROLLED_CAPTION = "Tap Roll to see results."
 
-/** Fixed width of the trailing "×N" count column, so it aligns down a group. */
-private val COUNT_COLUMN_WIDTH = 40.dp
+/** Gap between two face entries on the same wrapped line. */
+private val ENTRY_HORIZONTAL_SPACING = 14.dp
+
+/** Gap between two wrapped lines of face entries within one die-type group. */
+private val ENTRY_VERTICAL_SPACING = 6.dp
+
+/** Gap between the art, the value and the `×N` count inside a single entry. */
+private val ENTRY_INTERNAL_SPACING = 4.dp
+
+/** Gap between one die-type group and the next. */
+private val GROUP_SPACING = 12.dp
 
 /** Words for 0..[fr.mandarine.diceroller.domain.DicePool.MAX_DICE_PER_TYPE], used by the
  * accessibility summary so it reads naturally instead of as bare digits. */
@@ -60,18 +66,23 @@ private val NUMBER_WORDS = listOf(
 )
 
 /**
- * Displays the outcome of rolling a mixed dice pool as a per-die-type face-ladder: one header
- * and one row per distinct rolled value (highest first), followed by a demoted total-sum line.
+ * Displays the outcome of rolling a mixed dice pool as a per-die-type face-ladder turned sideways:
+ * one header per die type, then that type's distinct rolled values (highest first) as compact
+ * inline `art + value + ×N` entries that wrap, followed by a demoted total-sum line.
  *
- * Replaces the single die-plus-number layout with a scrollable list because a pool can contain
- * up to six die types and up to [fr.mandarine.diceroller.domain.DicePool.MAX_DICE_PER_TYPE] dice
- * each.
+ * The sideways arrangement is what keeps the whole screen scroll-free for a realistic pool
+ * (issues #63, #64): a die type costs roughly one line instead of one line per rolled value, which
+ * is what pays for the artwork growing at the same time.
  *
  * - **Empty state** (`result == null`): a dimmed die icon with a caption that depends on
  *   [isPoolEmpty] — inviting the user to build a pool, or to press Roll.
  * - **Populated state**: [DiceGroupResult.tallies] and [DicePoolResult.groups] are consumed
- *   read-only, already ordered by the domain layer (groups smallest-to-largest die, rows
- *   descending by value) — this composable never re-sorts them.
+ *   read-only, already ordered by the domain layer (groups smallest-to-largest die, entries
+ *   descending by value) — this composable never re-sorts them. Entries therefore run in reading
+ *   order: left to right along a line, then down.
+ *
+ * At the extreme (20 dice of one type, so up to 20 distinct values) the content scrolls
+ * internally; at realistic sizes it does not scroll at all.
  *
  * @param result the tallied outcome of the last roll, or null if no roll has happened yet or the
  *   pool changed since
@@ -89,7 +100,9 @@ fun DiceResultDisplay(
 ) {
     Box(
         modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center,
+        // Results read as a continuation of the selector above them, so they start at the top of
+        // the band; the empty state is a placeholder for the whole band and centres in it.
+        contentAlignment = if (result == null) Alignment.Center else Alignment.TopStart,
     ) {
         if (result == null) {
             EmptyResultState(isPoolEmpty = isPoolEmpty)
@@ -121,15 +134,27 @@ private fun EmptyResultState(isPoolEmpty: Boolean, modifier: Modifier = Modifier
     }
 }
 
+/**
+ * The groups-and-total content, scrollable only when it genuinely overflows.
+ *
+ * A plain scrollable [Column] rather than a `LazyColumn`: the content is bounded and small (at
+ * most six groups of at most twenty entries), and laziness would demand a bounded-height parent,
+ * which is exactly the constraint that made this component awkward to place before.
+ */
 @Composable
 private fun PopulatedResultState(
     result: DicePoolResult,
     selectedColor: DiceColor,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
-        // Invisible node carrying one generated summary, since per-row liveRegion is unreliable
-        // inside a LazyColumn.
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(GROUP_SPACING),
+    ) {
+        // Invisible node carrying one generated summary, so a roll is announced once as a whole
+        // rather than entry by entry.
         Box(
             modifier = Modifier
                 .size(0.dp)
@@ -138,49 +163,43 @@ private fun PopulatedResultState(
                     contentDescription = result.toAccessibilitySummary()
                 },
         )
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = 8.dp),
+        result.groups.forEach { group ->
+            DiceGroupBlock(group = group, color = selectedColor)
+        }
+        TotalLine(total = result.total)
+    }
+}
+
+/** One die type's header plus its wrapping run of face entries. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun DiceGroupBlock(
+    group: DiceGroupResult,
+    color: DiceColor,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(ENTRY_VERTICAL_SPACING),
+    ) {
+        GroupHeader(group = group)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(ENTRY_HORIZONTAL_SPACING),
+            verticalArrangement = Arrangement.spacedBy(ENTRY_VERTICAL_SPACING),
         ) {
-            result.groups.forEach { group ->
-                item(key = "header-${group.dice.name}") {
-                    GroupHeader(group = group)
-                }
-                itemsIndexed(
-                    items = group.tallies,
-                    key = { _, tally -> "row-${group.dice.name}-${tally.value}" },
-                ) { index, tally ->
-                    ResultRow(
-                        dice = group.dice,
-                        tally = tally,
-                        color = selectedColor,
-                        modifier = Modifier.padding(top = if (index == 0) 8.dp else 4.dp),
-                    )
-                }
-                item(key = "spacer-${group.dice.name}") {
-                    Spacer20()
-                }
-            }
-            item(key = "divider") {
-                HorizontalDivider(modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
-            }
-            item(key = "total") {
-                TotalLine(total = result.total)
+            group.tallies.forEach { tally ->
+                FaceEntry(dice = group.dice, tally = tally, color = color)
             }
         }
     }
 }
 
 @Composable
-private fun Spacer20(modifier: Modifier = Modifier) {
-    Box(modifier = modifier.height(20.dp))
-}
-
-@Composable
 private fun GroupHeader(group: DiceGroupResult, modifier: Modifier = Modifier) {
     Text(
         text = "${group.poolCount}×D${group.dice.faces}",
-        style = MaterialTheme.typography.titleMedium,
+        style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier
             .fillMaxWidth()
@@ -189,11 +208,13 @@ private fun GroupHeader(group: DiceGroupResult, modifier: Modifier = Modifier) {
 }
 
 /**
- * One rolled value's row: die art (decorative, [color]) — value — fixed-width count, so `×`
- * glyphs line up down the group whether the count is one or two digits.
+ * One rolled value as a compact inline entry: die art, the value, then its `×N` multiplier.
+ *
+ * The artwork is the largest element and the wording the smallest, inverting the previous row
+ * layout where a `headlineSmall` numeral dominated a 56dp-tall row (issue #63).
  */
 @Composable
-private fun ResultRow(
+private fun FaceEntry(
     dice: Dice,
     tally: ValueTally,
     color: DiceColor,
@@ -201,33 +222,28 @@ private fun ResultRow(
 ) {
     val timesWord = if (tally.count == 1) "time" else "times"
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .semantics(mergeDescendants = true) {
-                contentDescription = "Value ${tally.value}, rolled ${tally.count} $timesWord"
-            },
+        modifier = modifier.semantics(mergeDescendants = true) {
+            contentDescription = "Value ${tally.value}, rolled ${tally.count} $timesWord"
+        },
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(ENTRY_INTERNAL_SPACING),
     ) {
         DiceImage(
             dice = dice,
             color = color,
-            sizeVariant = DiceImageSize.Small,
+            sizeVariant = DiceImageSize.Inline,
             contentDescription = null,
             modifier = Modifier.testTag("dice-row-art-${dice.name}-${tally.value}-${color.name}"),
         )
         Text(
             text = tally.value.toString(),
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
         )
         Text(
             text = "×${tally.count}",
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.End,
-            modifier = Modifier.width(COUNT_COLUMN_WIDTH),
         )
     }
 }
@@ -238,7 +254,7 @@ private fun TotalLine(total: Int, modifier: Modifier = Modifier) {
         text = "Total $total",
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center,
+        textAlign = TextAlign.End,
         modifier = modifier
             .fillMaxWidth()
             .semantics { contentDescription = "Total $total" },
@@ -248,7 +264,7 @@ private fun TotalLine(total: Int, modifier: Modifier = Modifier) {
 /**
  * Builds the hidden live-region summary announced after each roll, e.g.
  * `"Rolled 4 D6 and 2 D8. D6: one 6, two 4s, one 3. D8: one 7, one 2. Total 26."` — following the
- * same smallest-to-largest group order and descending-by-value row order as the visible ladder.
+ * same smallest-to-largest group order and descending-by-value entry order as the visible ladder.
  */
 private fun DicePoolResult.toAccessibilitySummary(): String {
     val poolSummary = groups.joinToString(separator = " and ") { group ->
@@ -292,7 +308,7 @@ private fun DiceResultDisplayNotRolledPreview() {
     }
 }
 
-@Preview(name = "Populated - 4D6 + 2D8 ruby", showBackground = true, heightDp = 500)
+@Preview(name = "Populated - 4D6 + 2D8 + 1D20 ruby", showBackground = true, heightDp = 260)
 @Composable
 private fun DiceResultDisplayPopulatedPreview() {
     DiceRollerTheme(dynamicColor = false) {
@@ -316,11 +332,39 @@ private fun DiceResultDisplayPopulatedPreview() {
                             ValueTally(value = 2, count = 1),
                         ),
                     ),
+                    DiceGroupResult(
+                        dice = Dice.D20,
+                        poolCount = 1,
+                        tallies = listOf(ValueTally(value = 14, count = 1)),
+                    ),
                 ),
-                total = 26,
+                total = 40,
             ),
             isPoolEmpty = false,
             selectedColor = DiceColor.Ruby,
+        )
+    }
+}
+
+@Preview(name = "Extreme - 20×D20 jade", showBackground = true, heightDp = 260)
+@Composable
+private fun DiceResultDisplayExtremePreview() {
+    DiceRollerTheme(dynamicColor = false) {
+        DiceResultDisplay(
+            result = DicePoolResult(
+                groups = listOf(
+                    DiceGroupResult(
+                        dice = Dice.D20,
+                        poolCount = 20,
+                        tallies = (20 downTo 6).map { value ->
+                            ValueTally(value = value, count = if (value % 4 == 0) 2 else 1)
+                        },
+                    ),
+                ),
+                total = 213,
+            ),
+            isPoolEmpty = false,
+            selectedColor = DiceColor.Jade,
         )
     }
 }
