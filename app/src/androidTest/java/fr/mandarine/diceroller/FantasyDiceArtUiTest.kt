@@ -85,8 +85,11 @@ class FantasyDiceArtUiTest {
     private fun swatch(color: DiceColor) =
         composeTestRule.onNodeWithContentDescription("${color.label} dice")
 
-    private fun rowArt(dice: Dice, value: Int, color: DiceColor) =
-        composeTestRule.onNode(hasTestTag("dice-row-art-${dice.name}-$value-${color.name}"))
+    /** The die art inside one result entry; unmerged, since an entry merges its own descendants. */
+    private fun rowArt(dice: Dice, value: Int, color: DiceColor) = composeTestRule.onNode(
+        hasTestTag("dice-row-art-${dice.name}-$value-${color.name}"),
+        useUnmergedTree = true,
+    )
 
     // -------------------------------------------------------------------------
     // Color picker

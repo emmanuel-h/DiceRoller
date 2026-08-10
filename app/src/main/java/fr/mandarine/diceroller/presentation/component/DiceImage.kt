@@ -51,14 +51,14 @@ fun DiceImage(
 
 // -- Previews -----------------------------------------------------------------
 
-@Preview(name = "D20 amethyst - Large", showBackground = true)
+@Preview(name = "D20 amethyst - Inline", showBackground = true)
 @Composable
-private fun DiceImageD20LargePreview() {
+private fun DiceImageD20InlinePreview() {
     DiceRollerTheme(dynamicColor = false) {
         DiceImage(
             dice = Dice.D20,
             color = DiceColor.Amethyst,
-            sizeVariant = DiceImageSize.Large,
+            sizeVariant = DiceImageSize.Inline,
         )
     }
 }
