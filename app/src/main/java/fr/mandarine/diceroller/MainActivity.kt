@@ -8,18 +8,27 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -27,14 +36,18 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import fr.mandarine.diceroller.domain.CustomDie
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DiceGroupResult
 import fr.mandarine.diceroller.domain.DicePool
 import fr.mandarine.diceroller.domain.DicePoolResult
+import fr.mandarine.diceroller.domain.DieType
 import fr.mandarine.diceroller.domain.RollRecord
 import fr.mandarine.diceroller.domain.ValueTally
 import fr.mandarine.diceroller.presentation.DiceRollerUiState
 import fr.mandarine.diceroller.presentation.DiceRollerViewModel
+import fr.mandarine.diceroller.presentation.component.AddDiceChip
+import fr.mandarine.diceroller.presentation.component.CustomDieCreatorDialog
 import fr.mandarine.diceroller.presentation.component.DiceColorSwatchRow
 import fr.mandarine.diceroller.presentation.component.DiceResultDisplay
 import fr.mandarine.diceroller.presentation.component.DiceStepperChip
@@ -48,6 +61,9 @@ private const val ART_ATTRIBUTION = "Dice art by Aeynit · CC BY 4.0"
 
 /** Die-type chips per row in the pool selector, giving each chip an equal share of the width. */
 private const val CHIPS_PER_ROW = 3
+
+/** Action label on the snackbar that puts a just-removed custom die back. */
+private const val UNDO_REMOVE_LABEL = "Undo"
 
 /** Horizontal inset shared by every band of the screen, so they align down a common edge. */
 private val SCREEN_HORIZONTAL_PADDING = 16.dp
@@ -69,6 +85,12 @@ class MainActivity : ComponentActivity() {
                     onSelectColor = viewModel::selectColor,
                     onRollDice = viewModel::rollDice,
                     onToggleHistory = viewModel::toggleHistoryExpanded,
+                    onShowCustomDieCreator = viewModel::showCustomDieCreator,
+                    onDismissCustomDieCreator = viewModel::dismissCustomDieCreator,
+                    onAddCustomDie = viewModel::addCustomDie,
+                    onRemoveCustomDie = viewModel::removeCustomDie,
+                    onUndoRemoveCustomDie = viewModel::undoRemoveCustomDie,
+                    onDismissRemovedCustomDie = viewModel::dismissRemovedCustomDie,
                 )
             }
         }
@@ -80,7 +102,7 @@ class MainActivity : ComponentActivity() {
  *
  * Laid out as fixed bands so a realistic pool — three die types of a few dice each — fits on a
  * phone in portrait without scrolling anywhere (issue #64): the color swatches, the pool
- * selector's 3×2 chip grid, the results, the roll history, and the Roll button. There is
+ * selector's chip grid, the results, the roll history, and the Roll button. There is
  * deliberately no top app bar: on a single-screen app its title earned less than the ~64dp it
  * cost, and the swatch row takes that space instead.
  *
@@ -98,26 +120,63 @@ class MainActivity : ComponentActivity() {
  * paid only once there is history to show: before the first roll the band renders nothing at all
  * and the pre-history layout is intact.
  *
+ * Custom dice (issue #4) spend that budget once more, and only once: the grid grew from two rows
+ * to three to hold the add chip, and it stays at three however many custom dice are defined —
+ * see [fr.mandarine.diceroller.presentation.MAX_CUSTOM_DICE]. The extra row is charged whether or
+ * not the user ever defines a die, because the add chip is what makes the feature discoverable at
+ * all; the result band absorbs it, scrolling a little sooner on the shortest viewports.
+ *
  * @param uiState the current UI state
  * @param onIncrementCount callback when a die type's chip is tapped on its right half
  * @param onDecrementCount callback when a die type's chip is tapped on its left half
  * @param onSelectColor callback when a color variant is selected
  * @param onRollDice callback when the roll button is pressed
  * @param onToggleHistory callback when the history band's header is tapped
+ * @param onShowCustomDieCreator callback when the grid's add chip is tapped
+ * @param onDismissCustomDieCreator callback when the creator dialog is cancelled
+ * @param onAddCustomDie callback with the validated die the creator produced
+ * @param onRemoveCustomDie callback when a custom chip's `×` badge is tapped
+ * @param onUndoRemoveCustomDie callback when the removal snackbar's Undo action is used
+ * @param onDismissRemovedCustomDie callback when that snackbar goes away un-actioned
  * @param modifier optional modifier
  */
 @Composable
 fun DiceRollerScreen(
     uiState: DiceRollerUiState,
-    onIncrementCount: (Dice) -> Unit,
-    onDecrementCount: (Dice) -> Unit,
+    onIncrementCount: (DieType) -> Unit,
+    onDecrementCount: (DieType) -> Unit,
     onSelectColor: (DiceColor) -> Unit,
     onRollDice: () -> Unit,
     onToggleHistory: () -> Unit,
+    onShowCustomDieCreator: () -> Unit = {},
+    onDismissCustomDieCreator: () -> Unit = {},
+    onAddCustomDie: (CustomDie) -> Unit = {},
+    onRemoveCustomDie: (CustomDie) -> Unit = {},
+    onUndoRemoveCustomDie: () -> Unit = {},
+    onDismissRemovedCustomDie: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Keyed on the die, so the snackbar is shown once per removal. A second removal of the same
+    // die can only follow an undo, which nulls the field and disposes this effect in between.
+    uiState.removedCustomDie?.let { removed ->
+        LaunchedEffect(removed) {
+            val outcome = snackbarHostState.showSnackbar(
+                message = "${removed.label} removed",
+                actionLabel = UNDO_REMOVE_LABEL,
+                duration = SnackbarDuration.Short,
+            )
+            when (outcome) {
+                SnackbarResult.ActionPerformed -> onUndoRemoveCustomDie()
+                SnackbarResult.Dismissed -> onDismissRemovedCustomDie()
+            }
+        }
+    }
+
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             RollBar(
                 pool = uiState.pool,
@@ -143,10 +202,14 @@ fun DiceRollerScreen(
             )
 
             DicePoolSelector(
+                dieTypes = uiState.dieTypes,
                 pool = uiState.pool,
                 color = uiState.selectedColor,
+                canAddCustomDie = uiState.canAddCustomDie,
                 onIncrementCount = onIncrementCount,
                 onDecrementCount = onDecrementCount,
+                onRemoveCustomDie = onRemoveCustomDie,
+                onShowCustomDieCreator = onShowCustomDieCreator,
             )
 
             // Results and history share one flexible band and one gap between them, rather than
@@ -186,41 +249,95 @@ fun DiceRollerScreen(
             }
         }
     }
+
+    if (uiState.isCustomDieCreatorVisible) {
+        CustomDieCreatorDialog(
+            existing = uiState.customDice,
+            onAdd = onAddCustomDie,
+            onDismiss = onDismissCustomDieCreator,
+        )
+    }
 }
 
 /**
- * The six die-type chips as an even grid, [CHIPS_PER_ROW] to a row.
+ * One cell of the pool selector's grid.
+ *
+ * A sealed type rather than a nullable die: the add chip is a genuinely different kind of cell that
+ * happens to share the grid's geometry, and modelling it as "a row slot with no die" would make
+ * every `when` in the renderer read as a null check.
+ */
+private sealed interface PoolCell {
+
+    /** A die's stepper chip. */
+    data class Die(val dieType: DieType) : PoolCell
+
+    /** The chip that opens the custom-die creator. */
+    data object Add : PoolCell
+}
+
+/**
+ * The die-type chips as an even grid, [CHIPS_PER_ROW] to a row, with the add chip last.
  *
  * Plain [Row]s with weighted children rather than a `FlowRow`: every chip must be exactly the
  * same width for its two tap halves to be predictable, which weights guarantee and content-driven
- * flow layout does not. Trailing blanks keep the last row's chips at that same width if the die
- * count ever stops being a multiple of [CHIPS_PER_ROW].
+ * flow layout does not. Trailing blanks keep the last row's chips at that same width when the cell
+ * count is not a multiple of [CHIPS_PER_ROW] — which, with custom dice, is now the common case
+ * rather than a hypothetical.
+ *
+ * Each row is measured at [IntrinsicSize.Min] and its cells stretch to [Modifier.fillMaxHeight],
+ * so a row's chips are all as tall as its tallest one. Without that, the add chip and a die chip
+ * would each measure to their own content and the row's bottom edges would not line up.
  */
 @Composable
 private fun DicePoolSelector(
-    pool: Map<Dice, Int>,
+    dieTypes: List<DieType>,
+    pool: Map<DieType, Int>,
     color: DiceColor,
-    onIncrementCount: (Dice) -> Unit,
-    onDecrementCount: (Dice) -> Unit,
+    canAddCustomDie: Boolean,
+    onIncrementCount: (DieType) -> Unit,
+    onDecrementCount: (DieType) -> Unit,
+    onRemoveCustomDie: (CustomDie) -> Unit,
+    onShowCustomDieCreator: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val cells: List<PoolCell> = dieTypes.map { PoolCell.Die(it) } +
+        if (canAddCustomDie) listOf(PoolCell.Add) else emptyList()
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Dice.entries.chunked(CHIPS_PER_ROW).forEach { rowDice ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                rowDice.forEach { dice ->
-                    DiceStepperChip(
-                        dice = dice,
-                        count = pool[dice] ?: 0,
-                        color = color,
-                        onIncrement = { onIncrementCount(dice) },
-                        onDecrement = { onDecrementCount(dice) },
-                        modifier = Modifier.weight(1f),
-                    )
+        cells.chunked(CHIPS_PER_ROW).forEach { rowCells ->
+            Row(
+                modifier = Modifier.height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                rowCells.forEach { cell ->
+                    val cellModifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                    when (cell) {
+                        is PoolCell.Die -> DiceStepperChip(
+                            dice = cell.dieType,
+                            count = pool[cell.dieType] ?: 0,
+                            color = color,
+                            onIncrement = { onIncrementCount(cell.dieType) },
+                            onDecrement = { onDecrementCount(cell.dieType) },
+                            modifier = cellModifier,
+                            // Only a custom die can be deleted; a preset passing null is what
+                            // leaves the six of them without a badge at all.
+                            onRemove = (cell.dieType as? CustomDie)?.let { die ->
+                                { onRemoveCustomDie(die) }
+                            },
+                        )
+
+                        PoolCell.Add -> AddDiceChip(
+                            onClick = onShowCustomDieCreator,
+                            modifier = cellModifier,
+                        )
+                    }
                 }
-                repeat(CHIPS_PER_ROW - rowDice.size) {
+                repeat(CHIPS_PER_ROW - rowCells.size) {
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }
@@ -236,7 +353,7 @@ private fun DicePoolSelector(
  */
 @Composable
 private fun RollBar(
-    pool: Map<Dice, Int>,
+    pool: Map<DieType, Int>,
     canRoll: Boolean,
     onRollDice: () -> Unit,
     modifier: Modifier = Modifier,
@@ -317,7 +434,7 @@ private val PREVIEW_HISTORY = listOf(
     ),
 )
 
-private val PREVIEW_POOL = Dice.entries.associateWith { dice ->
+private val PREVIEW_POOL: Map<DieType, Int> = Dice.entries.associateWith { dice ->
     when (dice) {
         Dice.D6 -> 4
         Dice.D8 -> 2
@@ -325,6 +442,38 @@ private val PREVIEW_POOL = Dice.entries.associateWith { dice ->
         else -> 0
     }
 }
+
+/** The two custom dice the custom-dice previews define, plus the counts they sit at. */
+private val PREVIEW_CUSTOM_DICE = listOf(CustomDie(3), CustomDie(100))
+
+private val PREVIEW_CUSTOM_POOL: Map<DieType, Int> =
+    PREVIEW_POOL + mapOf(CustomDie(3) to 2, CustomDie(100) to 1)
+
+/** A roll of the mixed pool including both custom dice, to show badges in the result ladder. */
+private val PREVIEW_CUSTOM_RESULT = DicePoolResult(
+    groups = listOf(
+        DiceGroupResult(
+            dice = CustomDie(3),
+            poolCount = 2,
+            tallies = listOf(ValueTally(value = 3, count = 1), ValueTally(value = 1, count = 1)),
+        ),
+        DiceGroupResult(
+            dice = Dice.D6,
+            poolCount = 4,
+            tallies = listOf(
+                ValueTally(value = 6, count = 1),
+                ValueTally(value = 4, count = 2),
+                ValueTally(value = 3, count = 1),
+            ),
+        ),
+        DiceGroupResult(
+            dice = CustomDie(100),
+            poolCount = 1,
+            tallies = listOf(ValueTally(value = 73, count = 1)),
+        ),
+    ),
+    total = 94,
+)
 
 @Composable
 private fun DiceRollerScreenPreviewOf(uiState: DiceRollerUiState) {
@@ -340,7 +489,7 @@ private fun DiceRollerScreenPreviewOf(uiState: DiceRollerUiState) {
     }
 }
 
-/** First launch: no roll yet, so no history band at all. */
+/** First launch: no roll yet, so no history band at all — but the add chip is already there. */
 @Preview(showBackground = true, heightDp = 720)
 @Composable
 private fun DiceRollerScreenPreview() {
@@ -365,6 +514,35 @@ private fun DiceRollerScreenRolledPreview() {
             selectedColor = DiceColor.Ruby,
             result = PREVIEW_RESULT,
             history = PREVIEW_HISTORY,
+            nowMillis = PREVIEW_NOW,
+        ),
+    )
+}
+
+/** Two custom dice defined: the third grid row filled, badges in the ladder, one add slot left. */
+@Preview(name = "Custom dice - D3 and D100", showBackground = true, heightDp = 720)
+@Composable
+private fun DiceRollerScreenCustomDicePreview() {
+    DiceRollerScreenPreviewOf(
+        DiceRollerUiState(
+            pool = PREVIEW_CUSTOM_POOL,
+            customDice = PREVIEW_CUSTOM_DICE,
+            selectedColor = DiceColor.Sapphire,
+            result = PREVIEW_CUSTOM_RESULT,
+            nowMillis = PREVIEW_NOW,
+        ),
+    )
+}
+
+/** The cap reached: three custom dice, so the add chip is gone and the grid is still three rows. */
+@Preview(name = "Custom dice - at the cap", showBackground = true, heightDp = 720)
+@Composable
+private fun DiceRollerScreenCustomDiceFullPreview() {
+    DiceRollerScreenPreviewOf(
+        DiceRollerUiState(
+            pool = PREVIEW_CUSTOM_POOL + mapOf(CustomDie(7) to 0),
+            customDice = listOf(CustomDie(3), CustomDie(7), CustomDie(100)),
+            selectedColor = DiceColor.Sapphire,
             nowMillis = PREVIEW_NOW,
         ),
     )

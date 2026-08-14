@@ -1,9 +1,9 @@
 // app/src/main/java/fr/mandarine/diceroller/data/RollHistoryCodec.kt
 package fr.mandarine.diceroller.data
 
-import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DiceGroupResult
 import fr.mandarine.diceroller.domain.DicePoolResult
+import fr.mandarine.diceroller.domain.DieType
 import fr.mandarine.diceroller.domain.RollRecord
 import fr.mandarine.diceroller.domain.ValueTally
 
@@ -39,9 +39,6 @@ internal object RollHistoryCodec {
     private const val FACES_SEPARATOR = ":"
     private const val TALLY_SEPARATOR = ","
     private const val COUNT_SEPARATOR = "*"
-
-    /** Face count to die type, so a decoded `6:` resolves back to [Dice.D6]. */
-    private val diceByFaces: Map<Int, Dice> = Dice.entries.associateBy { it.faces }
 
     /** Encodes [records] in order, newest first, as the caller supplies them. */
     fun encode(records: List<RollRecord>): String =
@@ -91,7 +88,10 @@ internal object RollHistoryCodec {
         val parts = encoded.split(FACES_SEPARATOR, limit = 2)
         if (parts.size != 2) return null
         val faces = parts[0].toIntOrNull() ?: return null
-        val dice = diceByFaces[faces] ?: return null
+        // Resolves to a preset when the face count is one of theirs and to a CustomDie otherwise,
+        // so a roll of a custom die decodes even after the user has deleted its definition — the
+        // log is a record of what happened, not of what still exists.
+        val dice = DieType.ofFaces(faces) ?: return null
         if (parts[1].isEmpty()) return null
 
         val tallies = parts[1].split(TALLY_SEPARATOR).map { tally ->

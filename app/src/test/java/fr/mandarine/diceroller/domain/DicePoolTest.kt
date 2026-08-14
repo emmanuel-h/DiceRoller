@@ -101,4 +101,45 @@ class DicePoolTest {
 
         assertEquals(5, pool.countFor(Dice.D6))
     }
+
+    // --- Custom dice sit in the same face-count ordering as the presets (issue #4) ---
+
+    /**
+     * The ordering is what makes `"4D6 + 1D7 + 2D8"` read correctly and the result ladder run
+     * smallest-to-largest, so a custom die must interleave rather than be appended after the
+     * presets the way the selector's chips are.
+     */
+    @Test
+    fun givenAPoolMixingPresetsAndCustomDice_whenReadingEntries_thenTheyInterleaveByFaceCount() {
+        val pool = DicePool(
+            mapOf(Dice.D8 to 2, CustomDie(7) to 1, Dice.D6 to 4, CustomDie(3) to 5),
+        )
+
+        assertEquals(
+            listOf<DieType>(CustomDie(3), Dice.D6, CustomDie(7), Dice.D8),
+            pool.entries.map { (dice, _) -> dice },
+        )
+    }
+
+    @Test
+    fun givenACustomDieAtZero_whenReadingEntries_thenItIsExcludedLikeAnyPreset() {
+        val pool = DicePool(mapOf(CustomDie(7) to 0, Dice.D6 to 1))
+
+        assertEquals(listOf<DieType>(Dice.D6), pool.entries.map { (dice, _) -> dice })
+    }
+
+    @Test
+    fun givenACustomDie_whenReadingCountFor_thenItIsItsOwnCount() {
+        val pool = DicePool(mapOf(CustomDie(7) to 3))
+
+        assertEquals(3, pool.countFor(CustomDie(7)))
+        assertEquals(0, pool.countFor(CustomDie(9)))
+    }
+
+    @Test
+    fun givenACustomDieAboveTheMaximumCount_whenConstructed_thenItThrows() {
+        assertThrows(IllegalArgumentException::class.java) {
+            DicePool(mapOf(CustomDie(7) to DicePool.MAX_DICE_PER_TYPE + 1))
+        }
+    }
 }

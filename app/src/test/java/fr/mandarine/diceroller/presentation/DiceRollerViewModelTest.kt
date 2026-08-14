@@ -2,10 +2,12 @@
 package fr.mandarine.diceroller.presentation
 
 import fr.mandarine.diceroller.MainDispatcherRule
+import fr.mandarine.diceroller.domain.CustomDie
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DicePool
 import fr.mandarine.diceroller.domain.DicePoolResult
 import fr.mandarine.diceroller.domain.DiceRoller
+import fr.mandarine.diceroller.domain.DieType
 import fr.mandarine.diceroller.domain.RollRecord
 import fr.mandarine.diceroller.presentation.model.DiceColor
 import kotlin.random.Random
@@ -34,10 +36,12 @@ class DiceRollerViewModelTest {
         seed: Long = 42,
         colorStore: DiceColorStore = InMemoryDiceColorStore(),
         historyStore: RollHistoryStore = InMemoryRollHistoryStore(),
+        customDiceStore: CustomDiceStore = InMemoryCustomDiceStore(),
     ): DiceRollerViewModel = DiceRollerViewModel(
         diceRoller = DiceRoller(random = Random(seed)),
         colorStore = colorStore,
         historyStore = historyStore,
+        customDiceStore = customDiceStore,
         clock = { nowMillis },
     )
 
@@ -556,5 +560,380 @@ class DiceRollerViewModelTest {
         }
 
         assertEquals(listOf(1, 2, 3, 4, 5), sizes)
+    }
+
+    // --- Custom dice: defining them (issue #4) ---
+
+    @Test
+    fun givenNewViewModel_whenReadingState_thenThereAreNoCustomDice() {
+        val state = viewModel().uiState.value
+
+        assertEquals(emptyList<CustomDie>(), state.customDice)
+        assertTrue(state.canAddCustomDie)
+    }
+
+    @Test
+    fun givenNewViewModel_whenReadingDieTypes_thenItIsJustThePresets() {
+        assertEquals(Dice.entries.toList(), viewModel().uiState.value.dieTypes)
+    }
+
+    @Test
+    fun givenNoCustomDice_whenOneIsAdded_thenItAppearsInTheDiceAndInTheDieTypes() {
+        val vm = viewModel()
+
+        vm.addCustomDie(CustomDie(7))
+
+        assertEquals(listOf(CustomDie(7)), vm.uiState.value.customDice)
+        assertEquals(Dice.entries + CustomDie(7), vm.uiState.value.dieTypes)
+    }
+
+    /** A chip with no pool entry would read its count as 0 and then write to a key nothing owns. */
+    @Test
+    fun givenACustomDieIsAdded_whenReadingThePool_thenItHasAZeroEntry() {
+        val vm = viewModel()
+
+        vm.addCustomDie(CustomDie(7))
+
+        assertEquals(0, vm.uiState.value.pool[CustomDie(7)])
+        assertTrue(vm.uiState.value.pool.containsKey(CustomDie(7)))
+    }
+
+    /**
+     * Adding a die puts nothing in the pool, so what Roll would produce has not changed and the
+     * result on screen is still an accurate answer to it.
+     */
+    @Test
+    fun givenARolledResult_whenACustomDieIsAdded_thenTheResultIsKept() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        val before = vm.uiState.value.result
+
+        vm.addCustomDie(CustomDie(7))
+
+        assertEquals(before, vm.uiState.value.result)
+    }
+
+    @Test
+    fun givenSeveralCustomDice_whenAdded_thenTheyAreOrderedAscendingByFaceCount() {
+        val vm = viewModel()
+
+        vm.addCustomDie(CustomDie(100))
+        vm.addCustomDie(CustomDie(3))
+        vm.addCustomDie(CustomDie(7))
+
+        assertEquals(listOf(CustomDie(3), CustomDie(7), CustomDie(100)), vm.uiState.value.customDice)
+    }
+
+    @Test
+    fun givenTheCapIsReached_whenAnotherIsAdded_thenItIsIgnoredAndAddingIsClosed() {
+        val vm = viewModel()
+        repeat(MAX_CUSTOM_DICE) { index -> vm.addCustomDie(CustomDie(index + 101)) }
+
+        vm.addCustomDie(CustomDie(200))
+
+        assertEquals(MAX_CUSTOM_DICE, vm.uiState.value.customDice.size)
+        assertFalse(vm.uiState.value.canAddCustomDie)
+        assertFalse(vm.uiState.value.customDice.contains(CustomDie(200)))
+    }
+
+    @Test
+    fun givenADieAlreadyDefined_whenAddedAgain_thenItIsNotDuplicated() {
+        val vm = viewModel()
+        vm.addCustomDie(CustomDie(7))
+
+        vm.addCustomDie(CustomDie(7))
+
+        assertEquals(listOf(CustomDie(7)), vm.uiState.value.customDice)
+    }
+
+    // --- Custom dice: they roll like presets ---
+
+    @Test
+    fun givenACustomDieInThePool_whenRolled_thenItProducesAGroupWithinItsOwnFaceRange() {
+        val vm = viewModel()
+        vm.addCustomDie(CustomDie(7))
+        vm.incrementCount(CustomDie(7))
+        vm.incrementCount(CustomDie(7))
+
+        vm.rollDice()
+
+        val group = vm.uiState.value.result!!.groups.single()
+        assertEquals(CustomDie(7), group.dice)
+        assertEquals(2, group.poolCount)
+        assertTrue(group.tallies.all { it.value in 1..7 })
+    }
+
+    /** Groups are ordered by face count, so a D7 lands between the D6 and the D8 — not after them. */
+    @Test
+    fun givenAPoolMixingPresetsAndACustomDie_whenRolled_thenGroupsInterleaveByFaceCount() {
+        val vm = viewModel()
+        vm.addCustomDie(CustomDie(7))
+        vm.incrementCount(Dice.D8)
+        vm.incrementCount(Dice.D6)
+        vm.incrementCount(CustomDie(7))
+
+        vm.rollDice()
+
+        assertEquals(
+            listOf<DieType>(Dice.D6, CustomDie(7), Dice.D8),
+            vm.uiState.value.result!!.groups.map { it.dice },
+        )
+    }
+
+    @Test
+    fun givenACustomDieRolled_whenReadingTheHistory_thenTheEntryRecordsIt() = runTest {
+        val store = InMemoryRollHistoryStore()
+        val vm = viewModel(historyStore = store)
+        vm.addCustomDie(CustomDie(7))
+        vm.incrementCount(CustomDie(7))
+
+        vm.rollDice()
+
+        assertEquals(CustomDie(7), store.history.first().single().result.groups.single().dice)
+    }
+
+    // --- Custom dice: removing them ---
+
+    @Test
+    fun givenACustomDie_whenRemoved_thenItLeavesTheDiceTheDieTypesAndThePool() {
+        val vm = viewModel()
+        vm.addCustomDie(CustomDie(7))
+
+        vm.removeCustomDie(CustomDie(7))
+
+        assertEquals(emptyList<CustomDie>(), vm.uiState.value.customDice)
+        assertEquals(Dice.entries.toList(), vm.uiState.value.dieTypes)
+        assertFalse(vm.uiState.value.pool.containsKey(CustomDie(7)))
+    }
+
+    @Test
+    fun givenACustomDieWithNoDiceQueued_whenRemoved_thenTheResultIsKept() {
+        val vm = viewModel()
+        vm.addCustomDie(CustomDie(7))
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        val before = vm.uiState.value.result
+
+        vm.removeCustomDie(CustomDie(7))
+
+        assertEquals(before, vm.uiState.value.result)
+    }
+
+    /** Removing a die that *was* queued changes what Roll would produce, so the result must go. */
+    @Test
+    fun givenACustomDieWithDiceQueued_whenRemoved_thenTheResultIsCleared() {
+        val vm = viewModel()
+        vm.addCustomDie(CustomDie(7))
+        vm.incrementCount(CustomDie(7))
+        vm.rollDice()
+
+        vm.removeCustomDie(CustomDie(7))
+
+        assertNull(vm.uiState.value.result)
+    }
+
+    /** The log records face counts, not definitions, so deleting a die cannot rewrite history. */
+    @Test
+    fun givenAPastRollOfACustomDie_whenTheDieIsRemoved_thenTheLogEntryRemains() {
+        val vm = viewModel()
+        vm.addCustomDie(CustomDie(7))
+        vm.incrementCount(CustomDie(7))
+        vm.rollDice()
+
+        vm.removeCustomDie(CustomDie(7))
+
+        assertEquals(1, vm.uiState.value.history.size)
+        assertEquals(
+            CustomDie(7),
+            vm.uiState.value.history.single().result.groups.single().dice,
+        )
+    }
+
+    @Test
+    fun givenADieThatWasNeverDefined_whenRemoved_thenNothingHappens() {
+        val vm = viewModel()
+        vm.addCustomDie(CustomDie(7))
+
+        vm.removeCustomDie(CustomDie(9))
+
+        assertEquals(listOf(CustomDie(7)), vm.uiState.value.customDice)
+        assertNull(vm.uiState.value.removedCustomDie)
+    }
+
+    @Test
+    fun givenTheCapWasReached_whenOneIsRemoved_thenAddingIsPossibleAgain() {
+        val vm = viewModel()
+        repeat(MAX_CUSTOM_DICE) { index -> vm.addCustomDie(CustomDie(index + 101)) }
+
+        vm.removeCustomDie(CustomDie(101))
+
+        assertTrue(vm.uiState.value.canAddCustomDie)
+    }
+
+    // --- Custom dice: undoing a removal ---
+
+    @Test
+    fun givenACustomDie_whenRemoved_thenTheUndoIsArmed() {
+        val vm = viewModel()
+        vm.addCustomDie(CustomDie(7))
+
+        vm.removeCustomDie(CustomDie(7))
+
+        assertEquals(CustomDie(7), vm.uiState.value.removedCustomDie)
+    }
+
+    /** The point of the undo: a mistap on a badge that overlaps the increment half costs one tap. */
+    @Test
+    fun givenARemovedCustomDie_whenUndone_thenTheDieAndItsCountComeBack() {
+        val vm = viewModel()
+        vm.addCustomDie(CustomDie(7))
+        repeat(3) { vm.incrementCount(CustomDie(7)) }
+        vm.removeCustomDie(CustomDie(7))
+
+        vm.undoRemoveCustomDie()
+
+        assertEquals(listOf(CustomDie(7)), vm.uiState.value.customDice)
+        assertEquals(3, vm.uiState.value.pool[CustomDie(7)])
+        assertNull(vm.uiState.value.removedCustomDie)
+    }
+
+    /**
+     * An undo restores the pool but never the result: a result is only ever produced by pressing
+     * Roll, and reviving one would show an outcome the user did not ask for.
+     */
+    @Test
+    fun givenARemovedCustomDieThatHadBeenRolled_whenUndone_thenTheResultStaysCleared() {
+        val vm = viewModel()
+        vm.addCustomDie(CustomDie(7))
+        vm.incrementCount(CustomDie(7))
+        vm.rollDice()
+        vm.removeCustomDie(CustomDie(7))
+
+        vm.undoRemoveCustomDie()
+
+        assertNull(vm.uiState.value.result)
+    }
+
+    @Test
+    fun givenARemovedCustomDie_whenTheSnackbarIsDismissed_thenTheRemovalStands() {
+        val vm = viewModel()
+        vm.addCustomDie(CustomDie(7))
+        vm.removeCustomDie(CustomDie(7))
+
+        vm.dismissRemovedCustomDie()
+
+        assertNull(vm.uiState.value.removedCustomDie)
+        assertEquals(emptyList<CustomDie>(), vm.uiState.value.customDice)
+    }
+
+    @Test
+    fun givenNoPendingRemoval_whenUndoIsCalled_thenNothingHappens() {
+        val vm = viewModel()
+        vm.addCustomDie(CustomDie(7))
+
+        vm.undoRemoveCustomDie()
+
+        assertEquals(listOf(CustomDie(7)), vm.uiState.value.customDice)
+    }
+
+    /** Remove, undo, remove again: the second removal must arm its own undo, not reuse a stale one. */
+    @Test
+    fun givenADieRemovedUndoneAndRemovedAgain_whenUndoneAgain_thenTheCountIsStillRestored() {
+        val vm = viewModel()
+        vm.addCustomDie(CustomDie(7))
+        repeat(2) { vm.incrementCount(CustomDie(7)) }
+
+        vm.removeCustomDie(CustomDie(7))
+        vm.undoRemoveCustomDie()
+        vm.removeCustomDie(CustomDie(7))
+        vm.undoRemoveCustomDie()
+
+        assertEquals(listOf(CustomDie(7)), vm.uiState.value.customDice)
+        assertEquals(2, vm.uiState.value.pool[CustomDie(7)])
+    }
+
+    // --- Custom dice: persistence and the creator dialog ---
+
+    @Test
+    fun givenACustomDieAdded_whenReadingTheStore_thenItWasWrittenThrough() = runTest {
+        val store = InMemoryCustomDiceStore()
+        val vm = viewModel(customDiceStore = store)
+
+        vm.addCustomDie(CustomDie(7))
+
+        assertEquals(listOf(CustomDie(7)), store.customDice.first())
+    }
+
+    @Test
+    fun givenStoredCustomDice_whenANewViewModelSharesTheStore_thenTheyAreRestored() {
+        val store = InMemoryCustomDiceStore(listOf(CustomDie(7), CustomDie(3)))
+
+        val state = viewModel(customDiceStore = store).uiState.value
+
+        assertEquals(listOf(CustomDie(3), CustomDie(7)), state.customDice)
+        assertEquals(0, state.pool[CustomDie(7)])
+        assertEquals(0, state.pool[CustomDie(3)])
+    }
+
+    @Test
+    fun givenACustomDieRemoved_whenReadingTheStore_thenTheRemovalWasWrittenThrough() = runTest {
+        val store = InMemoryCustomDiceStore(listOf(CustomDie(7)))
+        val vm = viewModel(customDiceStore = store)
+
+        vm.removeCustomDie(CustomDie(7))
+
+        assertEquals(emptyList<CustomDie>(), store.customDice.first())
+    }
+
+    @Test
+    fun givenARemovalUndone_whenReadingTheStore_thenTheDieIsBackInIt() = runTest {
+        val store = InMemoryCustomDiceStore(listOf(CustomDie(7)))
+        val vm = viewModel(customDiceStore = store)
+        vm.removeCustomDie(CustomDie(7))
+
+        vm.undoRemoveCustomDie()
+
+        assertEquals(listOf(CustomDie(7)), store.customDice.first())
+    }
+
+    @Test
+    fun givenNewViewModel_whenReadingState_thenTheCreatorIsClosed() {
+        assertFalse(viewModel().uiState.value.isCustomDieCreatorVisible)
+    }
+
+    @Test
+    fun givenTheCreatorIsClosed_whenShown_thenItOpensAndDismissingClosesItAgain() {
+        val vm = viewModel()
+
+        vm.showCustomDieCreator()
+        assertTrue(vm.uiState.value.isCustomDieCreatorVisible)
+
+        vm.dismissCustomDieCreator()
+        assertFalse(vm.uiState.value.isCustomDieCreatorVisible)
+    }
+
+    @Test
+    fun givenTheCreatorIsOpen_whenADieIsAdded_thenItCloses() {
+        val vm = viewModel()
+        vm.showCustomDieCreator()
+
+        vm.addCustomDie(CustomDie(7))
+
+        assertFalse(vm.uiState.value.isCustomDieCreatorVisible)
+    }
+
+    /** Presets are not definitions: nothing the custom-dice actions do may remove one. */
+    @Test
+    fun givenCustomDiceAddedAndRemoved_whenReadingThePool_thenEveryPresetStillHasAnEntry() {
+        val vm = viewModel()
+
+        vm.addCustomDie(CustomDie(7))
+        vm.incrementCount(Dice.D6)
+        vm.removeCustomDie(CustomDie(7))
+
+        Dice.entries.forEach { dice ->
+            assertTrue("missing $dice", vm.uiState.value.pool.containsKey(dice))
+        }
     }
 }

@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -30,8 +32,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import fr.mandarine.diceroller.domain.CustomDie
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DicePool
+import fr.mandarine.diceroller.domain.DieType
 import fr.mandarine.diceroller.presentation.model.DiceColor
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 
@@ -41,10 +45,17 @@ private const val DECREMENT_GLYPH = "−"
 /** Plain-text "+" glyph, matching [DECREMENT_GLYPH]'s avoidance of the extended icon set. */
 private const val INCREMENT_GLYPH = "+"
 
-private val CHIP_SHAPE = RoundedCornerShape(16.dp)
-private val CHIP_BORDER_WIDTH = 1.dp
-private val CHIP_VERTICAL_PADDING = 8.dp
-private val CHIP_LABEL_SPACING = 6.dp
+/** U+00D7 MULTIPLICATION SIGN, used as the remove badge's "x" for the same reason. */
+private const val REMOVE_GLYPH = "×"
+
+/**
+ * Geometry shared with [AddDiceChip], which is a peer cell of the same grid and has to match this
+ * chip's shape and footprint exactly for the rows to read as a grid rather than as a pile.
+ */
+internal val CHIP_SHAPE = RoundedCornerShape(16.dp)
+internal val CHIP_BORDER_WIDTH = 1.dp
+internal val CHIP_VERTICAL_PADDING = 8.dp
+internal val CHIP_LABEL_SPACING = 6.dp
 
 /** Inset of the `−`/`+` glyphs from their half's outer edge. */
 private val GLYPH_EDGE_PADDING = 8.dp
@@ -60,7 +71,18 @@ private val GLYPH_EDGE_PADDING = 8.dp
 private val HALF_MIN_SIZE = 48.dp
 
 /** Chip width below which the two halves could not both reach [HALF_MIN_SIZE]. */
-private val CHIP_MIN_WIDTH = HALF_MIN_SIZE * 2
+internal val CHIP_MIN_WIDTH = HALF_MIN_SIZE * 2
+
+/**
+ * Tap target of the custom-die remove badge, and the diameter of the circle drawn inside it.
+ *
+ * Below the 48dp guideline on purpose: the badge sits in the corner of the increment half, and a
+ * 48dp target there would swallow a quarter of it. The mitigation is on the other side — a removal
+ * is undoable from a snackbar (see [fr.mandarine.diceroller.presentation.DiceRollerUiState
+ * .removedCustomDie]) — so a mistap costs one tap rather than the definition.
+ */
+private val REMOVE_TARGET_SIZE = 36.dp
+private val REMOVE_CIRCLE_SIZE = 20.dp
 
 /** Opacity of an actionable edge glyph — visible as an affordance, quieter than the artwork. */
 private const val ACTIVE_GLYPH_ALPHA = 0.6f
@@ -111,7 +133,12 @@ private fun chipColorsFor(isIncluded: Boolean): ChipColors = if (isIncluded) {
  * the full chip while each half still spans the chip's whole height. At the pool selector's
  * three-per-row grid a half is ~52dp wide on a 360dp screen, clearing the 48dp target.
  *
- * All six die types render one of these, always visible (see [Dice.entries]); [count] of 0 is
+ * Serves both kinds of [DieType] identically — a [CustomDie] steps, styles and labels exactly like
+ * a [Dice] preset, and differs only in what [DiceImage] draws for it. Passing [onRemove] adds the
+ * `×` badge that deletes a custom die; presets pass null, which is what keeps the six of them
+ * undeletable without a second chip composable.
+ *
+ * All six presets render one of these, always visible (see [Dice.entries]); [count] of 0 is
  * the "excluded" style, `1..`[DicePool.MAX_DICE_PER_TYPE] the "included" style. At the bounds the
  * corresponding half is disabled — inert to taps and announced as such — rather than removed.
  *
@@ -121,15 +148,18 @@ private fun chipColorsFor(isIncluded: Boolean): ChipColors = if (isIncluded) {
  * @param onIncrement invoked when the right half is tapped
  * @param onDecrement invoked when the left half is tapped
  * @param modifier optional [Modifier] applied to the chip container
+ * @param onRemove invoked when the `×` badge is tapped; null — the default — omits the badge
+ *   entirely, which is correct for every preset since only custom dice can be deleted
  */
 @Composable
 fun DiceStepperChip(
-    dice: Dice,
+    dice: DieType,
     count: Int,
     color: DiceColor,
     onIncrement: () -> Unit,
     onDecrement: () -> Unit,
     modifier: Modifier = Modifier,
+    onRemove: (() -> Unit)? = null,
 ) {
     val isIncluded = count > 0
     val chipColors = chipColorsFor(isIncluded)
@@ -163,7 +193,7 @@ fun DiceStepperChip(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "D${dice.faces}",
+                        text = dice.label,
                         style = MaterialTheme.typography.labelMedium,
                     )
                     Text(
@@ -181,7 +211,7 @@ fun DiceStepperChip(
             Row(modifier = Modifier.matchParentSize()) {
                 StepperHalf(
                     glyph = DECREMENT_GLYPH,
-                    description = "Decrease ${dice.name} count",
+                    description = "Decrease ${dice.label} count",
                     enabled = count > 0,
                     onClick = onDecrement,
                     glyphAlignment = Alignment.CenterStart,
@@ -189,11 +219,22 @@ fun DiceStepperChip(
                 )
                 StepperHalf(
                     glyph = INCREMENT_GLYPH,
-                    description = "Increase ${dice.name} count",
+                    description = "Increase ${dice.label} count",
                     enabled = count < DicePool.MAX_DICE_PER_TYPE,
                     onClick = onIncrement,
                     glyphAlignment = Alignment.CenterEnd,
                     modifier = Modifier.weight(1f),
+                )
+            }
+
+            // Composed after the halves so it wins hit-testing in the overlap: the badge sits
+            // inside the increment half's bounds, and in Compose the last child laid out on top
+            // is the one that receives the tap.
+            if (onRemove != null) {
+                RemoveBadge(
+                    dice = dice,
+                    onRemove = onRemove,
+                    modifier = Modifier.align(Alignment.TopEnd),
                 )
             }
         }
@@ -204,7 +245,55 @@ fun DiceStepperChip(
  * Test tag of the count text inside [dice]'s chip. Exposed so screen-level tests can read one
  * specific chip's count without depending on how the chip nests its nodes.
  */
-fun chipCountTestTag(dice: Dice): String = "chip-count-${dice.name}"
+fun chipCountTestTag(dice: DieType): String = "chip-count-${dice.label}"
+
+/** Test tag of the `×` badge that deletes the custom die [dice]. */
+fun chipRemoveTestTag(dice: DieType): String = "chip-remove-${dice.label}"
+
+/**
+ * The `×` that deletes a custom die, in the chip's top-right corner.
+ *
+ * Visible at rest rather than hidden behind a long-press: a die the user created is a die they
+ * should be able to see how to remove. It is drawn as its own bordered circle so it reads as a
+ * control sitting *on* the chip rather than as part of it, which matters because the chip's own
+ * surface means "increment" everywhere else under this badge.
+ */
+@Composable
+private fun RemoveBadge(
+    dice: DieType,
+    onRemove: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .size(REMOVE_TARGET_SIZE)
+            .clickable(role = Role.Button, onClick = onRemove)
+            .testTag(chipRemoveTestTag(dice))
+            .semantics(mergeDescendants = true) {
+                contentDescription = "Remove ${dice.label}"
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(REMOVE_CIRCLE_SIZE)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(
+                    width = CHIP_BORDER_WIDTH,
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    shape = CircleShape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = REMOVE_GLYPH,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
 
 /**
  * One half of a [DiceStepperChip]: a full-height transparent tap target carrying its `−`/`+`
@@ -286,6 +375,38 @@ private fun DiceStepperChipAtCapPreview() {
             color = DiceColor.Jade,
             onIncrement = {},
             onDecrement = {},
+        )
+    }
+}
+
+/** A custom die: badge instead of artwork, and the `×` that presets never get. */
+@Preview(name = "Custom D7 (count 1)", showBackground = true)
+@Composable
+private fun DiceStepperChipCustomPreview() {
+    DiceRollerTheme(dynamicColor = false) {
+        DiceStepperChip(
+            dice = CustomDie(7),
+            count = 1,
+            color = DiceColor.Sapphire,
+            onIncrement = {},
+            onDecrement = {},
+            onRemove = {},
+        )
+    }
+}
+
+/** The widest custom label, checked against the chip's minimum width. */
+@Preview(name = "Custom D1000 (count 0)", showBackground = true)
+@Composable
+private fun DiceStepperChipCustomWidePreview() {
+    DiceRollerTheme(dynamicColor = false) {
+        DiceStepperChip(
+            dice = CustomDie(1000),
+            count = 0,
+            color = DiceColor.Bronze,
+            onIncrement = {},
+            onDecrement = {},
+            onRemove = {},
         )
     }
 }

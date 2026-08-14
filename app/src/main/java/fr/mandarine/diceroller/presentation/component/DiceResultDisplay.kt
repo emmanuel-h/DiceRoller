@@ -32,6 +32,7 @@ import fr.mandarine.diceroller.R
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DiceGroupResult
 import fr.mandarine.diceroller.domain.DicePoolResult
+import fr.mandarine.diceroller.domain.DieType
 import fr.mandarine.diceroller.domain.ValueTally
 import fr.mandarine.diceroller.presentation.model.DiceColor
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
@@ -198,12 +199,12 @@ private fun DiceGroupBlock(
 @Composable
 private fun GroupHeader(group: DiceGroupResult, modifier: Modifier = Modifier) {
     Text(
-        text = "${group.poolCount}×D${group.dice.faces}",
+        text = "${group.poolCount}×${group.dice.label}",
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier
             .fillMaxWidth()
-            .semantics { contentDescription = "${group.poolCount} ${group.dice.name} dice" },
+            .semantics { contentDescription = "${group.poolCount} ${group.dice.label} dice" },
     )
 }
 
@@ -215,7 +216,7 @@ private fun GroupHeader(group: DiceGroupResult, modifier: Modifier = Modifier) {
  */
 @Composable
 private fun FaceEntry(
-    dice: Dice,
+    dice: DieType,
     tally: ValueTally,
     color: DiceColor,
     modifier: Modifier = Modifier,
@@ -233,7 +234,7 @@ private fun FaceEntry(
             color = color,
             sizeVariant = DiceImageSize.Inline,
             contentDescription = null,
-            modifier = Modifier.testTag("dice-row-art-${dice.name}-${tally.value}-${color.name}"),
+            modifier = Modifier.testTag("dice-row-art-${dice.label}-${tally.value}-${color.name}"),
         )
         Text(
             text = tally.value.toString(),
@@ -268,14 +269,14 @@ private fun TotalLine(total: Int, modifier: Modifier = Modifier) {
  */
 private fun DicePoolResult.toAccessibilitySummary(): String {
     val poolSummary = groups.joinToString(separator = " and ") { group ->
-        "${group.poolCount} ${group.dice.name}"
+        "${group.poolCount} ${group.dice.label}"
     }
     val groupSummaries = groups.joinToString(separator = " ") { group ->
         val valuesSummary = group.tallies.joinToString(separator = ", ") { tally ->
             val plural = if (tally.count > 1) "s" else ""
             "${numberWord(tally.count)} ${tally.value}$plural"
         }
-        "${group.dice.name}: $valuesSummary."
+        "${group.dice.label}: $valuesSummary."
     }
     return "Rolled $poolSummary. $groupSummaries Total $total."
 }

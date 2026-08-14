@@ -31,6 +31,7 @@ import fr.mandarine.diceroller.R
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DiceGroupResult
 import fr.mandarine.diceroller.domain.DicePoolResult
+import fr.mandarine.diceroller.domain.DieType
 import fr.mandarine.diceroller.domain.RollRecord
 import fr.mandarine.diceroller.domain.ValueTally
 import fr.mandarine.diceroller.presentation.model.DiceColor
@@ -256,7 +257,7 @@ private fun FaceLine(
 
 @Composable
 private fun HistoryFace(
-    dice: Dice,
+    dice: DieType,
     tally: ValueTally,
     color: DiceColor,
     modifier: Modifier = Modifier,
@@ -304,7 +305,7 @@ private fun RollRecord.toAccessibilityLabel(nowMillis: Long): String {
         val values = group.tallies.joinToString(separator = ", ") { tally ->
             if (tally.count > 1) "${tally.value} ${tally.count} times" else "${tally.value}"
         }
-        "${group.dice.name}: $values."
+        "${group.dice.label}: $values."
     }
     return "${result.notation()}, total ${result.total}, $when_. $faces"
 }

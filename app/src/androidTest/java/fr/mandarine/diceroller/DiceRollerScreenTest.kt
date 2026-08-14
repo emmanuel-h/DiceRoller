@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -23,13 +24,14 @@ import fr.mandarine.diceroller.domain.DiceGroupResult
 import fr.mandarine.diceroller.domain.DicePool
 import fr.mandarine.diceroller.domain.DicePoolResult
 import fr.mandarine.diceroller.domain.DiceRoller
+import fr.mandarine.diceroller.domain.DieType
 import fr.mandarine.diceroller.domain.RollRecord
 import fr.mandarine.diceroller.domain.ValueTally
+import fr.mandarine.diceroller.presentation.DiceRollerUiState
+import fr.mandarine.diceroller.presentation.DiceRollerViewModel
 import fr.mandarine.diceroller.presentation.component.ROLL_HISTORY_HEADER_TAG
 import fr.mandarine.diceroller.presentation.component.ROLL_HISTORY_LIST_TAG
 import fr.mandarine.diceroller.presentation.component.chipCountTestTag
-import fr.mandarine.diceroller.presentation.DiceRollerUiState
-import fr.mandarine.diceroller.presentation.DiceRollerViewModel
 import fr.mandarine.diceroller.presentation.model.DiceColor
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 import kotlin.random.Random
@@ -176,7 +178,7 @@ class DiceRollerScreenTest {
 
     @Test
     fun givenAMixedPoolWithMultipleCountsPerType_whenScreenIsDisplayed_thenRollButtonLabelMatchesPoolCompositionAndOrdering() {
-        val pool = Dice.entries.associateWith { dice ->
+        val pool: Map<DieType, Int> = Dice.entries.associateWith { dice ->
             when (dice) {
                 Dice.D6 -> 4
                 Dice.D8 -> 2
@@ -243,7 +245,7 @@ class DiceRollerScreenTest {
 
     @Test
     fun givenAChipAtMaxCount_whenScreenIsDisplayed_thenTheIncreaseControlIsDisabled() {
-        val pool = Dice.entries.associateWith { dice ->
+        val pool: Map<DieType, Int> = Dice.entries.associateWith { dice ->
             if (dice == Dice.D6) DicePool.MAX_DICE_PER_TYPE else 0
         }
         launchScreen(uiState = DiceRollerUiState(pool = pool))
@@ -253,7 +255,7 @@ class DiceRollerScreenTest {
 
     @Test
     fun givenAChipOneBelowMaxCount_whenScreenIsDisplayed_thenTheIncreaseControlIsStillEnabled() {
-        val pool = Dice.entries.associateWith { dice ->
+        val pool: Map<DieType, Int> = Dice.entries.associateWith { dice ->
             if (dice == Dice.D6) DicePool.MAX_DICE_PER_TYPE - 1 else 0
         }
         launchScreen(uiState = DiceRollerUiState(pool = pool))
@@ -263,7 +265,7 @@ class DiceRollerScreenTest {
 
     @Test
     fun givenANonZeroCountChip_whenScreenIsDisplayed_thenTheDecreaseControlIsEnabled() {
-        val pool = Dice.entries.associateWith { dice -> if (dice == Dice.D6) 1 else 0 }
+        val pool: Map<DieType, Int> = Dice.entries.associateWith { dice -> if (dice == Dice.D6) 1 else 0 }
         launchScreen(uiState = DiceRollerUiState(pool = pool))
 
         decreaseButton(Dice.D6).assertIsEnabled()
@@ -307,8 +309,17 @@ class DiceRollerScreenTest {
 
     // --- Whole-screen fit (issue #64) ---
 
+    /**
+     * Issue #64's fit, as it stands after custom dice (issue #4) took a third chip row.
+     *
+     * Measured, not assumed: a chip row is 98dp and the third one costs 106dp with its gap, against
+     * the ~16dp of slack this viewport had. So at [COMPACT_PHONE_HEIGHT] the densest typical pool no
+     * longer shows its last group and total outright — the result band scrolls them into reach. Every
+     * *control* still fits, which is the guarantee that must never regress, and the thresholds where
+     * the total fits outright again are pinned by the two tests below.
+     */
     @Test
-    fun givenTheRealisticPoolRolledOnACompactPhone_whenScreenIsDisplayed_thenEveryBandIsVisibleAtOnce() {
+    fun givenTheRealisticPoolRolledOnACompactPhone_whenScreenIsDisplayed_thenEveryControlFitsAndTheResultScrollsIntoReach() {
         launchScreenInViewport(
             uiState = realisticRolledState(),
             width = COMPACT_PHONE_WIDTH,
@@ -322,15 +333,45 @@ class DiceRollerScreenTest {
             .assertIsDisplayed()
         // Selector band: all six die types, still reachable without scrolling.
         Dice.entries.forEach { dice -> increaseButton(dice).assertIsDisplayed() }
-        // Result band: every group and the total. Were the layout overflowing, the results would
-        // scroll and the last group and total would fall below the fold.
+        // Result band: the first group is on screen, and the rest is one scroll away rather than
+        // gone. performScrollTo passes untouched for a node already visible, so this is the same
+        // assertion for whichever of them still fits.
         composeTestRule.onNodeWithText("4×D6").assertIsDisplayed()
-        composeTestRule.onNodeWithText("4×D8").assertIsDisplayed()
-        composeTestRule.onNodeWithText("4×D20").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Total $REALISTIC_POOL_TOTAL").assertIsDisplayed()
-        // Bottom band: the Roll button and the license-required credit.
+        composeTestRule.onNodeWithText("4×D8").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("4×D20").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Total $REALISTIC_POOL_TOTAL")
+            .performScrollTo()
+            .assertIsDisplayed()
+        // Bottom band: the Roll button and the license-required credit, both pinned.
         composeTestRule.onNodeWithText("Roll 4D6 + 4D8 + 4D20").assertIsDisplayed()
         composeTestRule.onNodeWithText("Dice art by Aeynit · CC BY 4.0").assertIsDisplayed()
+    }
+
+    /** The measured height at which the total fits outright again with no history band. */
+    @Test
+    fun givenNoHistoryAtTheTotalFitHeight_whenScreenIsDisplayed_thenTheTotalNeedsNoScrolling() {
+        launchScreenInViewport(
+            uiState = realisticRolledState(withHistory = false),
+            width = COMPACT_PHONE_WIDTH,
+            height = TOTAL_FIT_HEIGHT_NO_HISTORY,
+        )
+
+        composeTestRule.onNodeWithText("4×D20").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Total $REALISTIC_POOL_TOTAL").assertIsDisplayed()
+    }
+
+    /** The same threshold once a collapsed history band is also charging its ~45dp. */
+    @Test
+    fun givenACollapsedHistoryBandAtTheTotalFitHeight_whenScreenIsDisplayed_thenTheTotalNeedsNoScrolling() {
+        launchScreenInViewport(
+            uiState = realisticRolledState(withHistory = true),
+            width = COMPACT_PHONE_WIDTH,
+            height = TOTAL_FIT_HEIGHT_WITH_HISTORY,
+        )
+
+        composeTestRule.onNodeWithText("4×D20").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Total $REALISTIC_POOL_TOTAL").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Recent (1)").assertIsDisplayed()
     }
 
     @Test
@@ -455,9 +496,14 @@ class DiceRollerScreenTest {
         composeTestRule.onNodeWithText("Dice art by Aeynit · CC BY 4.0").assertIsDisplayed()
     }
 
-    /** One notch taller — a small phone rather than the harshest bound — and everything fits. */
+    /**
+     * One notch taller than the harshest bound. Before custom dice this was the height at which
+     * everything fit outright; the third chip row moved that threshold to
+     * [TOTAL_FIT_HEIGHT_WITH_HISTORY], so here the result band still scrolls its tail into reach
+     * while every band and control remains on screen.
+     */
     @Test
-    fun givenACollapsedHistoryBandOnASmallPhone_whenScreenIsDisplayed_thenEveryBandIncludingTheTotalIsVisible() {
+    fun givenACollapsedHistoryBandOnASmallPhone_whenScreenIsDisplayed_thenEveryBandIsPresentAndTheResultScrollsIntoReach() {
         launchScreenInViewport(
             uiState = realisticRolledState(withHistory = true),
             width = COMPACT_PHONE_WIDTH,
@@ -466,23 +512,32 @@ class DiceRollerScreenTest {
 
         Dice.entries.forEach { dice -> increaseButton(dice).assertIsDisplayed() }
         composeTestRule.onNodeWithText("4×D6").assertIsDisplayed()
-        composeTestRule.onNodeWithText("4×D20").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Total $REALISTIC_POOL_TOTAL").assertIsDisplayed()
+        composeTestRule.onNodeWithText("4×D20").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Total $REALISTIC_POOL_TOTAL")
+            .performScrollTo()
+            .assertIsDisplayed()
         composeTestRule.onNodeWithText("Recent (1)").assertIsDisplayed()
         composeTestRule.onNodeWithText("Roll 4D6 + 4D8 + 4D20").assertIsDisplayed()
         composeTestRule.onNodeWithText("Dice art by Aeynit · CC BY 4.0").assertIsDisplayed()
     }
 
-    /** With no rolls yet the band is absent, so issue #64's fit is untouched on a fresh install. */
+    /**
+     * With no rolls yet the history band is absent entirely — but the chip grid's third row is
+     * charged whether or not a custom die exists, because the add chip is what makes the feature
+     * discoverable. So on the shortest viewport even a history-free screen now scrolls its total
+     * into reach rather than showing it outright.
+     */
     @Test
-    fun givenNoHistoryOnTheShortestViewport_whenScreenIsDisplayed_thenTheTotalStillFitsAsBefore() {
+    fun givenNoHistoryOnTheShortestViewport_whenScreenIsDisplayed_thenTheTotalScrollsIntoReach() {
         launchScreenInViewport(
             uiState = realisticRolledState(withHistory = false),
             width = COMPACT_PHONE_WIDTH,
             height = COMPACT_PHONE_HEIGHT,
         )
 
-        composeTestRule.onNodeWithText("Total $REALISTIC_POOL_TOTAL").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Total $REALISTIC_POOL_TOTAL")
+            .performScrollTo()
+            .assertIsDisplayed()
         composeTestRule.onNodeWithTag(ROLL_HISTORY_HEADER_TAG).assertDoesNotExist()
     }
 
@@ -533,8 +588,16 @@ class DiceRollerScreenTest {
         val COMPACT_PHONE_WIDTH = 360.dp
         val COMPACT_PHONE_HEIGHT = 640.dp
 
-        /** A small — but not extreme — phone, where the history band fits with room to spare. */
+        /** A small — but not extreme — phone, one notch above the harshest bound. */
         val SMALL_PHONE_HEIGHT = 680.dp
+
+        /**
+         * Measured heights at which the densest typical pool shows its total without scrolling,
+         * with and without a collapsed history band, after custom dice (issue #4) took a third chip
+         * row. Both were ~100dp lower before that row existed — that 106dp is the feature's price.
+         */
+        val TOTAL_FIT_HEIGHT_NO_HISTORY = 740.dp
+        val TOTAL_FIT_HEIGHT_WITH_HISTORY = 780.dp
 
         /** Sum of [realisticRolledState]'s tallies. */
         const val REALISTIC_POOL_TOTAL = 80

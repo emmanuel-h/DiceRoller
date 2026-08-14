@@ -1,11 +1,13 @@
 // app/src/test/java/fr/mandarine/diceroller/data/RollHistoryCodecTest.kt
 package fr.mandarine.diceroller.data
 
+import fr.mandarine.diceroller.domain.CustomDie
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DiceGroupResult
 import fr.mandarine.diceroller.domain.DicePool
 import fr.mandarine.diceroller.domain.DicePoolResult
 import fr.mandarine.diceroller.domain.DiceRoller
+import fr.mandarine.diceroller.domain.DieType
 import fr.mandarine.diceroller.domain.RollRecord
 import fr.mandarine.diceroller.domain.ValueTally
 import kotlin.random.Random
@@ -150,9 +152,73 @@ class RollHistoryCodecTest {
         assertEquals(emptyList<RollRecord>(), RollHistoryCodec.decode("later;6:6*1"))
     }
 
+    /**
+     * A non-preset face count used to be unreadable and cost the whole record. Since issue #4 it
+     * is a [CustomDie], which is what lets a roll of a user-defined die survive a restart — and
+     * survive the user deleting the definition afterwards, since the log stores face counts.
+     */
     @Test
-    fun givenUnknownFaceCount_whenDecoded_thenRecordIsDropped() {
-        assertEquals(emptyList<RollRecord>(), RollHistoryCodec.decode("1;7:5*1"))
+    fun givenACustomFaceCount_whenDecoded_thenItBecomesACustomDie() {
+        val decoded = RollHistoryCodec.decode("1;7:5*1")
+
+        assertEquals(listOf(CustomDie(7)), decoded.single().result.groups.map { it.dice })
+        assertEquals(5, decoded.single().result.total)
+    }
+
+    /** Out of [DieType.FACES_RANGE] entirely, so there is no die it could be — still dropped. */
+    @Test
+    fun givenAFaceCountAboveTheMaximum_whenDecoded_thenRecordIsDropped() {
+        val tooMany = DieType.FACES_RANGE.last + 1
+
+        assertEquals(emptyList<RollRecord>(), RollHistoryCodec.decode("1;$tooMany:5*1"))
+    }
+
+    /** A one-faced die is not a die; the floor of the range is enforced on the way in too. */
+    @Test
+    fun givenAFaceCountBelowTheMinimum_whenDecoded_thenRecordIsDropped() {
+        assertEquals(emptyList<RollRecord>(), RollHistoryCodec.decode("1;1:1*1"))
+    }
+
+    /** A custom die's values are range-checked against its own face count like any preset's. */
+    @Test
+    fun givenAValueAboveACustomDiesMaximum_whenDecoded_thenRecordIsDropped() {
+        assertEquals(emptyList<RollRecord>(), RollHistoryCodec.decode("1;7:8*1"))
+    }
+
+    /** Round trip through the format a custom die is stored in: its face count and nothing else. */
+    @Test
+    fun givenARecordMixingPresetsAndCustomDice_whenRoundTripped_thenItIsUnchanged() {
+        val record = RollRecord(
+            result = DicePoolResult(
+                groups = listOf(
+                    DiceGroupResult(
+                        dice = CustomDie(3),
+                        poolCount = 2,
+                        tallies = listOf(
+                            ValueTally(value = 3, count = 1),
+                            ValueTally(value = 1, count = 1),
+                        ),
+                    ),
+                    DiceGroupResult(
+                        dice = Dice.D6,
+                        poolCount = 1,
+                        tallies = listOf(ValueTally(value = 5, count = 1)),
+                    ),
+                    DiceGroupResult(
+                        dice = CustomDie(100),
+                        poolCount = 1,
+                        tallies = listOf(ValueTally(value = 73, count = 1)),
+                    ),
+                ),
+                total = 82,
+            ),
+            rolledAtMillis = 1_700_000_000_000L,
+        )
+
+        assertEquals(
+            listOf(record),
+            RollHistoryCodec.decode(RollHistoryCodec.encode(listOf(record))),
+        )
     }
 
     @Test
