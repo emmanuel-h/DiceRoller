@@ -2,22 +2,12 @@
 package fr.mandarine.diceroller.data
 
 import android.content.Context
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import fr.mandarine.diceroller.presentation.DiceColorStore
 import fr.mandarine.diceroller.presentation.model.DiceColor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-
-/** Name of the on-disk preferences file holding the dice settings. */
-private const val PREFERENCES_NAME = "dice_settings"
-
-private val Context.diceDataStore: DataStore<Preferences> by preferencesDataStore(
-    name = PREFERENCES_NAME,
-)
 
 /** Key under which the selected color's enum name is stored. */
 private val SELECTED_COLOR_KEY = stringPreferencesKey("selected_color")

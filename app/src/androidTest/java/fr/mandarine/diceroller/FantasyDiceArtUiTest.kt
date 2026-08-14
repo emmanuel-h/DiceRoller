@@ -54,6 +54,7 @@ class FantasyDiceArtUiTest {
                     onDecrementCount = {},
                     onSelectColor = {},
                     onRollDice = {},
+                    onToggleHistory = {},
                 )
             }
         }
@@ -73,6 +74,7 @@ class FantasyDiceArtUiTest {
                     onDecrementCount = viewModel::decrementCount,
                     onSelectColor = viewModel::selectColor,
                     onRollDice = viewModel::rollDice,
+                    onToggleHistory = viewModel::toggleHistoryExpanded,
                 )
             }
         }

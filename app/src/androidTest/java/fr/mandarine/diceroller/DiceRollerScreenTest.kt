@@ -23,7 +23,10 @@ import fr.mandarine.diceroller.domain.DiceGroupResult
 import fr.mandarine.diceroller.domain.DicePool
 import fr.mandarine.diceroller.domain.DicePoolResult
 import fr.mandarine.diceroller.domain.DiceRoller
+import fr.mandarine.diceroller.domain.RollRecord
 import fr.mandarine.diceroller.domain.ValueTally
+import fr.mandarine.diceroller.presentation.component.ROLL_HISTORY_HEADER_TAG
+import fr.mandarine.diceroller.presentation.component.ROLL_HISTORY_LIST_TAG
 import fr.mandarine.diceroller.presentation.component.chipCountTestTag
 import fr.mandarine.diceroller.presentation.DiceRollerUiState
 import fr.mandarine.diceroller.presentation.DiceRollerViewModel
@@ -71,6 +74,7 @@ class DiceRollerScreenTest {
                     onDecrementCount = {},
                     onSelectColor = {},
                     onRollDice = {},
+                    onToggleHistory = {},
                 )
             }
         }
@@ -94,6 +98,7 @@ class DiceRollerScreenTest {
                         onDecrementCount = {},
                         onSelectColor = {},
                         onRollDice = {},
+                        onToggleHistory = {},
                     )
                 }
             }
@@ -111,6 +116,7 @@ class DiceRollerScreenTest {
                     onDecrementCount = viewModel::decrementCount,
                     onSelectColor = viewModel::selectColor,
                     onRollDice = viewModel::rollDice,
+                    onToggleHistory = viewModel::toggleHistoryExpanded,
                 )
             }
         }
@@ -352,11 +358,183 @@ class DiceRollerScreenTest {
         )
     }
 
+    // --- Roll history band (issue #3) ---
+
+    @Test
+    fun givenNoRollsYet_whenScreenIsDisplayed_thenTheHistoryBandIsAbsentEntirely() {
+        launchScreen()
+
+        composeTestRule.onNodeWithTag(ROLL_HISTORY_HEADER_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun givenARollIsMade_whenTheScreenUpdates_thenTheHistoryBandAppearsCollapsed() {
+        launchWithViewModel()
+        increaseButton(Dice.D6).performClick()
+
+        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+
+        composeTestRule.onNodeWithText("Recent (1)").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(ROLL_HISTORY_LIST_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun givenTwoRollsAreMade_whenTheScreenUpdates_thenTheHistoryCountGrows() {
+        launchWithViewModel()
+        increaseButton(Dice.D6).performClick()
+        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+
+        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+
+        composeTestRule.onNodeWithText("Recent (2)").assertIsDisplayed()
+    }
+
+    @Test
+    fun givenACollapsedHistoryBand_whenTheHeaderIsTapped_thenTheEntriesAppear() {
+        launchWithViewModel()
+        increaseButton(Dice.D6).performClick()
+        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+
+        composeTestRule.onNodeWithTag(ROLL_HISTORY_HEADER_TAG).performClick()
+
+        composeTestRule.onNodeWithTag(ROLL_HISTORY_LIST_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithText("just now").assertIsDisplayed()
+    }
+
+    /**
+     * The log is append-only. Once expanded, the screen offers no control that erases it — the
+     * header toggles and nothing else — so a roll cannot be lost to a stray tap.
+     */
+    @Test
+    fun givenAnExpandedHistoryBand_whenLookingForAWayToEraseIt_thenThereIsNone() {
+        launchWithViewModel()
+        increaseButton(Dice.D6).performClick()
+        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+
+        composeTestRule.onNodeWithTag(ROLL_HISTORY_HEADER_TAG).performClick()
+
+        composeTestRule.onNodeWithText("Clear").assertDoesNotExist()
+        composeTestRule.onNodeWithContentDescription("Clear roll history").assertDoesNotExist()
+    }
+
+    @Test
+    fun givenAnExpandedHistoryBand_whenTheHeaderIsTappedAgain_thenItCollapsesWithoutLosingEntries() {
+        launchWithViewModel()
+        increaseButton(Dice.D6).performClick()
+        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+        composeTestRule.onNodeWithTag(ROLL_HISTORY_HEADER_TAG).performClick()
+
+        composeTestRule.onNodeWithTag(ROLL_HISTORY_HEADER_TAG).performClick()
+
+        composeTestRule.onNodeWithTag(ROLL_HISTORY_LIST_TAG).assertDoesNotExist()
+        composeTestRule.onNodeWithText("Recent (1)").assertIsDisplayed()
+    }
+
+    // --- What history costs the whole-screen fit (issues #64 and #3) ---
+
+    /**
+     * The band's real price, measured rather than assumed: at [COMPACT_PHONE_HEIGHT] the
+     * pre-history layout cleared the densest *typical* pool by only ~16dp, and a collapsed band
+     * costs ~45dp. So on the shortest supported viewport the result band now scrolls at that pool
+     * — the vertical cost the inline design was chosen with. Every *control* still stays put,
+     * which is the part that must never regress, and the total is one short scroll away rather
+     * than gone.
+     */
+    @Test
+    fun givenACollapsedHistoryBandOnTheShortestViewport_whenScreenIsDisplayed_thenEveryControlSurvives() {
+        launchScreenInViewport(
+            uiState = realisticRolledState(withHistory = true),
+            width = COMPACT_PHONE_WIDTH,
+            height = COMPACT_PHONE_HEIGHT,
+        )
+
+        Dice.entries.forEach { dice -> increaseButton(dice).assertIsDisplayed() }
+        composeTestRule.onNodeWithText("4×D6").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Recent (1)").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Roll 4D6 + 4D8 + 4D20").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Dice art by Aeynit · CC BY 4.0").assertIsDisplayed()
+    }
+
+    /** One notch taller — a small phone rather than the harshest bound — and everything fits. */
+    @Test
+    fun givenACollapsedHistoryBandOnASmallPhone_whenScreenIsDisplayed_thenEveryBandIncludingTheTotalIsVisible() {
+        launchScreenInViewport(
+            uiState = realisticRolledState(withHistory = true),
+            width = COMPACT_PHONE_WIDTH,
+            height = SMALL_PHONE_HEIGHT,
+        )
+
+        Dice.entries.forEach { dice -> increaseButton(dice).assertIsDisplayed() }
+        composeTestRule.onNodeWithText("4×D6").assertIsDisplayed()
+        composeTestRule.onNodeWithText("4×D20").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Total $REALISTIC_POOL_TOTAL").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Recent (1)").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Roll 4D6 + 4D8 + 4D20").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Dice art by Aeynit · CC BY 4.0").assertIsDisplayed()
+    }
+
+    /** With no rolls yet the band is absent, so issue #64's fit is untouched on a fresh install. */
+    @Test
+    fun givenNoHistoryOnTheShortestViewport_whenScreenIsDisplayed_thenTheTotalStillFitsAsBefore() {
+        launchScreenInViewport(
+            uiState = realisticRolledState(withHistory = false),
+            width = COMPACT_PHONE_WIDTH,
+            height = COMPACT_PHONE_HEIGHT,
+        )
+
+        composeTestRule.onNodeWithText("Total $REALISTIC_POOL_TOTAL").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(ROLL_HISTORY_HEADER_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun givenAnExpandedHistoryBandOnTheShortestViewport_whenScreenIsDisplayed_thenTheRollBarSurvives() {
+        launchScreenInViewport(
+            uiState = realisticRolledState(withHistory = true, historyExpanded = true),
+            width = COMPACT_PHONE_WIDTH,
+            height = COMPACT_PHONE_HEIGHT,
+        )
+
+        // The entry list scrolls within the band's share of the free space; it never grows into
+        // the pinned roll bar or the selector above it.
+        composeTestRule.onNodeWithTag(ROLL_HISTORY_LIST_TAG).assertIsDisplayed()
+        Dice.entries.forEach { dice -> increaseButton(dice).assertIsDisplayed() }
+        composeTestRule.onNodeWithText("Roll 4D6 + 4D8 + 4D20").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Dice art by Aeynit · CC BY 4.0").assertIsDisplayed()
+    }
+
+    @Test
+    fun givenAnExpandedHistoryBandOnTheShortestViewport_whenScreenIsDisplayed_thenItSitsAboveTheRollButton() {
+        launchScreenInViewport(
+            uiState = realisticRolledState(withHistory = true, historyExpanded = true),
+            width = COMPACT_PHONE_WIDTH,
+            height = COMPACT_PHONE_HEIGHT,
+        )
+
+        val listBottom = composeTestRule
+            .onNodeWithTag(ROLL_HISTORY_LIST_TAG)
+            .fetchSemanticsNode()
+            .boundsInRoot
+            .bottom
+        val buttonTop = composeTestRule
+            .onNodeWithText("Roll 4D6 + 4D8 + 4D20")
+            .fetchSemanticsNode()
+            .boundsInRoot
+            .top
+
+        assertTrue(
+            "History overlaps the Roll button: list ends at $listBottom, button starts at $buttonTop",
+            listBottom <= buttonTop,
+        )
+    }
+
     private companion object {
 
         /** Deliberately smaller than the emulator's own screen, to bound the fit assertions. */
         val COMPACT_PHONE_WIDTH = 360.dp
         val COMPACT_PHONE_HEIGHT = 640.dp
+
+        /** A small — but not extreme — phone, where the history band fits with room to spare. */
+        val SMALL_PHONE_HEIGHT = 680.dp
 
         /** Sum of [realisticRolledState]'s tallies. */
         const val REALISTIC_POOL_TOTAL = 80
@@ -365,42 +543,54 @@ class DiceRollerScreenTest {
          * Issue #64's acceptance pool: three die types, four dice each, each landing on three
          * distinct values — the densest arrangement the design still calls typical.
          */
-        fun realisticRolledState(): DiceRollerUiState {
+        fun realisticRolledState(
+            withHistory: Boolean = false,
+            historyExpanded: Boolean = false,
+        ): DiceRollerUiState {
             val counts = mapOf(Dice.D6 to 4, Dice.D8 to 4, Dice.D20 to 4)
-            return DiceRollerUiState(
-                pool = Dice.entries.associateWith { dice -> counts[dice] ?: 0 },
-                result = DicePoolResult(
-                    groups = listOf(
-                        DiceGroupResult(
-                            dice = Dice.D6,
-                            poolCount = 4,
-                            tallies = listOf(
-                                ValueTally(value = 6, count = 1),
-                                ValueTally(value = 4, count = 2),
-                                ValueTally(value = 3, count = 1),
-                            ),
-                        ),
-                        DiceGroupResult(
-                            dice = Dice.D8,
-                            poolCount = 4,
-                            tallies = listOf(
-                                ValueTally(value = 7, count = 1),
-                                ValueTally(value = 5, count = 2),
-                                ValueTally(value = 2, count = 1),
-                            ),
-                        ),
-                        DiceGroupResult(
-                            dice = Dice.D20,
-                            poolCount = 4,
-                            tallies = listOf(
-                                ValueTally(value = 18, count = 1),
-                                ValueTally(value = 11, count = 2),
-                                ValueTally(value = 4, count = 1),
-                            ),
+            val result = DicePoolResult(
+                groups = listOf(
+                    DiceGroupResult(
+                        dice = Dice.D6,
+                        poolCount = 4,
+                        tallies = listOf(
+                            ValueTally(value = 6, count = 1),
+                            ValueTally(value = 4, count = 2),
+                            ValueTally(value = 3, count = 1),
                         ),
                     ),
-                    total = REALISTIC_POOL_TOTAL,
+                    DiceGroupResult(
+                        dice = Dice.D8,
+                        poolCount = 4,
+                        tallies = listOf(
+                            ValueTally(value = 7, count = 1),
+                            ValueTally(value = 5, count = 2),
+                            ValueTally(value = 2, count = 1),
+                        ),
+                    ),
+                    DiceGroupResult(
+                        dice = Dice.D20,
+                        poolCount = 4,
+                        tallies = listOf(
+                            ValueTally(value = 18, count = 1),
+                            ValueTally(value = 11, count = 2),
+                            ValueTally(value = 4, count = 1),
+                        ),
+                    ),
                 ),
+                total = REALISTIC_POOL_TOTAL,
+            )
+            val now = 1_700_000_000_000L
+            return DiceRollerUiState(
+                pool = Dice.entries.associateWith { dice -> counts[dice] ?: 0 },
+                result = result,
+                history = if (withHistory) {
+                    listOf(RollRecord(result = result, rolledAtMillis = now - 10_000L))
+                } else {
+                    emptyList()
+                },
+                isHistoryExpanded = historyExpanded,
+                nowMillis = now,
             )
         }
     }

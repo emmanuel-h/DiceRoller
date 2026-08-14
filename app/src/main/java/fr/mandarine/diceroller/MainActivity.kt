@@ -31,12 +31,14 @@ import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DiceGroupResult
 import fr.mandarine.diceroller.domain.DicePool
 import fr.mandarine.diceroller.domain.DicePoolResult
+import fr.mandarine.diceroller.domain.RollRecord
 import fr.mandarine.diceroller.domain.ValueTally
 import fr.mandarine.diceroller.presentation.DiceRollerUiState
 import fr.mandarine.diceroller.presentation.DiceRollerViewModel
 import fr.mandarine.diceroller.presentation.component.DiceColorSwatchRow
 import fr.mandarine.diceroller.presentation.component.DiceResultDisplay
 import fr.mandarine.diceroller.presentation.component.DiceStepperChip
+import fr.mandarine.diceroller.presentation.component.RollHistoryBand
 import fr.mandarine.diceroller.presentation.model.DiceColor
 import fr.mandarine.diceroller.presentation.rollButtonLabel
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
@@ -66,6 +68,7 @@ class MainActivity : ComponentActivity() {
                     onDecrementCount = viewModel::decrementCount,
                     onSelectColor = viewModel::selectColor,
                     onRollDice = viewModel::rollDice,
+                    onToggleHistory = viewModel::toggleHistoryExpanded,
                 )
             }
         }
@@ -75,21 +78,32 @@ class MainActivity : ComponentActivity() {
 /**
  * Main dice roller screen composable.
  *
- * Laid out as four fixed bands so a realistic pool — three die types of a few dice each — fits on
- * a phone in portrait without scrolling anywhere (issue #64): the color swatches, the pool
- * selector's 3×2 chip grid, the results, and the Roll button. There is deliberately no top app
- * bar: on a single-screen app its title earned less than the ~64dp it cost, and the swatch row
- * takes that space instead.
+ * Laid out as fixed bands so a realistic pool — three die types of a few dice each — fits on a
+ * phone in portrait without scrolling anywhere (issue #64): the color swatches, the pool
+ * selector's 3×2 chip grid, the results, the roll history, and the Roll button. There is
+ * deliberately no top app bar: on a single-screen app its title earned less than the ~64dp it
+ * cost, and the swatch row takes that space instead.
  *
- * Only the results band flexes ([Modifier.weight]); it is the one part that can genuinely
- * overflow, at pool sizes the design treats as extreme rather than typical. The Roll button and
- * the artwork attribution sit in [Scaffold]'s `bottomBar`, so neither can be pushed off screen.
+ * Only two bands flex ([Modifier.weight]), and they are the two that can genuinely overflow: the
+ * results, at pool sizes the design treats as extreme, and the history list once expanded. They
+ * split the free space evenly and each scrolls internally, so neither can grow at the other's
+ * expense or push anything off screen. The Roll button and the artwork attribution sit in
+ * [Scaffold]'s `bottomBar`, so neither can be pushed off screen either.
+ *
+ * The history band's cost is real and was measured, not assumed: at 360×640dp — the shortest
+ * viewport the fit tests bound — issue #64's layout cleared its densest *typical* pool by about
+ * 16dp, and a collapsed band costs about 45dp. So at that pool on that viewport the result band
+ * now scrolls its total into reach instead of showing everything at once; from ~680dp up,
+ * everything fits again. This is the vertical price the inline design was chosen with, and it is
+ * paid only once there is history to show: before the first roll the band renders nothing at all
+ * and the pre-history layout is intact.
  *
  * @param uiState the current UI state
  * @param onIncrementCount callback when a die type's chip is tapped on its right half
  * @param onDecrementCount callback when a die type's chip is tapped on its left half
  * @param onSelectColor callback when a color variant is selected
  * @param onRollDice callback when the roll button is pressed
+ * @param onToggleHistory callback when the history band's header is tapped
  * @param modifier optional modifier
  */
 @Composable
@@ -99,6 +113,7 @@ fun DiceRollerScreen(
     onDecrementCount: (Dice) -> Unit,
     onSelectColor: (DiceColor) -> Unit,
     onRollDice: () -> Unit,
+    onToggleHistory: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -134,16 +149,39 @@ fun DiceRollerScreen(
                 onDecrementCount = onDecrementCount,
             )
 
-            Box(
+            // Results and history share one flexible band and one gap between them, rather than
+            // being two children of the outer Column: the roll log is a continuation of the
+            // result, and at the shortest supported height every 8dp it does not take is 8dp
+            // the result keeps.
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                DiceResultDisplay(
-                    result = uiState.result,
-                    isPoolEmpty = !uiState.canRoll,
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                ) {
+                    DiceResultDisplay(
+                        result = uiState.result,
+                        isPoolEmpty = !uiState.canRoll,
+                        selectedColor = uiState.selectedColor,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+
+                RollHistoryBand(
+                    history = uiState.history,
+                    isExpanded = uiState.isHistoryExpanded,
+                    nowMillis = uiState.nowMillis,
                     selectedColor = uiState.selectedColor,
-                    modifier = Modifier.fillMaxSize(),
+                    onToggleExpanded = onToggleHistory,
+                    // Weighted only when open, so the band takes half the flexible space to
+                    // scroll its entries in; collapsed it wraps to its header and gives the
+                    // rest back to the result.
+                    modifier = if (uiState.isHistoryExpanded) Modifier.weight(1f) else Modifier,
                 )
             }
         }
@@ -231,6 +269,78 @@ private fun RollBar(
     }
 }
 
+/** The pool, result and history a "4D6 + 2D8 + 1D20" roll leaves behind, shared by the previews. */
+private val PREVIEW_RESULT = DicePoolResult(
+    groups = listOf(
+        DiceGroupResult(
+            dice = Dice.D6,
+            poolCount = 4,
+            tallies = listOf(
+                ValueTally(value = 6, count = 1),
+                ValueTally(value = 4, count = 2),
+                ValueTally(value = 3, count = 1),
+            ),
+        ),
+        DiceGroupResult(
+            dice = Dice.D8,
+            poolCount = 2,
+            tallies = listOf(
+                ValueTally(value = 7, count = 1),
+                ValueTally(value = 2, count = 1),
+            ),
+        ),
+        DiceGroupResult(
+            dice = Dice.D20,
+            poolCount = 1,
+            tallies = listOf(ValueTally(value = 14, count = 1)),
+        ),
+    ),
+    total = 40,
+)
+
+private const val PREVIEW_NOW = 1_700_000_000_000L
+
+private val PREVIEW_HISTORY = listOf(
+    RollRecord(result = PREVIEW_RESULT, rolledAtMillis = PREVIEW_NOW - 10_000L),
+    RollRecord(
+        result = DicePoolResult(
+            groups = listOf(
+                DiceGroupResult(
+                    dice = Dice.D20,
+                    poolCount = 1,
+                    tallies = listOf(ValueTally(value = 14, count = 1)),
+                ),
+            ),
+            total = 14,
+        ),
+        rolledAtMillis = PREVIEW_NOW - 120_000L,
+    ),
+)
+
+private val PREVIEW_POOL = Dice.entries.associateWith { dice ->
+    when (dice) {
+        Dice.D6 -> 4
+        Dice.D8 -> 2
+        Dice.D20 -> 1
+        else -> 0
+    }
+}
+
+@Composable
+private fun DiceRollerScreenPreviewOf(uiState: DiceRollerUiState) {
+    DiceRollerTheme(dynamicColor = false) {
+        DiceRollerScreen(
+            uiState = uiState,
+            onIncrementCount = {},
+            onDecrementCount = {},
+            onSelectColor = {},
+            onRollDice = {},
+            onToggleHistory = {},
+        )
+    }
+}
+
+/** First launch: no roll yet, so no history band at all. */
 @Preview(showBackground = true, heightDp = 720)
 @Composable
 private fun DiceRollerScreenPreview() {
@@ -241,6 +351,7 @@ private fun DiceRollerScreenPreview() {
             onDecrementCount = {},
             onSelectColor = {},
             onRollDice = {},
+            onToggleHistory = {},
         )
     }
 }
@@ -248,52 +359,31 @@ private fun DiceRollerScreenPreview() {
 @Preview(name = "Rolled - 4D6 + 2D8 + 1D20 ruby", showBackground = true, heightDp = 720)
 @Composable
 private fun DiceRollerScreenRolledPreview() {
-    DiceRollerTheme(dynamicColor = false) {
-        DiceRollerScreen(
-            uiState = DiceRollerUiState(
-                pool = Dice.entries.associateWith { dice ->
-                    when (dice) {
-                        Dice.D6 -> 4
-                        Dice.D8 -> 2
-                        Dice.D20 -> 1
-                        else -> 0
-                    }
-                },
-                selectedColor = DiceColor.Ruby,
-                result = DicePoolResult(
-                    groups = listOf(
-                        DiceGroupResult(
-                            dice = Dice.D6,
-                            poolCount = 4,
-                            tallies = listOf(
-                                ValueTally(value = 6, count = 1),
-                                ValueTally(value = 4, count = 2),
-                                ValueTally(value = 3, count = 1),
-                            ),
-                        ),
-                        DiceGroupResult(
-                            dice = Dice.D8,
-                            poolCount = 2,
-                            tallies = listOf(
-                                ValueTally(value = 7, count = 1),
-                                ValueTally(value = 2, count = 1),
-                            ),
-                        ),
-                        DiceGroupResult(
-                            dice = Dice.D20,
-                            poolCount = 1,
-                            tallies = listOf(ValueTally(value = 14, count = 1)),
-                        ),
-                    ),
-                    total = 40,
-                ),
-            ),
-            onIncrementCount = {},
-            onDecrementCount = {},
-            onSelectColor = {},
-            onRollDice = {},
-        )
-    }
+    DiceRollerScreenPreviewOf(
+        DiceRollerUiState(
+            pool = PREVIEW_POOL,
+            selectedColor = DiceColor.Ruby,
+            result = PREVIEW_RESULT,
+            history = PREVIEW_HISTORY,
+            nowMillis = PREVIEW_NOW,
+        ),
+    )
+}
+
+/** The band open: results and history splitting the free space, each scrolling its own content. */
+@Preview(name = "History expanded", showBackground = true, heightDp = 720)
+@Composable
+private fun DiceRollerScreenHistoryExpandedPreview() {
+    DiceRollerScreenPreviewOf(
+        DiceRollerUiState(
+            pool = PREVIEW_POOL,
+            selectedColor = DiceColor.Ruby,
+            result = PREVIEW_RESULT,
+            history = PREVIEW_HISTORY,
+            isHistoryExpanded = true,
+            nowMillis = PREVIEW_NOW,
+        ),
+    )
 }
 
 /** Compact-height check: the same realistic pool on a much shorter viewport. */
@@ -301,4 +391,11 @@ private fun DiceRollerScreenRolledPreview() {
 @Composable
 private fun DiceRollerScreenCompactPreview() {
     DiceRollerScreenRolledPreview()
+}
+
+/** The worst case for height: a short viewport with the history band open on top of it. */
+@Preview(name = "History expanded - compact", showBackground = true, widthDp = 360, heightDp = 560)
+@Composable
+private fun DiceRollerScreenHistoryExpandedCompactPreview() {
+    DiceRollerScreenHistoryExpandedPreview()
 }

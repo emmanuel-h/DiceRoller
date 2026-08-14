@@ -4,7 +4,9 @@ package fr.mandarine.diceroller.presentation
 import fr.mandarine.diceroller.MainDispatcherRule
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DicePool
+import fr.mandarine.diceroller.domain.DicePoolResult
 import fr.mandarine.diceroller.domain.DiceRoller
+import fr.mandarine.diceroller.domain.RollRecord
 import fr.mandarine.diceroller.presentation.model.DiceColor
 import kotlin.random.Random
 import kotlinx.coroutines.flow.first
@@ -13,6 +15,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -21,12 +24,21 @@ class DiceRollerViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
+    /**
+     * A clock the tests drive by hand, so recorded timestamps and relative-time refreshes are
+     * assertable rather than whatever the wall clock happened to say.
+     */
+    private var nowMillis: Long = 1_700_000_000_000L
+
     private fun viewModel(
         seed: Long = 42,
         colorStore: DiceColorStore = InMemoryDiceColorStore(),
+        historyStore: RollHistoryStore = InMemoryRollHistoryStore(),
     ): DiceRollerViewModel = DiceRollerViewModel(
         diceRoller = DiceRoller(random = Random(seed)),
         colorStore = colorStore,
+        historyStore = historyStore,
+        clock = { nowMillis },
     )
 
     // --- Initial state: pool ---
@@ -358,5 +370,191 @@ class DiceRollerViewModelTest {
             vm.selectColor(color)
             assertEquals(color, vm.uiState.value.selectedColor)
         }
+    }
+
+    // --- Roll history: recording ---
+
+    @Test
+    fun givenNewViewModelWithEmptyStore_whenReadingState_thenHistoryIsEmpty() {
+        val state = viewModel().uiState.value
+
+        assertEquals(emptyList<RollRecord>(), state.history)
+        assertFalse(state.hasHistory)
+    }
+
+    @Test
+    fun givenNonEmptyPool_whenRolling_thenTheRollIsAppendedToTheHistory() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+
+        vm.rollDice()
+
+        val recorded = vm.uiState.value.history.single()
+        assertEquals(vm.uiState.value.result, recorded.result)
+        assertEquals(nowMillis, recorded.rolledAtMillis)
+        assertTrue(vm.uiState.value.hasHistory)
+    }
+
+    @Test
+    fun givenEmptyPool_whenRolling_thenNothingIsRecorded() {
+        val vm = viewModel()
+
+        vm.rollDice()
+
+        assertEquals(emptyList<RollRecord>(), vm.uiState.value.history)
+    }
+
+    @Test
+    fun givenSeveralRolls_whenReadingHistory_thenNewestComesFirst() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        nowMillis += 60_000L
+        vm.incrementCount(Dice.D20)
+        vm.rollDice()
+
+        val timestamps = vm.uiState.value.history.map { it.rolledAtMillis }
+
+        assertEquals(listOf(nowMillis, nowMillis - 60_000L), timestamps)
+    }
+
+    @Test
+    fun givenRollRecorded_whenChangingThePool_thenTheHistoryIsUntouchedEvenThoughTheResultClears() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+
+        vm.incrementCount(Dice.D6)
+
+        assertNull(vm.uiState.value.result)
+        assertEquals(1, vm.uiState.value.history.size)
+    }
+
+    @Test
+    fun givenHistoryOverTheCap_whenReadingIt_thenOnlyTheNewestRecordsAreKept() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        repeat(MAX_HISTORY_RECORDS + 1) {
+            nowMillis += 1_000L
+            vm.rollDice()
+        }
+
+        val history = vm.uiState.value.history
+
+        assertEquals(MAX_HISTORY_RECORDS, history.size)
+        assertEquals(nowMillis, history.first().rolledAtMillis)
+        // The very first roll fell off the end; the second-oldest is now the tail.
+        assertEquals(nowMillis - (MAX_HISTORY_RECORDS - 1) * 1_000L, history.last().rolledAtMillis)
+    }
+
+    // --- Roll history: persistence through the store ---
+
+    @Test
+    fun givenStoreHoldingRecords_whenViewModelIsCreated_thenTheyAreRestored() {
+        val record = RollRecord(
+            result = DicePoolResult(groups = emptyList(), total = 0),
+            rolledAtMillis = 1L,
+        )
+
+        val vm = viewModel(historyStore = InMemoryRollHistoryStore(listOf(record)))
+
+        assertEquals(listOf(record), vm.uiState.value.history)
+    }
+
+    @Test
+    fun givenRollRecorded_whenANewViewModelSharesTheStore_thenTheRollSurvives() {
+        val store = InMemoryRollHistoryStore()
+        val vm = viewModel(historyStore = store)
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+
+        val restarted = viewModel(historyStore = store)
+
+        assertEquals(vm.uiState.value.history, restarted.uiState.value.history)
+    }
+
+    @Test
+    fun givenRollRecorded_whenReadingTheStore_thenTheRollWasWrittenThrough() = runTest {
+        val store = InMemoryRollHistoryStore()
+        val vm = viewModel(historyStore = store)
+        vm.incrementCount(Dice.D6)
+
+        vm.rollDice()
+
+        assertEquals(vm.uiState.value.result, store.history.first().single().result)
+    }
+
+    // --- Roll history: expanding ---
+
+    @Test
+    fun givenNewViewModel_whenReadingState_thenHistoryStartsCollapsed() {
+        assertFalse(viewModel().uiState.value.isHistoryExpanded)
+    }
+
+    @Test
+    fun givenCollapsedHistory_whenToggling_thenItExpandsAndBackAgain() {
+        val vm = viewModel()
+
+        vm.toggleHistoryExpanded()
+        assertTrue(vm.uiState.value.isHistoryExpanded)
+
+        vm.toggleHistoryExpanded()
+        assertFalse(vm.uiState.value.isHistoryExpanded)
+    }
+
+    @Test
+    fun givenTimePassedSinceTheRoll_whenExpandingHistory_thenTheReferenceTimeIsRefreshed() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        nowMillis += 5L * 60_000L
+
+        vm.toggleHistoryExpanded()
+
+        assertEquals(nowMillis, vm.uiState.value.nowMillis)
+    }
+
+    @Test
+    fun givenRoll_whenItHappens_thenTheReferenceTimeIsTheRollTime() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        nowMillis += 90_000L
+
+        vm.rollDice()
+
+        assertEquals(nowMillis, vm.uiState.value.nowMillis)
+    }
+
+    /**
+     * The log is append-only: collapsing the band hides the entries, it does not discard them.
+     * With no clear action anywhere, only the [MAX_HISTORY_RECORDS] cap ever removes a record.
+     */
+    @Test
+    fun givenRecordedHistory_whenCollapsingTheBand_thenTheEntriesAreStillThere() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        vm.toggleHistoryExpanded()
+
+        vm.toggleHistoryExpanded()
+
+        assertFalse(vm.uiState.value.isHistoryExpanded)
+        assertEquals(1, vm.uiState.value.history.size)
+        assertTrue(vm.uiState.value.hasHistory)
+    }
+
+    @Test
+    fun givenRecordedHistory_whenRollingRepeatedly_thenTheLogOnlyEverGrowsUntilTheCap() = runTest {
+        val store = InMemoryRollHistoryStore()
+        val vm = viewModel(historyStore = store)
+        vm.incrementCount(Dice.D6)
+
+        val sizes = (1..5).map {
+            nowMillis += 1_000L
+            vm.rollDice()
+            store.history.first().size
+        }
+
+        assertEquals(listOf(1, 2, 3, 4, 5), sizes)
     }
 }

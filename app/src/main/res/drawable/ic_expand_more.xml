@@ -1,0 +1,13 @@
+<!-- app/src/main/res/drawable/ic_expand_more.xml -->
+<!-- Chevron marking the roll-history band's expand/collapse state (see RollHistoryBand.kt).
+     Rotated 180° by the caller for the expanded state, so one asset covers both. Hand-drawn
+     for the same reason as ic_casino: not worth the material-icons-extended dependency. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M7.41,8.59 L12,13.17 L16.59,8.59 L18,10 L12,16 L6,10 Z" />
+</vector>
