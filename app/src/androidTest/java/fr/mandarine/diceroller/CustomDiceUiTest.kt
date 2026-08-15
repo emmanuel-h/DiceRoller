@@ -23,6 +23,7 @@ import fr.mandarine.diceroller.presentation.DiceRollerViewModel
 import fr.mandarine.diceroller.presentation.InMemoryCustomDiceStore
 import fr.mandarine.diceroller.presentation.MAX_CUSTOM_DICE
 import fr.mandarine.diceroller.presentation.component.ADD_DICE_CHIP_TAG
+import fr.mandarine.diceroller.presentation.component.CLEAR_POOL_BUTTON_TAG
 import fr.mandarine.diceroller.presentation.component.CUSTOM_DIE_ADD_BUTTON_TAG
 import fr.mandarine.diceroller.presentation.component.CUSTOM_FACES_FIELD_TAG
 import fr.mandarine.diceroller.presentation.component.CUSTOM_FACES_MESSAGE_TAG
@@ -70,6 +71,7 @@ class CustomDiceUiTest {
                     onRemoveCustomDie = viewModel::removeCustomDie,
                     onUndoRemoveCustomDie = viewModel::undoRemoveCustomDie,
                     onDismissRemovedCustomDie = viewModel::dismissRemovedCustomDie,
+                    onClearPool = viewModel::clearPool,
                 )
             }
         }
@@ -224,6 +226,24 @@ class CustomDiceUiTest {
         composeTestRule.onNodeWithText("Roll 1D7").performClick()
 
         composeTestRule.onNodeWithText("1×D7").assertIsDisplayed()
+    }
+
+    /**
+     * Clearing the pool (issue #67) zeroes a custom die's count like any other, and stops there:
+     * the definition is only ever undone by the chip's own `×` badge, which is the control that
+     * offers an undo.
+     */
+    @Test
+    fun givenACustomDieInThePool_whenThePoolIsCleared_thenItsChipStaysAtZero() {
+        launch(initialDice = listOf(CustomDie(7)))
+        composeTestRule.onNodeWithContentDescription("Increase D7 count").performClick()
+        composeTestRule.onNodeWithContentDescription("Increase D6 count").performClick()
+
+        composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).performClick()
+
+        countText(CustomDie(7)).assertTextEquals("0")
+        composeTestRule.onNodeWithContentDescription("Increase D7 count").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Add dice to roll").assertIsDisplayed()
     }
 
     // --- Removing a die, and undoing that ---

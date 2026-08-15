@@ -32,6 +32,7 @@ import fr.mandarine.diceroller.presentation.DiceRollerViewModel
 import fr.mandarine.diceroller.presentation.component.ABOUT_BUTTON_TAG
 import fr.mandarine.diceroller.presentation.component.ABOUT_SHEET_TAG
 import fr.mandarine.diceroller.presentation.component.ART_ATTRIBUTION
+import fr.mandarine.diceroller.presentation.component.CLEAR_POOL_BUTTON_TAG
 import fr.mandarine.diceroller.presentation.component.ROLL_HISTORY_HEADER_TAG
 import fr.mandarine.diceroller.presentation.component.ROLL_HISTORY_LIST_TAG
 import fr.mandarine.diceroller.presentation.component.chipCountTestTag
@@ -122,6 +123,7 @@ class DiceRollerScreenTest {
                     onSelectColor = viewModel::selectColor,
                     onRollDice = viewModel::rollDice,
                     onToggleHistory = viewModel::toggleHistoryExpanded,
+                    onClearPool = viewModel::clearPool,
                     onShowAbout = viewModel::showAbout,
                     onDismissAbout = viewModel::dismissAbout,
                 )
@@ -431,6 +433,8 @@ class DiceRollerScreenTest {
         increaseButton(Dice.D6).performClick()
         composeTestRule.onNodeWithText("Roll 1D6").performClick()
 
+        // A roll empties the pool, so the second run has to be queued like the first.
+        increaseButton(Dice.D6).performClick()
         composeTestRule.onNodeWithText("Roll 1D6").performClick()
 
         composeTestRule.onNodeWithText("Recent (2)").assertIsDisplayed()
@@ -477,6 +481,82 @@ class DiceRollerScreenTest {
         composeTestRule.onNodeWithText("Recent (1)").assertIsDisplayed()
     }
 
+    // --- Clearing the whole pool from the roll bar (issue #67) ---
+
+    /** Hidden rather than disabled, so it never offers an action that would do nothing. */
+    @Test
+    fun givenEmptyPool_whenScreenIsDisplayed_thenTheClearButtonIsAbsent() {
+        launchScreen()
+
+        composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun givenANonEmptyPool_whenScreenIsDisplayed_thenTheClearButtonIsVisibleBesideRoll() {
+        launchScreen(uiState = DiceRollerUiState(pool = mapOf(Dice.D6 to 2)))
+
+        composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Roll 2D6").assertIsDisplayed().assertIsEnabled()
+    }
+
+    @Test
+    fun givenAMixedPool_whenTheClearButtonIsTapped_thenEveryChipReturnsToZero() {
+        launchWithViewModel()
+        repeat(3) { increaseButton(Dice.D6).performClick() }
+        increaseButton(Dice.D8).performClick()
+        increaseButton(Dice.D20).performClick()
+
+        composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).performClick()
+
+        Dice.entries.forEach { dice -> countText(dice).assertTextEquals("0") }
+    }
+
+    /**
+     * The state the ✕ actually exists for now that a roll empties the pool itself: a pool built up
+     * and abandoned before rolling it.
+     */
+    @Test
+    fun givenAnUnrolledPool_whenTheClearButtonIsTapped_thenTheEmptyStateAndTheButtonItselfAreGone() {
+        launchWithViewModel(seed = 1)
+        repeat(2) { increaseButton(Dice.D6).performClick() }
+        increaseButton(Dice.D20).performClick()
+
+        composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).performClick()
+
+        composeTestRule.onNodeWithText("Add dice above to build your pool.").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Add dice to roll").assertIsDisplayed().assertIsNotEnabled()
+        composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).assertDoesNotExist()
+    }
+
+    /** A roll leaves nothing to clear, so the bar it returns to is the empty-pool one. */
+    @Test
+    fun givenAPool_whenItIsRolled_thenTheCountsResetAndTheClearButtonGoesWithThem() {
+        launchWithViewModel(seed = 1)
+        repeat(3) { increaseButton(Dice.D6).performClick() }
+        increaseButton(Dice.D8).performClick()
+
+        composeTestRule.onNodeWithText("Roll 3D6 + 1D8").performClick()
+
+        Dice.entries.forEach { dice -> countText(dice).assertTextEquals("0") }
+        composeTestRule.onNodeWithText("Add dice to roll").assertIsDisplayed().assertIsNotEnabled()
+        composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).assertDoesNotExist()
+        // The ladder of the roll just made stays up, even though its pool is gone.
+        composeTestRule.onNodeWithText("3×D6").assertIsDisplayed()
+    }
+
+    /** Cheap enough to redo by hand, which is the argument for not confirming it: no dialog. */
+    @Test
+    fun givenAClearedPool_whenDiceAreQueuedAgain_thenTheBarComesBackWithThem() {
+        launchWithViewModel()
+        increaseButton(Dice.D6).performClick()
+        composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).performClick()
+
+        increaseButton(Dice.D20).performClick()
+
+        composeTestRule.onNodeWithText("Roll 1D20").assertIsDisplayed().assertIsEnabled()
+        composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).assertIsDisplayed()
+    }
+
     // --- The About sheet, and the footer it replaced (issue #66) ---
 
     /**
@@ -518,11 +598,13 @@ class DiceRollerScreenTest {
         launchWithViewModel()
         increaseButton(Dice.D6).performClick()
         composeTestRule.onNodeWithText("Roll 1D6").performClick()
+        // The roll emptied the pool; the next run is already being queued when the credit is read.
+        increaseButton(Dice.D8).performClick()
 
         composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).performClick()
 
-        composeTestRule.onNodeWithText("Roll 1D6").assertIsDisplayed().assertIsEnabled()
-        countText(Dice.D6).assertTextEquals("1")
+        composeTestRule.onNodeWithText("Roll 1D8").assertIsDisplayed().assertIsEnabled()
+        countText(Dice.D8).assertTextEquals("1")
     }
 
     // --- What history costs the whole-screen fit (issues #64 and #3) ---
@@ -548,6 +630,9 @@ class DiceRollerScreenTest {
         composeTestRule.onNodeWithText("Recent (1)").assertIsDisplayed()
         composeTestRule.onNodeWithText("Roll 4D6 + 4D8 + 4D20").assertIsDisplayed()
         composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).assertIsDisplayed()
+        // Issue #67's control takes width from the roll button rather than height from the
+        // screen: on the narrowest supported viewport both still fit on the one line.
+        composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).assertIsDisplayed()
     }
 
     /**
