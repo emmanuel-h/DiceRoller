@@ -47,6 +47,7 @@ import fr.mandarine.diceroller.presentation.DiceRollerViewModel
 import fr.mandarine.diceroller.presentation.component.AboutIconButton
 import fr.mandarine.diceroller.presentation.component.AboutSheet
 import fr.mandarine.diceroller.presentation.component.AddDiceChip
+import fr.mandarine.diceroller.presentation.component.ClearPoolButton
 import fr.mandarine.diceroller.presentation.component.CustomDieCreatorDialog
 import fr.mandarine.diceroller.presentation.component.DiceColorSwatchRow
 import fr.mandarine.diceroller.presentation.component.DiceResultDisplay
@@ -79,6 +80,7 @@ class MainActivity : ComponentActivity() {
                     uiState = uiState,
                     onIncrementCount = viewModel::incrementCount,
                     onDecrementCount = viewModel::decrementCount,
+                    onClearPool = viewModel::clearPool,
                     onSelectColor = viewModel::selectColor,
                     onRollDice = viewModel::rollDice,
                     onToggleHistory = viewModel::toggleHistoryExpanded,
@@ -108,9 +110,11 @@ class MainActivity : ComponentActivity() {
  * Only two bands flex ([Modifier.weight]), and they are the two that can genuinely overflow: the
  * results, at pool sizes the design treats as extreme, and the history list once expanded. They
  * split the free space evenly and each scrolls internally, so neither can grow at the other's
- * expense or push anything off screen. The Roll button sits alone in [Scaffold]'s `bottomBar`, so
- * it cannot be pushed off screen either; the artwork attribution that used to sit under it is
- * one tap away in [AboutSheet] since issue #66, and the band it vacated went to the results.
+ * expense or push anything off screen. The Roll button sits in [Scaffold]'s `bottomBar` — with the
+ * ✕ that empties the pool beside it since issue #67, which costs that band nothing since the button
+ * already sets its height — so it cannot be pushed off screen either; the artwork attribution that
+ * used to sit under it is one tap away in [AboutSheet] since issue #66, and the band it vacated
+ * went to the results.
  *
  * The history band's cost is real and was measured, not assumed: at 360×640dp — the shortest
  * viewport the fit tests bound — issue #64's layout cleared its densest *typical* pool by about
@@ -132,6 +136,7 @@ class MainActivity : ComponentActivity() {
  * @param onSelectColor callback when a color variant is selected
  * @param onRollDice callback when the roll button is pressed
  * @param onToggleHistory callback when the history band's header is tapped
+ * @param onClearPool callback when the roll bar's ✕ button is tapped
  * @param onShowCustomDieCreator callback when the grid's add chip is tapped
  * @param onDismissCustomDieCreator callback when the creator dialog is cancelled
  * @param onAddCustomDie callback with the validated die the creator produced
@@ -150,6 +155,7 @@ fun DiceRollerScreen(
     onSelectColor: (DiceColor) -> Unit,
     onRollDice: () -> Unit,
     onToggleHistory: () -> Unit,
+    onClearPool: () -> Unit = {},
     onShowCustomDieCreator: () -> Unit = {},
     onDismissCustomDieCreator: () -> Unit = {},
     onAddCustomDie: (CustomDie) -> Unit = {},
@@ -186,6 +192,7 @@ fun DiceRollerScreen(
                 pool = uiState.pool,
                 canRoll = uiState.canRoll,
                 onRollDice = onRollDice,
+                onClearPool = onClearPool,
             )
         },
     ) { innerPadding ->
@@ -363,34 +370,45 @@ private fun DicePoolSelector(
 }
 
 /**
- * The pinned bottom band: the Roll button, alone.
+ * The pinned bottom band: the Roll button, with the ✕ that empties the pool beside it.
  *
  * It held the CC BY attribution beneath the button until issue #66, where that line was judged to
  * be costing every screen a band for something read once, next to — and competing with — the one
  * primary action. The credit moved to [AboutSheet], one tap away behind the info button at the
  * end of the swatch row; the ~22dp it gave back goes to the weighted result band above.
+ *
+ * [ClearPoolButton] rejoined that band for issue #67 without taking any of it back: the Roll button
+ * already sets the bar's height, so a 40dp icon button centred beside it is free vertically — the
+ * same argument that put the info button on the swatch row. It is *absent* rather than disabled
+ * while [canRoll] is false, so before the first die is queued this bar is exactly what it was, Roll
+ * spanning the full width; the two only share the row once there is a pool to clear.
  */
 @Composable
 private fun RollBar(
     pool: Map<DieType, Int>,
     canRoll: Boolean,
     onRollDice: () -> Unit,
+    onClearPool: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(modifier = modifier, tonalElevation = 3.dp) {
-        Column(
+        Row(
             modifier = Modifier.padding(
                 start = SCREEN_HORIZONTAL_PADDING,
                 end = SCREEN_HORIZONTAL_PADDING,
                 top = 12.dp,
                 bottom = 12.dp,
             ),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (canRoll) {
+                ClearPoolButton(onClick = onClearPool)
+            }
             Button(
                 onClick = onRollDice,
                 enabled = canRoll,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.weight(1f),
             ) {
                 Text(rollButtonLabel(DicePool(pool)))
             }

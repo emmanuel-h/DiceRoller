@@ -125,6 +125,29 @@ class DiceRollerViewModel(
     }
 
     /**
+     * Puts every die type's count back to 0 in one action (issue #67), clearing the roll result
+     * with them.
+     *
+     * The result must go: emptying the pool makes [DiceRollerUiState.canRoll] false, so a
+     * face-ladder left on screen would describe a pool that no longer exists — the same rule
+     * [updateCount] applies one count at a time.
+     *
+     * Every key is kept and zeroed rather than the map being rebuilt from [Dice.entries], so the
+     * custom dice keep their chips and the selector's "every visible chip has a pool entry"
+     * invariant holds. Clearing an already-empty pool leaves the state untouched, and the log is
+     * left alone entirely: it records what *was* rolled, which emptying the pool does not change.
+     */
+    fun clearPool() {
+        _uiState.update { state ->
+            if (!state.canRoll) {
+                state
+            } else {
+                state.copy(pool = state.pool.mapValues { 0 }, result = null)
+            }
+        }
+    }
+
+    /**
      * Selects the given [color] variant and persists it.
      *
      * Unlike [incrementCount]/[decrementCount] this deliberately preserves
@@ -226,10 +249,22 @@ class DiceRollerViewModel(
     }
 
     /**
-     * Rolls every die currently in the pool, updates the result, and appends the roll to the log.
+     * Rolls every die currently in the pool, updates the result, empties the pool, and appends the
+     * roll to the log.
      *
      * A no-op when the pool is empty ([DiceRollerUiState.canRoll] is false), matching
      * [DiceRoller.rollPool]'s own defensive no-op for an empty pool — nothing is recorded either.
+     *
+     * The pool is zeroed on the way out so a roll ends a run: the next one starts from a clean
+     * selector rather than from whatever the last one happened to leave behind. The trade is
+     * deliberate — rolling the same pool twice means queueing it again, since there is no longer a
+     * pool for a second tap of Roll to act on.
+     *
+     * This is the one place a pool change does *not* clear the result: the result **is** what that
+     * change produced. It survives until the user starts building the next pool, at which point
+     * [updateCount]'s usual rule takes it away. Zeroing every key rather than rebuilding the map
+     * keeps the custom dice's chips — the same reasoning as [clearPool], which this deliberately
+     * does not call, because that one clears the result and this one must not.
      *
      * The new state is published synchronously and the log write is dispatched after it, so the
      * result never waits on storage.
@@ -240,7 +275,13 @@ class DiceRollerViewModel(
 
         val result = diceRoller.rollPool(DicePool(state.pool))
         val rolledAtMillis = clock()
-        _uiState.update { current -> current.copy(result = result, nowMillis = rolledAtMillis) }
+        _uiState.update { current ->
+            current.copy(
+                pool = current.pool.mapValues { 0 },
+                result = result,
+                nowMillis = rolledAtMillis,
+            )
+        }
         viewModelScope.launch {
             historyStore.record(RollRecord(result = result, rolledAtMillis = rolledAtMillis))
         }

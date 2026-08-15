@@ -17,6 +17,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -176,30 +177,43 @@ class DiceRollerViewModelTest {
         assertNull(vm.uiState.value.result)
     }
 
+    /**
+     * A roll now empties the pool, so the decrement that used to follow it lands on a count of 0
+     * and is a no-op. Queueing the next pool is what takes the previous result away — which is the
+     * same rule, reached by the only route left to reach it.
+     */
     @Test
-    fun givenRollPerformed_whenDecrementingCount_thenResultIsClearedToNull() {
+    fun givenRollPerformed_whenQueueingTheNextPool_thenResultIsClearedToNull() {
         val vm = viewModel()
         vm.incrementCount(Dice.D6)
         vm.incrementCount(Dice.D6)
         vm.rollDice()
         assertNotNull(vm.uiState.value.result)
 
+        vm.incrementCount(Dice.D6)
         vm.decrementCount(Dice.D6)
 
         assertNull(vm.uiState.value.result)
     }
 
+    /**
+     * The invariant the auto-clear establishes, and the reason several older cases below could not
+     * survive it: a result now only ever coexists with an empty pool. Every route to a non-empty
+     * pool runs through [DiceRollerViewModel.incrementCount], which clears it.
+     */
     @Test
-    fun givenRollPerformed_whenIncrementingAtCap_thenResultIsPreservedBecauseCountDidNotActuallyChange() {
+    fun givenAnyRoll_whenTheNextPoolIsQueued_thenAResultNeverCoexistsWithANonEmptyPool() {
         val vm = viewModel()
-        repeat(DicePool.MAX_DICE_PER_TYPE) { vm.incrementCount(Dice.D6) }
+        vm.incrementCount(Dice.D6)
         vm.rollDice()
-        val resultBeforeIncrement = vm.uiState.value.result
-        assertNotNull(resultBeforeIncrement)
 
-        vm.incrementCount(Dice.D6) // already at the cap, no-op
+        assertNotNull(vm.uiState.value.result)
+        assertFalse(vm.uiState.value.canRoll)
 
-        assertEquals(resultBeforeIncrement, vm.uiState.value.result)
+        vm.incrementCount(Dice.D20)
+
+        assertTrue(vm.uiState.value.canRoll)
+        assertNull(vm.uiState.value.result)
     }
 
     @Test
@@ -213,6 +227,127 @@ class DiceRollerViewModelTest {
         vm.decrementCount(Dice.D4) // already at 0, no-op
 
         assertEquals(resultBeforeDecrement, vm.uiState.value.result)
+    }
+
+    // --- clearPool: emptying the whole pool in one action (issue #67) ---
+
+    @Test
+    fun givenAMixedPool_whenCleared_thenEveryCountIsBackToZero() {
+        val vm = viewModel()
+        repeat(3) { vm.incrementCount(Dice.D6) }
+        repeat(2) { vm.incrementCount(Dice.D8) }
+        vm.incrementCount(Dice.D20)
+
+        vm.clearPool()
+
+        assertEquals(Dice.entries.associateWith { 0 }, vm.uiState.value.pool)
+    }
+
+    @Test
+    fun givenAMixedPool_whenCleared_thenCanRollIsFalse() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+
+        vm.clearPool()
+
+        assertFalse(vm.uiState.value.canRoll)
+    }
+
+    /**
+     * Since a roll empties the pool itself, the ✕ is only ever offered for a pool that has *not*
+     * been rolled — so clearing must not take away a result it never conflicted with. Rolling then
+     * clearing leaves the ladder of the roll the user just made on screen.
+     */
+    @Test
+    fun givenARolledPool_whenCleared_thenTheResultOfThatRollSurvives() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        val rolled = vm.uiState.value.result
+        assertNotNull(rolled)
+
+        vm.clearPool()
+
+        assertEquals(rolled, vm.uiState.value.result)
+    }
+
+    /** The case the ✕ actually exists for: a pool built up and abandoned before rolling. */
+    @Test
+    fun givenAnUnrolledPoolAfterAPreviousRoll_whenCleared_thenThatPreviousResultGoesToo() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        vm.incrementCount(Dice.D20) // queues the next pool, which already clears the ladder
+
+        vm.clearPool()
+
+        assertNull(vm.uiState.value.result)
+        assertFalse(vm.uiState.value.canRoll)
+    }
+
+    /**
+     * Clearing zeroes counts; it does not undefine dice. The custom chips stay on screen, which
+     * means they must keep their pool entries — the selector's invariant is that every visible
+     * chip has one.
+     */
+    @Test
+    fun givenCustomDiceInThePool_whenCleared_thenTheyKeepTheirDefinitionsAndZeroedEntries() {
+        val vm = viewModel()
+        vm.addCustomDie(CustomDie(7))
+        vm.incrementCount(CustomDie(7))
+        vm.incrementCount(Dice.D6)
+
+        vm.clearPool()
+
+        assertEquals(listOf(CustomDie(7)), vm.uiState.value.customDice)
+        assertEquals(0, vm.uiState.value.pool[CustomDie(7)])
+        assertEquals(Dice.entries + CustomDie(7), vm.uiState.value.dieTypes)
+    }
+
+    /** The log records what *was* rolled, which emptying the pool afterwards cannot change. */
+    @Test
+    fun givenPastRolls_whenThePoolIsCleared_thenTheLogIsUntouched() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        val before = vm.uiState.value.history
+
+        vm.clearPool()
+
+        assertEquals(before, vm.uiState.value.history)
+    }
+
+    @Test
+    fun givenAnEmptyPool_whenCleared_thenTheStateIsUntouched() {
+        val vm = viewModel()
+        val before = vm.uiState.value
+
+        vm.clearPool()
+
+        assertSame(before, vm.uiState.value)
+    }
+
+    @Test
+    fun givenAClearedPool_whenADieIsIncrementedAgain_thenTheCountResumesFromZero() {
+        val vm = viewModel()
+        repeat(3) { vm.incrementCount(Dice.D6) }
+        vm.clearPool()
+
+        vm.incrementCount(Dice.D6)
+
+        assertEquals(1, vm.uiState.value.pool[Dice.D6])
+    }
+
+    /** Colors are cosmetic and orthogonal: clearing the pool is not a reason to lose one. */
+    @Test
+    fun givenAChosenColor_whenThePoolIsCleared_thenTheColorSurvives() {
+        val vm = viewModel()
+        vm.selectColor(DiceColor.Ruby)
+        vm.incrementCount(Dice.D6)
+
+        vm.clearPool()
+
+        assertEquals(DiceColor.Ruby, vm.uiState.value.selectedColor)
     }
 
     // --- Result-clearing rules: selectColor never clears the result ---
@@ -263,6 +398,58 @@ class DiceRollerViewModelTest {
         vm.rollDice()
 
         assertNull(vm.uiState.value.result)
+    }
+
+    // --- rollDice: a roll ends the run and empties the pool ---
+
+    @Test
+    fun givenAMixedPool_whenRolled_thenEveryCountIsBackToZero() {
+        val vm = viewModel()
+        repeat(4) { vm.incrementCount(Dice.D6) }
+        repeat(2) { vm.incrementCount(Dice.D8) }
+
+        vm.rollDice()
+
+        assertEquals(Dice.entries.associateWith { 0 }, vm.uiState.value.pool)
+        assertFalse(vm.uiState.value.canRoll)
+    }
+
+    /** The one pool change that must *not* clear the result: the result is what it produced. */
+    @Test
+    fun givenAPool_whenRolled_thenTheResultOfThatRollSurvivesTheEmptying() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+
+        vm.rollDice()
+
+        assertNotNull(vm.uiState.value.result)
+    }
+
+    /** Rolling twice in a row is no longer possible: the second call has nothing to roll. */
+    @Test
+    fun givenAJustRolledPool_whenRollingAgainWithoutQueueing_thenNothingHappens() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        val afterFirstRoll = vm.uiState.value
+
+        vm.rollDice()
+
+        assertSame(afterFirstRoll, vm.uiState.value)
+        assertEquals(1, vm.uiState.value.history.size)
+    }
+
+    /** Definitions outlive a roll; only counts are emptied by it. */
+    @Test
+    fun givenACustomDieInThePool_whenRolled_thenItsChipKeepsItsZeroedEntry() {
+        val vm = viewModel()
+        vm.addCustomDie(CustomDie(7))
+        vm.incrementCount(CustomDie(7))
+
+        vm.rollDice()
+
+        assertEquals(listOf(CustomDie(7)), vm.uiState.value.customDice)
+        assertEquals(0, vm.uiState.value.pool[CustomDie(7)])
     }
 
     // --- rollDice: non-empty pool matches the domain pool-rolling API ---
@@ -437,9 +624,9 @@ class DiceRollerViewModelTest {
     @Test
     fun givenHistoryOverTheCap_whenReadingIt_thenOnlyTheNewestRecordsAreKept() {
         val vm = viewModel()
-        vm.incrementCount(Dice.D6)
         repeat(MAX_HISTORY_RECORDS + 1) {
             nowMillis += 1_000L
+            vm.incrementCount(Dice.D6)
             vm.rollDice()
         }
 
@@ -551,10 +738,11 @@ class DiceRollerViewModelTest {
     fun givenRecordedHistory_whenRollingRepeatedly_thenTheLogOnlyEverGrowsUntilTheCap() = runTest {
         val store = InMemoryRollHistoryStore()
         val vm = viewModel(historyStore = store)
-        vm.incrementCount(Dice.D6)
 
         val sizes = (1..5).map {
             nowMillis += 1_000L
+            // Re-queued each time: a roll empties the pool, so every roll is its own fresh run.
+            vm.incrementCount(Dice.D6)
             vm.rollDice()
             store.history.first().size
         }
@@ -720,17 +908,23 @@ class DiceRollerViewModelTest {
         assertEquals(before, vm.uiState.value.result)
     }
 
-    /** Removing a die that *was* queued changes what Roll would produce, so the result must go. */
+    /**
+     * Removing a die that *was* queued changes what Roll would produce, so the result must go.
+     * Queueing it is now what clears the ladder first — the removal's own clause is what keeps
+     * that true whatever else changes, so it is asserted from the state it can actually reach.
+     */
     @Test
-    fun givenACustomDieWithDiceQueued_whenRemoved_thenTheResultIsCleared() {
+    fun givenACustomDieWithDiceQueued_whenRemoved_thenNoResultIsLeftBehind() {
         val vm = viewModel()
         vm.addCustomDie(CustomDie(7))
         vm.incrementCount(CustomDie(7))
         vm.rollDice()
+        vm.incrementCount(CustomDie(7))
 
         vm.removeCustomDie(CustomDie(7))
 
         assertNull(vm.uiState.value.result)
+        assertFalse(vm.uiState.value.canRoll)
     }
 
     /** The log records face counts, not definitions, so deleting a die cannot rewrite history. */
@@ -808,6 +1002,7 @@ class DiceRollerViewModelTest {
         vm.addCustomDie(CustomDie(7))
         vm.incrementCount(CustomDie(7))
         vm.rollDice()
+        vm.incrementCount(CustomDie(7)) // queue it again; the roll had emptied the pool
         vm.removeCustomDie(CustomDie(7))
 
         vm.undoRemoveCustomDie()
@@ -951,11 +1146,13 @@ class DiceRollerViewModelTest {
         vm.incrementCount(Dice.D6)
         vm.rollDice()
         val rolled = vm.uiState.value.result
+        val pool = vm.uiState.value.pool
+        assertNotNull(rolled)
 
         vm.showAbout()
 
         assertEquals(rolled, vm.uiState.value.result)
-        assertEquals(1, vm.uiState.value.pool[Dice.D6])
+        assertEquals(pool, vm.uiState.value.pool)
     }
 
     /** Presets are not definitions: nothing the custom-dice actions do may remove one. */
