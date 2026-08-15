@@ -38,13 +38,17 @@ A **collapsible history band** sitting between the result and the Roll button.
   │                    │              │ ⌄ Recent (3)       │    │ ⌃ Recent (3)       │
   ├────────────────────┤              ├────────────────────┤    │ 5D6+2D8+1D20    34 │
   │ [  Roll 5D6 …    ] │              │ [  Roll 5D6 …    ] │    │ 🎲4×2 🎲2 · 🎲8 …  │
-  │  Dice art by Aeynit│              │  Dice art by Aeynit│    │ just now           │
-  └────────────────────┘              └────────────────────┘    │ 4D6+2D8+1D20    27 │
+  └────────────────────┘              └────────────────────┘    │ just now           │
+                                                                │ 4D6+2D8+1D20    27 │
                                                                 ├────────────────────┤
                                                                 │ [  Roll 5D6 …    ] │
-                                                                │  Dice art by Aeynit│
                                                                 └────────────────────┘
 ```
+
+> The attribution line these sketches showed under the Roll button moved to the About sheet in
+> [#66](https://github.com/emmanuel-h/DiceRoller/issues/66); the bottom bar now holds the button
+> alone, and the ~24dp it freed goes to this band and the result above it. See
+> [about-sheet.md](about-sheet.md).
 
 ### Behaviour
 
@@ -85,8 +89,8 @@ consumes vertical space. That cost was measured rather than assumed:
 
 So at that pool on that viewport, the total line is now one short scroll away instead of visible
 at rest. From ~680dp up — a small phone rather than the harshest bound — everything fits again,
-and every *control* (selector, history header, Roll button, attribution) stays visible at every
-supported height. See `DiceRollerScreenTest`'s fit section, which asserts exactly this boundary.
+and every *control* (selector, history header, Roll button, and — since #66 — the About button)
+stays visible at every supported height. See `DiceRollerScreenTest`'s fit section, which asserts exactly this boundary.
 
 ## Out of scope
 

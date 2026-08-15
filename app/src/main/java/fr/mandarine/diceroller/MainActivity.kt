@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -31,7 +30,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -46,6 +44,8 @@ import fr.mandarine.diceroller.domain.RollRecord
 import fr.mandarine.diceroller.domain.ValueTally
 import fr.mandarine.diceroller.presentation.DiceRollerUiState
 import fr.mandarine.diceroller.presentation.DiceRollerViewModel
+import fr.mandarine.diceroller.presentation.component.AboutIconButton
+import fr.mandarine.diceroller.presentation.component.AboutSheet
 import fr.mandarine.diceroller.presentation.component.AddDiceChip
 import fr.mandarine.diceroller.presentation.component.CustomDieCreatorDialog
 import fr.mandarine.diceroller.presentation.component.DiceColorSwatchRow
@@ -55,9 +55,6 @@ import fr.mandarine.diceroller.presentation.component.RollHistoryBand
 import fr.mandarine.diceroller.presentation.model.DiceColor
 import fr.mandarine.diceroller.presentation.rollButtonLabel
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
-
-/** Credit required by the CC BY 4.0 license covering the dice artwork. */
-private const val ART_ATTRIBUTION = "Dice art by Aeynit · CC BY 4.0"
 
 /** Die-type chips per row in the pool selector, giving each chip an equal share of the width. */
 private const val CHIPS_PER_ROW = 3
@@ -91,6 +88,8 @@ class MainActivity : ComponentActivity() {
                     onRemoveCustomDie = viewModel::removeCustomDie,
                     onUndoRemoveCustomDie = viewModel::undoRemoveCustomDie,
                     onDismissRemovedCustomDie = viewModel::dismissRemovedCustomDie,
+                    onShowAbout = viewModel::showAbout,
+                    onDismissAbout = viewModel::dismissAbout,
                 )
             }
         }
@@ -109,8 +108,9 @@ class MainActivity : ComponentActivity() {
  * Only two bands flex ([Modifier.weight]), and they are the two that can genuinely overflow: the
  * results, at pool sizes the design treats as extreme, and the history list once expanded. They
  * split the free space evenly and each scrolls internally, so neither can grow at the other's
- * expense or push anything off screen. The Roll button and the artwork attribution sit in
- * [Scaffold]'s `bottomBar`, so neither can be pushed off screen either.
+ * expense or push anything off screen. The Roll button sits alone in [Scaffold]'s `bottomBar`, so
+ * it cannot be pushed off screen either; the artwork attribution that used to sit under it is
+ * one tap away in [AboutSheet] since issue #66, and the band it vacated went to the results.
  *
  * The history band's cost is real and was measured, not assumed: at 360×640dp — the shortest
  * viewport the fit tests bound — issue #64's layout cleared its densest *typical* pool by about
@@ -138,6 +138,8 @@ class MainActivity : ComponentActivity() {
  * @param onRemoveCustomDie callback when a custom chip's `×` badge is tapped
  * @param onUndoRemoveCustomDie callback when the removal snackbar's Undo action is used
  * @param onDismissRemovedCustomDie callback when that snackbar goes away un-actioned
+ * @param onShowAbout callback when the info button beside the swatch row is tapped
+ * @param onDismissAbout callback when the About sheet is swiped away or its scrim tapped
  * @param modifier optional modifier
  */
 @Composable
@@ -154,6 +156,8 @@ fun DiceRollerScreen(
     onRemoveCustomDie: (CustomDie) -> Unit = {},
     onUndoRemoveCustomDie: () -> Unit = {},
     onDismissRemovedCustomDie: () -> Unit = {},
+    onShowAbout: () -> Unit = {},
+    onDismissAbout: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -192,14 +196,23 @@ fun DiceRollerScreen(
                 .padding(horizontal = SCREEN_HORIZONTAL_PADDING),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Color first, since it recolors every die on screen below it.
-            DiceColorSwatchRow(
-                selectedColor = uiState.selectedColor,
-                onSelectColor = onSelectColor,
+            // Color first, since it recolors every die on screen below it. The About button
+            // rides along at the end of that band rather than in one of its own: the swatches'
+            // 44dp touch targets already set the band's height, so the credit's entry point is
+            // free vertically — which is the whole point of issue #66.
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
-            )
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                DiceColorSwatchRow(
+                    selectedColor = uiState.selectedColor,
+                    onSelectColor = onSelectColor,
+                    modifier = Modifier.weight(1f),
+                )
+                AboutIconButton(onClick = onShowAbout)
+            }
 
             DicePoolSelector(
                 dieTypes = uiState.dieTypes,
@@ -256,6 +269,10 @@ fun DiceRollerScreen(
             onAdd = onAddCustomDie,
             onDismiss = onDismissCustomDieCreator,
         )
+    }
+
+    if (uiState.isAboutVisible) {
+        AboutSheet(onDismiss = onDismissAbout)
     }
 }
 
@@ -346,10 +363,12 @@ private fun DicePoolSelector(
 }
 
 /**
- * The pinned bottom band: the Roll button, with the CC BY attribution tucked beneath it.
+ * The pinned bottom band: the Roll button, alone.
  *
- * The attribution has to stay on screen for the license, but not at the cost of the layout, so it
- * sits below the button in the smallest style the theme offers.
+ * It held the CC BY attribution beneath the button until issue #66, where that line was judged to
+ * be costing every screen a band for something read once, next to — and competing with — the one
+ * primary action. The credit moved to [AboutSheet], one tap away behind the info button at the
+ * end of the swatch row; the ~22dp it gave back goes to the weighted result band above.
  */
 @Composable
 private fun RollBar(
@@ -364,10 +383,9 @@ private fun RollBar(
                 start = SCREEN_HORIZONTAL_PADDING,
                 end = SCREEN_HORIZONTAL_PADDING,
                 top = 12.dp,
-                bottom = 8.dp,
+                bottom = 12.dp,
             ),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Button(
                 onClick = onRollDice,
@@ -376,12 +394,6 @@ private fun RollBar(
             ) {
                 Text(rollButtonLabel(DicePool(pool)))
             }
-            Text(
-                text = ART_ATTRIBUTION,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
         }
     }
 }

@@ -8,6 +8,7 @@
 - [Roll Multiple Dice at Once](features/multi-dice-roll.md)
 - [Roll History](features/roll-history.md)
 - [Custom Dice (arbitrary faces)](features/custom-dice.md)
+- [About sheet (the credit leaves the footer)](features/about-sheet.md)
 
 ## Architecture
 - [Dice Rolling](architecture/dice-rolling.md) (superseded for pool rolling — see below)
@@ -27,8 +28,10 @@
 - [Roll Multiple Dice at Once](testing/multi-dice-roll.md)
 - [Roll History](testing/roll-history.md)
 - [Custom Dice](testing/custom-dice.md)
+- [About sheet](testing/about-sheet.md)
 
 ## Licenses
+- [App license — Apache 2.0](../LICENSE.md)
 - [Third-Party Assets](licenses/third-party-assets.md)
 
 ## Audits

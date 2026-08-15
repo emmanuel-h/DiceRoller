@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -17,6 +18,8 @@ import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DiceRoller
 import fr.mandarine.diceroller.presentation.DiceRollerUiState
 import fr.mandarine.diceroller.presentation.DiceRollerViewModel
+import fr.mandarine.diceroller.presentation.component.ABOUT_BUTTON_TAG
+import fr.mandarine.diceroller.presentation.component.ART_ATTRIBUTION
 import fr.mandarine.diceroller.presentation.model.DiceColor
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 import kotlin.random.Random
@@ -75,6 +78,8 @@ class FantasyDiceArtUiTest {
                     onSelectColor = viewModel::selectColor,
                     onRollDice = viewModel::rollDice,
                     onToggleHistory = viewModel::toggleHistoryExpanded,
+                    onShowAbout = viewModel::showAbout,
+                    onDismissAbout = viewModel::dismissAbout,
                 )
             }
         }
@@ -165,10 +170,34 @@ class FantasyDiceArtUiTest {
     // Attribution required by the CC BY 4.0 license
     // -------------------------------------------------------------------------
 
+    /**
+     * The credit left the bottom bar in issue #66, so what the license needs is no longer "it is
+     * on screen" but "a user can get to it": one tap on a control that is visible at rest, with
+     * the exact required wording behind it.
+     */
     @Test
-    fun givenTheScreen_whenDisplayed_thenTheArtworkAttributionIsVisible() {
-        launchScreen()
+    fun givenTheScreen_whenTheAboutButtonIsTapped_thenTheArtworkAttributionIsVisible() {
+        launchWithViewModel()
 
-        composeTestRule.onNodeWithText("Dice art by Aeynit · CC BY 4.0").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).assertIsDisplayed().performClick()
+
+        composeTestRule.onNodeWithText(ART_ATTRIBUTION).assertIsDisplayed()
+    }
+
+    /**
+     * The credit sits next to the app's own license so the two cannot be read as one, and it is
+     * the *whole* of the artwork section: the license link lives inside the line rather than on a
+     * row of its own, so there is deliberately no standalone `CC BY 4.0` node to find.
+     */
+    @Test
+    fun givenTheAboutSheet_whenOpened_thenTheCreditIsOneLineBesideTheAppsOwnLicense() {
+        launchWithViewModel()
+
+        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).performClick()
+
+        composeTestRule.onNodeWithText("© 2026 Mandarine Tech · Apache License 2.0")
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText("CC BY 4.0").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Fantasy Dices Pack by Aeynit").assertDoesNotExist()
     }
 }

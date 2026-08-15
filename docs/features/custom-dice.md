@@ -65,7 +65,8 @@ Consequences, all measured rather than estimated:
 
 Below those heights the result band scrolls its last group and total into reach. **Every control
 still fits at 640dp** — the swatch row, all chips, the history header, the Roll button and the
-attribution — which is the guarantee that does not bend. The row is charged whether or not the
+About button (the attribution's entry point since [#66](https://github.com/emmanuel-h/DiceRoller/issues/66))
+— which is the guarantee that does not bend. The row is charged whether or not the
 user ever defines a die, because the add chip is what makes the feature discoverable; the cap of
 3 is what stops it ever becoming a fourth row.
 

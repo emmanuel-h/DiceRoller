@@ -21,7 +21,7 @@ a swatch row, and `D10` joins the roster.
   │  DicePolygon chips     │          │ Select a die           │
   │                        │          │ (d4)(d6)(d8)(d10)      │
   │                        │          │     (d12)(d20)  ← art  │
-  │        ╱‾‾‾‾‾╲         │          │ Dice art by Aeynit…    │
+  │        ╱‾‾‾‾‾╲         │          │ Dice art by Aeynit…  * │
   │       │  17   │        │          │                        │
   │        ╲_____╱         │          │       ◢ d20  ◣  ← art  │
   │   DicePolygon + number │          │                        │
@@ -30,6 +30,11 @@ a swatch row, and `D10` joins the roster.
   │ [      Roll D20      ] │          │ [      Roll D20      ] │
   └────────────────────────┘          └────────────────────────┘
 ```
+
+> `*` The attribution line this sketch shows on the main screen moved into the
+> About sheet in [#66](https://github.com/emmanuel-h/DiceRoller/issues/66),
+> behind the ⓘ pinned at the end of the swatch row. See
+> [about-sheet.md](about-sheet.md).
 
 ## Key constraint: the numerals are baked in
 
@@ -128,4 +133,5 @@ implementation choices:
   fallbacks.
 - **Instrumented (37):** six selectable dice including D10; every swatch changing
   the rendered art; result number below the die; empty-state placeholder;
-  content descriptions; light and dark theme; the attribution line.
+  content descriptions; light and dark theme; the attribution line (asserted
+  through the About sheet since #66).

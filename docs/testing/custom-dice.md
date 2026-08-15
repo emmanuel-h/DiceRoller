@@ -39,7 +39,8 @@ chip; **presets carrying no badge at all**; and Undo restoring the die together 
 Issue #64's suite guarantees two different things, and only one of them bent:
 
 - **Every control fits at 640dp** — swatch row, all chips, history header, Roll button,
-  attribution. Still passes, untouched. This is the guarantee that does not bend.
+  attribution. Still passes, untouched. This is the guarantee that does not bend. (Issue #66 later
+  replaced the attribution line in these assertions with the About button that now surfaces it.)
 - **The last result group and the total fit outright** at 640dp / 680dp. This no longer holds: the
   third chip row costs 106dp against ~16dp of slack.
 

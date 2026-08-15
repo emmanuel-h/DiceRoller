@@ -923,6 +923,41 @@ class DiceRollerViewModelTest {
         assertFalse(vm.uiState.value.isCustomDieCreatorVisible)
     }
 
+    // --- The About sheet (issue #66) ---
+
+    @Test
+    fun givenNewViewModel_whenReadingState_thenTheAboutSheetIsClosed() {
+        assertFalse(viewModel().uiState.value.isAboutVisible)
+    }
+
+    @Test
+    fun givenTheAboutSheetShown_whenItIsDismissed_thenItCloses() {
+        val vm = viewModel()
+
+        vm.showAbout()
+        assertTrue(vm.uiState.value.isAboutVisible)
+        vm.dismissAbout()
+
+        assertFalse(vm.uiState.value.isAboutVisible)
+    }
+
+    /**
+     * Reading the credit is not a change to what Roll would produce, so unlike a count change it
+     * must leave the result and the pool alone — the sheet is a place to look, not an action.
+     */
+    @Test
+    fun givenARolledPool_whenTheAboutSheetIsShown_thenTheResultAndPoolSurvive() {
+        val vm = viewModel(seed = 42)
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        val rolled = vm.uiState.value.result
+
+        vm.showAbout()
+
+        assertEquals(rolled, vm.uiState.value.result)
+        assertEquals(1, vm.uiState.value.pool[Dice.D6])
+    }
+
     /** Presets are not definitions: nothing the custom-dice actions do may remove one. */
     @Test
     fun givenCustomDiceAddedAndRemoved_whenReadingThePool_thenEveryPresetStillHasAnEntry() {

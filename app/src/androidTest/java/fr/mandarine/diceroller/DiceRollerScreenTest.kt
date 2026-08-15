@@ -29,6 +29,9 @@ import fr.mandarine.diceroller.domain.RollRecord
 import fr.mandarine.diceroller.domain.ValueTally
 import fr.mandarine.diceroller.presentation.DiceRollerUiState
 import fr.mandarine.diceroller.presentation.DiceRollerViewModel
+import fr.mandarine.diceroller.presentation.component.ABOUT_BUTTON_TAG
+import fr.mandarine.diceroller.presentation.component.ABOUT_SHEET_TAG
+import fr.mandarine.diceroller.presentation.component.ART_ATTRIBUTION
 import fr.mandarine.diceroller.presentation.component.ROLL_HISTORY_HEADER_TAG
 import fr.mandarine.diceroller.presentation.component.ROLL_HISTORY_LIST_TAG
 import fr.mandarine.diceroller.presentation.component.chipCountTestTag
@@ -119,6 +122,8 @@ class DiceRollerScreenTest {
                     onSelectColor = viewModel::selectColor,
                     onRollDice = viewModel::rollDice,
                     onToggleHistory = viewModel::toggleHistoryExpanded,
+                    onShowAbout = viewModel::showAbout,
+                    onDismissAbout = viewModel::dismissAbout,
                 )
             }
         }
@@ -342,9 +347,10 @@ class DiceRollerScreenTest {
         composeTestRule.onNodeWithText("Total $REALISTIC_POOL_TOTAL")
             .performScrollTo()
             .assertIsDisplayed()
-        // Bottom band: the Roll button and the license-required credit, both pinned.
+        // Bottom band: the Roll button, now alone in it (issue #66). The credit it used to carry
+        // is behind the About button in the top band, which is asserted alongside it.
         composeTestRule.onNodeWithText("Roll 4D6 + 4D8 + 4D20").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Dice art by Aeynit · CC BY 4.0").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).assertIsDisplayed()
     }
 
     /** The measured height at which the total fits outright again with no history band. */
@@ -471,6 +477,54 @@ class DiceRollerScreenTest {
         composeTestRule.onNodeWithText("Recent (1)").assertIsDisplayed()
     }
 
+    // --- The About sheet, and the footer it replaced (issue #66) ---
+
+    /**
+     * The half of issue #66 that frees the space: the credit is no longer a permanent band under
+     * the roll button. Asserted as "not anywhere on the main screen at rest" rather than "not in
+     * the bottom bar", since a footer moved a few dp up would still be the thing that was removed.
+     */
+    @Test
+    fun givenTheScreenAtRest_whenDisplayed_thenTheAttributionFooterIsGone() {
+        launchScreen()
+
+        composeTestRule.onNodeWithText(ART_ATTRIBUTION).assertDoesNotExist()
+    }
+
+    /** The other half: it is still reachable, from a control that is on screen from the start. */
+    @Test
+    fun givenTheScreenAtRest_whenDisplayed_thenTheAboutButtonIsVisible() {
+        launchScreen()
+
+        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(ABOUT_SHEET_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun givenTheScreen_whenTheAboutButtonIsTapped_thenTheSheetShowsTheRequiredCredit() {
+        launchWithViewModel()
+
+        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).performClick()
+
+        composeTestRule.onNodeWithText(ART_ATTRIBUTION).assertIsDisplayed()
+    }
+
+    /**
+     * The sheet is a place to read the credit, not a place the pool goes to die: opening it must
+     * leave the roll the user is looking at exactly as it was.
+     */
+    @Test
+    fun givenARolledPool_whenTheAboutButtonIsTapped_thenTheResultIsUntouched() {
+        launchWithViewModel()
+        increaseButton(Dice.D6).performClick()
+        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+
+        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).performClick()
+
+        composeTestRule.onNodeWithText("Roll 1D6").assertIsDisplayed().assertIsEnabled()
+        countText(Dice.D6).assertTextEquals("1")
+    }
+
     // --- What history costs the whole-screen fit (issues #64 and #3) ---
 
     /**
@@ -493,7 +547,7 @@ class DiceRollerScreenTest {
         composeTestRule.onNodeWithText("4×D6").assertIsDisplayed()
         composeTestRule.onNodeWithText("Recent (1)").assertIsDisplayed()
         composeTestRule.onNodeWithText("Roll 4D6 + 4D8 + 4D20").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Dice art by Aeynit · CC BY 4.0").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).assertIsDisplayed()
     }
 
     /**
@@ -518,7 +572,7 @@ class DiceRollerScreenTest {
             .assertIsDisplayed()
         composeTestRule.onNodeWithText("Recent (1)").assertIsDisplayed()
         composeTestRule.onNodeWithText("Roll 4D6 + 4D8 + 4D20").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Dice art by Aeynit · CC BY 4.0").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).assertIsDisplayed()
     }
 
     /**
@@ -554,7 +608,7 @@ class DiceRollerScreenTest {
         composeTestRule.onNodeWithTag(ROLL_HISTORY_LIST_TAG).assertIsDisplayed()
         Dice.entries.forEach { dice -> increaseButton(dice).assertIsDisplayed() }
         composeTestRule.onNodeWithText("Roll 4D6 + 4D8 + 4D20").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Dice art by Aeynit · CC BY 4.0").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).assertIsDisplayed()
     }
 
     @Test

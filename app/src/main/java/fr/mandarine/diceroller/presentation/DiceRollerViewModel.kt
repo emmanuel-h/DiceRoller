@@ -258,6 +258,21 @@ class DiceRollerViewModel(
         }
     }
 
+    /**
+     * Opens the About sheet, which carries the artwork's license-required credit (issue #66).
+     *
+     * Like the creator dialog, this touches visibility only: it leaves the pool, the result and
+     * the log exactly as they were, so reading the credit never costs the user a roll.
+     */
+    fun showAbout() {
+        _uiState.update { state -> state.copy(isAboutVisible = true) }
+    }
+
+    /** Closes the About sheet. */
+    fun dismissAbout() {
+        _uiState.update { state -> state.copy(isAboutVisible = false) }
+    }
+
     companion object {
         /**
          * Builds a factory that wires the ViewModel to the DataStore-backed color, history and
