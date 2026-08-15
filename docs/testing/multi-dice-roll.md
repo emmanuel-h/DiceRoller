@@ -93,7 +93,7 @@ Covers the color picker's integration with the rest of the (now pool-based) scre
 - All 12 color swatches exist; the currently-selected color's swatch is marked selected and others are not; tapping a different swatch (e.g. Indigo) selects it and deselects the previous one.
 - Recoloring a rolled result: after rolling a 1×D6 pool, changing the selected color switches the result row's die-art test tag to the new color and removes the old one; the roll's total is preserved across the color change (color never clears results — re-verified end-to-end).
 - Color choice persists across a pool change: selecting a color, then incrementing a die count, leaves the swatch still marked selected.
-- The CC BY 4.0 attribution line (*"Dice art by Aeynit · CC BY 4.0"*) is still visible on screen.
+- The CC BY 4.0 attribution line (*"Dice art by Aeynit · CC BY 4.0"*) is still visible on screen. *(Since [#66](https://github.com/emmanuel-h/DiceRoller/issues/66) this test taps the About button first — the credit lives in the sheet, and the assertion is now that it is one tap away rather than pinned under the Roll button.)*
 
 ## Open items
 

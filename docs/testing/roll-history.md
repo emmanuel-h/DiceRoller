@@ -84,7 +84,7 @@ device rather than assuming them:
 | 360×640dp | none | Total visible, band absent (issue #64's guarantee, intact) |
 | 360×640dp | collapsed | Every control survives; result groups visible; total scrolls |
 | 360×680dp | collapsed | Everything fits, total included |
-| 360×640dp | expanded | List, selector, Roll button and attribution all visible; list bottom ≤ button top |
+| 360×640dp | expanded | List, selector, Roll button and the About button all visible; list bottom ≤ button top |
 
 The 640dp row is the honest one: the pre-history layout cleared that pool by only ~16dp and the
 band costs ~45dp, so the total moved one short scroll away there. That is the vertical price the

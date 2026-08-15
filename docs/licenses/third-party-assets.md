@@ -19,9 +19,30 @@ the credit line required to satisfy it.
 
 > Dice art by Aeynit · CC BY 4.0
 
-This string is rendered in-app beneath the color picker on the main screen
-(`ART_ATTRIBUTION` in `MainActivity.kt`). CC BY 4.0 requires attribution to be
-visible to users, so it must not be removed when the screen is restyled.
+This string is rendered in-app in the **About sheet** (`ART_ATTRIBUTION` in
+`presentation/component/AboutSheet.kt`), reached by the ⓘ button pinned at the
+trailing end of the color swatch row. It sat pinned under the Roll button until
+[#66](https://github.com/emmanuel-h/DiceRoller/issues/66) moved it — see
+[`docs/features/about-sheet.md`](../features/about-sheet.md).
+
+CC BY 4.0 requires attribution to be visible to users, not permanently on
+screen, so one tap from a control that is visible at rest satisfies it. What
+must not happen is the string being removed, or its entry point becoming
+something a user would not find: `DiceRollerScreenTest` and
+`FantasyDiceArtUiTest` both assert the ⓘ is on screen at rest and that tapping
+it shows this exact wording.
+
+The trailing `CC BY 4.0` of that line is itself the link to the deed
+(<https://creativecommons.org/licenses/by/4.0/>), so the license is one tap from
+the credit. That line is the *whole* of what the app shows about the artwork:
+neither the pack name nor the OpenGameArt listing appears in-app, since the
+credit already carries the author and the license the deed requires. Both are
+recorded above as the provenance to re-verify from, which is a desk job rather
+than a phone one.
+
+The app's own code is under the Apache License 2.0 ([`LICENSE.md`](../../LICENSE.md)),
+which does **not** cover this artwork; the sheet shows both so neither is
+mistaken for the other.
 
 ### Licensing note
 
