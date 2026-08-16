@@ -2,6 +2,12 @@
 
 Closes [#66](https://github.com/emmanuel-h/DiceRoller/issues/66).
 
+> **Partly superseded.** The sheet this describes became the **settings sheet** once it gained a
+> language row: the ⓘ is a ⚙, the title is *Settings*, and About is a section inside it rather than
+> the headline. Everything below about *why the credit left the footer* and *why the entry point
+> hangs off the swatch row* still holds — only the naming and the icon moved. See
+> [language-and-settings.md](language-and-settings.md).
+
 ## What changed
 
 The CC BY credit line — `Dice art by Aeynit · CC BY 4.0` — no longer sits pinned under the Roll
@@ -95,15 +101,18 @@ short screen.
 
 ## Structure
 
-| Layer | Type | Responsibility |
+Named as shipped for #66; all four were renamed `About…` → `Settings…` when the sheet became a
+settings surface — see [language-and-settings.md](language-and-settings.md).
+
+| Layer | Type (as of #66) | Responsibility |
 |---|---|---|
 | `presentation/component` | `AboutIconButton` | The pinned ⓘ; owns `ABOUT_BUTTON_TAG` |
-| `presentation/component` | `AboutSheet` | The sheet, its copy, and `ART_ATTRIBUTION` — which moved here from `MainActivity` |
+| `presentation/component` | `AboutSheet` | The sheet and its copy. The credit moved here from `MainActivity`, and became `R.string.about_art_attribution` in [#68](https://github.com/emmanuel-h/DiceRoller/issues/68) |
 | `presentation` | `DiceRollerUiState.isAboutVisible` | Session-only visibility, like the custom-die creator |
 | `presentation` | `DiceRollerViewModel.showAbout` / `dismissAbout` | Visibility only — they touch neither the pool, the result nor the log |
-| `res/drawable` | `ic_info_outline.xml` | Hand-drawn, like `ic_casino` and `ic_expand_more`: not worth `material-icons-extended` |
+| `res/drawable` | `ic_info_outline.xml` | Hand-drawn, like `ic_casino` and `ic_expand_more`: not worth `material-icons-extended`. Deleted when the ⓘ became a ⚙ — see `ic_settings.xml` |
 
-`AboutSheet` takes `onOpenLink` (defaulting to the platform `LocalUriHandler`) so tests can assert
+The sheet takes `onOpenLink` (defaulting to the platform `LocalUriHandler`) so tests can assert
 which URI a row opens without leaving the app, and wraps the call in `runCatching` — a device with
 no mail app is not a reason to crash a dice roller. Inline links route through it via
 `LinkAnnotation.Url`'s `linkInteractionListener`, which replaces the default open-the-URL
@@ -123,7 +132,9 @@ fits at 640dp** — is unchanged, with the ⓘ now among the controls asserted.
 
 ## Out of scope
 
-- A settings screen, or anything else behind the ⓘ. It is an About sheet, not a menu.
+- ~~A settings screen, or anything else behind the ⓘ. It is an About sheet, not a menu.~~
+  Reversed: the sheet became exactly that when it gained the language row. The reasoning held for
+  as long as there was nothing on it to *change*.
 - Showing the license texts in-app; the sheet links out to them.
 - A top app bar. Still not worth its height.
 

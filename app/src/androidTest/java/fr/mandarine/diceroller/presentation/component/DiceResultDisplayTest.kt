@@ -12,11 +12,16 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import fr.mandarine.diceroller.R
+import fr.mandarine.diceroller.dieNotation
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DiceGroupResult
 import fr.mandarine.diceroller.domain.DicePoolResult
 import fr.mandarine.diceroller.domain.ValueTally
+import fr.mandarine.diceroller.groupHeader
+import fr.mandarine.diceroller.plural
 import fr.mandarine.diceroller.presentation.model.DiceColor
+import fr.mandarine.diceroller.str
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -32,6 +37,15 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class DiceResultDisplayTest {
+
+    /**
+     * The `×` that every group header has between its count and its die.
+     *
+     * Only used to *count* headers on screen, which is why it survives issue #68 as a literal:
+     * `result_group_header` is `translatable="false"` dice notation, so this marker is the same
+     * in every locale.
+     */
+    private val groupHeaderMarker = "×D"
 
     @get:Rule
     val composeTestRule = createComposeRule()
@@ -99,6 +113,14 @@ class DiceResultDisplayTest {
         useUnmergedTree = true,
     )
 
+    /** A group header's spoken description, e.g. "4 D6 dice". */
+    private fun groupDescription(poolCount: Int, notation: String): String =
+        plural(R.plurals.result_group_description, poolCount, poolCount, notation)
+
+    /** One face entry's spoken description, e.g. "Value 4, rolled 2 times". */
+    private fun faceDescription(value: Int, count: Int): String =
+        plural(R.plurals.result_face_description, count, value, count)
+
     /** Vertical position of the row/line identified by [contentDescription], for ordering checks. */
     private fun topOf(contentDescription: String): Float =
         composeTestRule
@@ -156,28 +178,28 @@ class DiceResultDisplayTest {
     fun givenEmptyPool_whenDisplayed_thenAddDiceCaptionIsShown() {
         launch(result = null, isPoolEmpty = true)
 
-        composeTestRule.onNodeWithText("Add dice above to build your pool.").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.result_empty_pool_caption)).assertIsDisplayed()
     }
 
     @Test
     fun givenNonEmptyPoolNotYetRolled_whenDisplayed_thenTapRollCaptionIsShown() {
         launch(result = null, isPoolEmpty = false)
 
-        composeTestRule.onNodeWithText("Tap Roll to see results.").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.result_not_rolled_caption)).assertIsDisplayed()
     }
 
     @Test
     fun givenEmptyPool_whenDisplayed_thenTapRollCaptionIsNotShown() {
         launch(result = null, isPoolEmpty = true)
 
-        composeTestRule.onNodeWithText("Tap Roll to see results.").assertDoesNotExist()
+        composeTestRule.onNodeWithText(str(R.string.result_not_rolled_caption)).assertDoesNotExist()
     }
 
     @Test
     fun givenNullResult_whenDisplayed_thenNoGroupHeaderIsShown() {
         launch(result = null, isPoolEmpty = false)
 
-        composeTestRule.onNodeWithText("4×D6").assertDoesNotExist()
+        composeTestRule.onNodeWithText(groupHeader(4, dieNotation(Dice.D6))).assertDoesNotExist()
     }
 
     // --- Populated state: group headers ---
@@ -186,23 +208,26 @@ class DiceResultDisplayTest {
     fun givenPopulatedResult_whenDisplayed_thenEachGroupHeaderIsShown() {
         launch(result = sampleResult)
 
-        composeTestRule.onNodeWithText("4×D6").assertIsDisplayed()
-        composeTestRule.onNodeWithText("2×D8").assertIsDisplayed()
+        composeTestRule.onNodeWithText(groupHeader(4, dieNotation(Dice.D6))).assertIsDisplayed()
+        composeTestRule.onNodeWithText(groupHeader(2, dieNotation(Dice.D8))).assertIsDisplayed()
     }
 
     @Test
     fun givenPopulatedResult_whenDisplayed_thenGroupHeaderDescribesDiceCount() {
         launch(result = sampleResult)
 
-        composeTestRule.onNodeWithContentDescription("4 D6 dice").assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("2 D8 dice").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription(groupDescription(4, dieNotation(Dice.D6)))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription(groupDescription(2, dieNotation(Dice.D8)))
+            .assertIsDisplayed()
     }
 
     @Test
     fun givenPopulatedResult_whenDisplayed_thenExactlyOneGroupHeaderExistsPerDieTypeInTheResult() {
         launch(result = sampleResult)
 
-        composeTestRule.onAllNodesWithText("×D", substring = true).assertCountEquals(2)
+        composeTestRule.onAllNodesWithText(groupHeaderMarker, substring = true)
+            .assertCountEquals(2)
     }
 
     @Test
@@ -210,15 +235,17 @@ class DiceResultDisplayTest {
         launch(result = sampleResult)
 
         // The result only covers D6 and D8; D20 was never part of this pool/roll.
-        composeTestRule.onNodeWithContentDescription("3 D20 dice").assertDoesNotExist()
+        composeTestRule.onNodeWithContentDescription(groupDescription(3, dieNotation(Dice.D20)))
+            .assertDoesNotExist()
     }
 
     @Test
     fun givenASingleDieTypeResult_whenDisplayed_thenOnlyThatOneGroupHeaderIsShown() {
         launch(result = singleGroupResult)
 
-        composeTestRule.onNodeWithText("3×D20").assertIsDisplayed()
-        composeTestRule.onAllNodesWithText("×D", substring = true).assertCountEquals(1)
+        composeTestRule.onNodeWithText(groupHeader(3, dieNotation(Dice.D20))).assertIsDisplayed()
+        composeTestRule.onAllNodesWithText(groupHeaderMarker, substring = true)
+            .assertCountEquals(1)
     }
 
     // --- Populated state: rows ---
@@ -228,13 +255,13 @@ class DiceResultDisplayTest {
         launch(result = sampleResult)
 
         composeTestRule
-            .onNodeWithContentDescription("Value 6, rolled 1 time")
+            .onNodeWithContentDescription(faceDescription(value = 6, count = 1))
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithContentDescription("Value 4, rolled 2 times")
+            .onNodeWithContentDescription(faceDescription(value = 4, count = 2))
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithContentDescription("Value 3, rolled 1 time")
+            .onNodeWithContentDescription(faceDescription(value = 3, count = 1))
             .assertIsDisplayed()
     }
 
@@ -243,7 +270,8 @@ class DiceResultDisplayTest {
         launch(result = sampleResult)
 
         // D6 never rolled a 5 in this sample result.
-        composeTestRule.onNodeWithContentDescription("Value 5, rolled 1 time").assertDoesNotExist()
+        composeTestRule.onNodeWithContentDescription(faceDescription(value = 5, count = 1))
+            .assertDoesNotExist()
     }
 
     @Test
@@ -252,15 +280,18 @@ class DiceResultDisplayTest {
 
         // The sample rolled four values once (D6 6, D6 3, D8 7, D8 2) and one value twice (D6 4),
         // so the multipliers are counted, not merely shown to exist somewhere.
-        composeTestRule.onAllNodesWithText("×1", useUnmergedTree = true).assertCountEquals(4)
-        composeTestRule.onAllNodesWithText("×2", useUnmergedTree = true).assertCountEquals(1)
+        composeTestRule.onAllNodesWithText(str(R.string.multiplier, 1), useUnmergedTree = true)
+            .assertCountEquals(4)
+        composeTestRule.onAllNodesWithText(str(R.string.multiplier, 2), useUnmergedTree = true)
+            .assertCountEquals(1)
     }
 
     @Test
     fun givenAGroupWhereEveryDieLandedOnTheSameValue_whenDisplayed_thenExactlyOneRowExistsForIt() {
         launch(result = singleGroupResult)
 
-        composeTestRule.onNodeWithContentDescription("Value 15, rolled 3 times").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription(faceDescription(value = 15, count = 3))
+            .assertIsDisplayed()
     }
 
     @Test
@@ -268,7 +299,8 @@ class DiceResultDisplayTest {
         launch(result = singleGroupResult)
 
         // Only 15 was ever rolled in this group; every other D20 face must have zero rows.
-        composeTestRule.onNodeWithContentDescription("Value 14, rolled 1 time").assertDoesNotExist()
+        composeTestRule.onNodeWithContentDescription(faceDescription(value = 14, count = 1))
+            .assertDoesNotExist()
     }
 
     // --- Populated state: entry ordering (descending by value, within and across groups) ---
@@ -277,21 +309,30 @@ class DiceResultDisplayTest {
     fun givenPopulatedResult_whenDisplayed_thenTheD6SixEntryIsReadBeforeTheD6FourEntry() {
         launch(result = sampleResult)
 
-        assertReadsBefore("Value 6, rolled 1 time", "Value 4, rolled 2 times")
+        assertReadsBefore(
+            faceDescription(value = 6, count = 1),
+            faceDescription(value = 4, count = 2),
+        )
     }
 
     @Test
     fun givenPopulatedResult_whenDisplayed_thenTheD6FourEntryIsReadBeforeTheD6ThreeEntry() {
         launch(result = sampleResult)
 
-        assertReadsBefore("Value 4, rolled 2 times", "Value 3, rolled 1 time")
+        assertReadsBefore(
+            faceDescription(value = 4, count = 2),
+            faceDescription(value = 3, count = 1),
+        )
     }
 
     @Test
     fun givenPopulatedResult_whenDisplayed_thenTheD8SevenEntryIsReadBeforeTheD8TwoEntry() {
         launch(result = sampleResult)
 
-        assertReadsBefore("Value 7, rolled 1 time", "Value 2, rolled 1 time")
+        assertReadsBefore(
+            faceDescription(value = 7, count = 1),
+            faceDescription(value = 2, count = 1),
+        )
     }
 
     @Test
@@ -299,8 +340,8 @@ class DiceResultDisplayTest {
         launch(result = sampleResult)
 
         // Across groups the separation is still strictly vertical, wrapping or not.
-        val lastD6EntryTop = topOf("Value 3, rolled 1 time")
-        val firstD8EntryTop = topOf("Value 7, rolled 1 time")
+        val lastD6EntryTop = topOf(faceDescription(value = 3, count = 1))
+        val firstD8EntryTop = topOf(faceDescription(value = 7, count = 1))
 
         assertTrue(lastD6EntryTop < firstD8EntryTop)
     }
@@ -310,8 +351,8 @@ class DiceResultDisplayTest {
         launch(result = sampleResult)
 
         // The density goal of issue #63: a die type costs about one line, not one per value.
-        val sixTop = topOf("Value 6, rolled 1 time")
-        val fourTop = topOf("Value 4, rolled 2 times")
+        val sixTop = topOf(faceDescription(value = 6, count = 1))
+        val fourTop = topOf(faceDescription(value = 4, count = 2))
 
         assertTrue(
             "Expected the D6 entries to wrap onto one line, got tops $sixTop and $fourTop",
@@ -326,9 +367,9 @@ class DiceResultDisplayTest {
         launch(result = sampleResult, selectedColor = DiceColor.Ruby)
 
         assertRowPairsArtWithCount(
-            rowDescription = "Value 6, rolled 1 time",
+            rowDescription = faceDescription(value = 6, count = 1),
             artTestTag = "dice-row-art-D6-6-Ruby",
-            countText = "×1",
+            countText = str(R.string.multiplier, 1),
         )
     }
 
@@ -337,9 +378,9 @@ class DiceResultDisplayTest {
         launch(result = sampleResult, selectedColor = DiceColor.Ruby)
 
         assertRowPairsArtWithCount(
-            rowDescription = "Value 4, rolled 2 times",
+            rowDescription = faceDescription(value = 4, count = 2),
             artTestTag = "dice-row-art-D6-4-Ruby",
-            countText = "×2",
+            countText = str(R.string.multiplier, 2),
         )
     }
 
@@ -348,9 +389,9 @@ class DiceResultDisplayTest {
         launch(result = sampleResult, selectedColor = DiceColor.Ruby)
 
         assertRowPairsArtWithCount(
-            rowDescription = "Value 7, rolled 1 time",
+            rowDescription = faceDescription(value = 7, count = 1),
             artTestTag = "dice-row-art-D8-7-Ruby",
-            countText = "×1",
+            countText = str(R.string.multiplier, 1),
         )
     }
 
@@ -359,9 +400,9 @@ class DiceResultDisplayTest {
         launch(result = sampleResult, selectedColor = DiceColor.Ruby)
 
         assertRowPairsArtWithCount(
-            rowDescription = "Value 2, rolled 1 time",
+            rowDescription = faceDescription(value = 2, count = 1),
             artTestTag = "dice-row-art-D8-2-Ruby",
-            countText = "×1",
+            countText = str(R.string.multiplier, 1),
         )
     }
 
@@ -371,16 +412,16 @@ class DiceResultDisplayTest {
     fun givenPopulatedResult_whenDisplayed_thenTotalLineIsShown() {
         launch(result = sampleResult)
 
-        composeTestRule.onNodeWithText("Total 26").assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("Total 26").assertExists()
+        composeTestRule.onNodeWithText(str(R.string.result_total, 26)).assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription(str(R.string.result_total, 26)).assertExists()
     }
 
     @Test
     fun givenPopulatedResult_whenDisplayed_thenTotalLineAppearsBelowEveryGroupsRows() {
         launch(result = sampleResult)
 
-        val lastRowTop = topOf("Value 2, rolled 1 time")
-        val totalTop = topOf("Total 26")
+        val lastRowTop = topOf(faceDescription(value = 2, count = 1))
+        val totalTop = topOf(str(R.string.result_total, 26))
 
         assertTrue(lastRowTop < totalTop)
     }
@@ -389,7 +430,7 @@ class DiceResultDisplayTest {
     fun givenASingleDieTypeResult_whenDisplayed_thenTotalLineMatchesThatResultsSum() {
         launch(result = singleGroupResult)
 
-        composeTestRule.onNodeWithText("Total 45").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.result_total, 45)).assertIsDisplayed()
     }
 
     // --- Color applied to every group ---

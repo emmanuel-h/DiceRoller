@@ -18,9 +18,12 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import fr.mandarine.diceroller.R
+import fr.mandarine.diceroller.dieNotation
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DicePool
 import fr.mandarine.diceroller.presentation.model.DiceColor
+import fr.mandarine.diceroller.str
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -42,11 +45,11 @@ class DiceStepperChipTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    private fun decreaseButton(dice: Dice = Dice.D6) =
-        composeTestRule.onNodeWithContentDescription("Decrease ${dice.name} count")
+    private fun decreaseButton(dice: Dice = Dice.D6) = composeTestRule
+        .onNodeWithContentDescription(str(R.string.chip_decrease_description, dieNotation(dice)))
 
-    private fun increaseButton(dice: Dice = Dice.D6) =
-        composeTestRule.onNodeWithContentDescription("Increase ${dice.name} count")
+    private fun increaseButton(dice: Dice = Dice.D6) = composeTestRule
+        .onNodeWithContentDescription(str(R.string.chip_increase_description, dieNotation(dice)))
 
     /** On-screen bounds of a half, in dp, for the split-layout assertions. */
     private fun boundsOf(node: SemanticsNodeInteraction): DpRect =
@@ -106,14 +109,14 @@ class DiceStepperChipTest {
     fun givenAnyCount_whenChipIsRendered_thenTheDieLabelIsShown() {
         launchChip(dice = Dice.D12, count = 3)
 
-        composeTestRule.onNodeWithText("D12").assertIsDisplayed()
+        composeTestRule.onNodeWithText(dieNotation(Dice.D12)).assertIsDisplayed()
     }
 
     @Test
     fun givenAnyCount_whenChipIsRendered_thenTheCountIsShown() {
         launchChip(dice = Dice.D6, count = 5)
 
-        composeTestRule.onNodeWithText("5").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.number, 5)).assertIsDisplayed()
     }
 
     @Test
@@ -123,7 +126,13 @@ class DiceStepperChipTest {
         // A labelled control ("D6", plus the two stepper buttons) already conveys the die type,
         // so the artwork itself must carry no separate content description.
         composeTestRule
-            .onNodeWithContentDescription("${Dice.D6.name}, ${DiceColor.Amethyst.label}")
+            .onNodeWithContentDescription(
+                str(
+                    R.string.dice_image_description,
+                    dieNotation(Dice.D6),
+                    str(DiceColor.Amethyst.labelRes),
+                ),
+            )
             .assertDoesNotExist()
     }
 
@@ -173,7 +182,7 @@ class DiceStepperChipTest {
 
         increaseButton(Dice.D6).performClick()
 
-        composeTestRule.onNodeWithText("1").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.number, 1)).assertIsDisplayed()
     }
 
     @Test
@@ -182,7 +191,7 @@ class DiceStepperChipTest {
 
         decreaseButton(Dice.D6).performClick()
 
-        composeTestRule.onNodeWithText("2").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.number, 2)).assertIsDisplayed()
     }
 
     @Test
@@ -191,7 +200,7 @@ class DiceStepperChipTest {
 
         decreaseButton(Dice.D6).performClick()
 
-        composeTestRule.onNodeWithText("0").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.number, 0)).assertIsDisplayed()
     }
 
     // -------------------------------------------------------------------------
@@ -254,7 +263,7 @@ class DiceStepperChipTest {
         increaseButton(Dice.D8).performClick()
         increaseButton(Dice.D8).performClick()
 
-        composeTestRule.onNodeWithText("3").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.number, 3)).assertIsDisplayed()
     }
 
     @Test
@@ -263,7 +272,8 @@ class DiceStepperChipTest {
 
         increaseButton(Dice.D4).performClick()
 
-        composeTestRule.onNodeWithText("${DicePool.MAX_DICE_PER_TYPE}").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.number, DicePool.MAX_DICE_PER_TYPE))
+            .assertIsDisplayed()
         increaseButton(Dice.D4).assertIsNotEnabled()
     }
 
@@ -277,8 +287,8 @@ class DiceStepperChipTest {
 
         // Descriptions must not read e.g. "Decrease D10 count, 7" — the count lives in
         // stateDescription instead, asserted below.
-        composeTestRule.onNodeWithContentDescription("Decrease D10 count").assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("Increase D10 count").assertIsDisplayed()
+        decreaseButton(Dice.D10).assertIsDisplayed()
+        increaseButton(Dice.D10).assertIsDisplayed()
     }
 
     @Test
@@ -286,7 +296,12 @@ class DiceStepperChipTest {
         launchChip(dice = Dice.D6, count = 9)
 
         composeTestRule
-            .onNode(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "9"))
+            .onNode(
+                SemanticsMatcher.expectValue(
+                    SemanticsProperties.StateDescription,
+                    str(R.string.number, 9),
+                ),
+            )
             .assertIsDisplayed()
     }
 }

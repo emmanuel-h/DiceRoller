@@ -17,11 +17,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import fr.mandarine.diceroller.R
 import fr.mandarine.diceroller.presentation.model.DiceColor
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 
@@ -79,6 +81,7 @@ private fun DiceColorSwatch(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val description = stringResource(R.string.swatch_description, stringResource(color.labelRes))
     Box(
         modifier = modifier
             .size(SWATCH_TOUCH_SIZE)
@@ -100,7 +103,7 @@ private fun DiceColorSwatch(
                 },
             )
             .padding(SELECTION_RING_WIDTH)
-            .semantics { contentDescription = "${color.label} dice" },
+            .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
         Box(

@@ -19,17 +19,30 @@ the credit line required to satisfy it.
 
 > Dice art by Aeynit · CC BY 4.0
 
-This string is rendered in-app in the **About sheet** (`ART_ATTRIBUTION` in
-`presentation/component/AboutSheet.kt`), reached by the ⓘ button pinned at the
-trailing end of the color swatch row. It sat pinned under the Roll button until
+This string is rendered in-app in the **settings sheet**
+(`R.string.about_art_attribution`, shown by `presentation/component/SettingsSheet.kt`),
+reached by the ⚙ button pinned at the trailing end of the color swatch row. It
+sat pinned under the Roll button until
 [#66](https://github.com/emmanuel-h/DiceRoller/issues/66) moved it — see
-[`docs/features/about-sheet.md`](../features/about-sheet.md).
+[`docs/features/about-sheet.md`](../features/about-sheet.md). That sheet was
+titled *About* behind an ⓘ until it gained a language picker and became the
+settings sheet — see
+[`docs/features/language-and-settings.md`](../features/language-and-settings.md).
+
+It became a string resource in
+[#68](https://github.com/emmanuel-h/DiceRoller/issues/68), so it is now
+translated: French reads *Illustrations des dés par Aeynit · CC BY 4.0*. Two
+things are fixed in every locale and are noted for translators in both
+`strings.xml` files — the author name **Aeynit** and the licence name
+**CC BY 4.0** appear verbatim, and the line must still **end** with
+`CC BY 4.0`, because the sheet splits that suffix off to turn it into the link
+to the licence deed. Only the surrounding wording is translatable.
 
 CC BY 4.0 requires attribution to be visible to users, not permanently on
 screen, so one tap from a control that is visible at rest satisfies it. What
 must not happen is the string being removed, or its entry point becoming
 something a user would not find: `DiceRollerScreenTest` and
-`FantasyDiceArtUiTest` both assert the ⓘ is on screen at rest and that tapping
+`FantasyDiceArtUiTest` both assert the ⚙ is on screen at rest and that tapping
 it shows this exact wording.
 
 The trailing `CC BY 4.0` of that line is itself the link to the deed

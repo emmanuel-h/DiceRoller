@@ -29,9 +29,8 @@ import fr.mandarine.diceroller.domain.RollRecord
 import fr.mandarine.diceroller.domain.ValueTally
 import fr.mandarine.diceroller.presentation.DiceRollerUiState
 import fr.mandarine.diceroller.presentation.DiceRollerViewModel
-import fr.mandarine.diceroller.presentation.component.ABOUT_BUTTON_TAG
-import fr.mandarine.diceroller.presentation.component.ABOUT_SHEET_TAG
-import fr.mandarine.diceroller.presentation.component.ART_ATTRIBUTION
+import fr.mandarine.diceroller.presentation.component.SETTINGS_BUTTON_TAG
+import fr.mandarine.diceroller.presentation.component.SETTINGS_SHEET_TAG
 import fr.mandarine.diceroller.presentation.component.CLEAR_POOL_BUTTON_TAG
 import fr.mandarine.diceroller.presentation.component.ROLL_HISTORY_HEADER_TAG
 import fr.mandarine.diceroller.presentation.component.ROLL_HISTORY_LIST_TAG
@@ -57,11 +56,11 @@ class DiceRollerScreenTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    private fun decreaseButton(dice: Dice) =
-        composeTestRule.onNodeWithContentDescription("Decrease ${dice.name} count")
+    private fun decreaseButton(dice: Dice) = composeTestRule
+        .onNodeWithContentDescription(str(R.string.chip_decrease_description, dieNotation(dice)))
 
-    private fun increaseButton(dice: Dice) =
-        composeTestRule.onNodeWithContentDescription("Increase ${dice.name} count")
+    private fun increaseButton(dice: Dice) = composeTestRule
+        .onNodeWithContentDescription(str(R.string.chip_increase_description, dieNotation(dice)))
 
     /**
      * The chip's count text, disambiguated from the other five chips (which may show the same
@@ -124,8 +123,8 @@ class DiceRollerScreenTest {
                     onRollDice = viewModel::rollDice,
                     onToggleHistory = viewModel::toggleHistoryExpanded,
                     onClearPool = viewModel::clearPool,
-                    onShowAbout = viewModel::showAbout,
-                    onDismissAbout = viewModel::dismissAbout,
+                    onShowSettings = viewModel::showSettings,
+                    onDismissSettings = viewModel::dismissSettings,
                 )
             }
         }
@@ -152,14 +151,16 @@ class DiceRollerScreenTest {
     fun givenEmptyPool_whenScreenIsDisplayed_thenRollButtonIsDisabledWithThePlaceholderLabel() {
         launchScreen()
 
-        composeTestRule.onNodeWithText("Add dice to roll").assertIsDisplayed().assertIsNotEnabled()
+        composeTestRule.onNodeWithText(str(R.string.roll_button_empty))
+            .assertIsDisplayed()
+            .assertIsNotEnabled()
     }
 
     @Test
     fun givenEmptyPool_whenScreenIsDisplayed_thenTheEmptyPoolCaptionIsShown() {
         launchScreen()
 
-        composeTestRule.onNodeWithText("Add dice above to build your pool.").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.result_empty_pool_caption)).assertIsDisplayed()
     }
 
     // --- Stepper changes drive the Roll button ---
@@ -170,7 +171,7 @@ class DiceRollerScreenTest {
 
         increaseButton(Dice.D6).performClick()
 
-        composeTestRule.onNodeWithText("Roll 1D6").assertIsDisplayed().assertIsEnabled()
+        composeTestRule.onNodeWithText(rollLabel("1D6")).assertIsDisplayed().assertIsEnabled()
     }
 
     @Test
@@ -180,7 +181,7 @@ class DiceRollerScreenTest {
         increaseButton(Dice.D8).performClick()
         increaseButton(Dice.D6).performClick()
 
-        composeTestRule.onNodeWithText("Roll 1D6 + 1D8").assertIsDisplayed()
+        composeTestRule.onNodeWithText(rollLabel("1D6 + 1D8")).assertIsDisplayed()
     }
 
     @Test
@@ -194,7 +195,7 @@ class DiceRollerScreenTest {
         }
         launchScreen(uiState = DiceRollerUiState(pool = pool))
 
-        composeTestRule.onNodeWithText("Roll 4D6 + 2D8").assertIsDisplayed().assertIsEnabled()
+        composeTestRule.onNodeWithText(rollLabel("4D6 + 2D8")).assertIsDisplayed().assertIsEnabled()
     }
 
     @Test
@@ -204,7 +205,9 @@ class DiceRollerScreenTest {
 
         decreaseButton(Dice.D6).performClick()
 
-        composeTestRule.onNodeWithText("Add dice to roll").assertIsDisplayed().assertIsNotEnabled()
+        composeTestRule.onNodeWithText(str(R.string.roll_button_empty))
+            .assertIsDisplayed()
+            .assertIsNotEnabled()
     }
 
     // --- Stepper count display ---
@@ -215,7 +218,7 @@ class DiceRollerScreenTest {
 
         increaseButton(Dice.D6).performClick()
 
-        countText(Dice.D6).assertTextEquals("1")
+        countText(Dice.D6).assertTextEquals(str(R.string.number, 1))
     }
 
     @Test
@@ -225,7 +228,7 @@ class DiceRollerScreenTest {
 
         increaseButton(Dice.D6).performClick()
 
-        countText(Dice.D6).assertTextEquals("2")
+        countText(Dice.D6).assertTextEquals(str(R.string.number, 2))
     }
 
     @Test
@@ -236,7 +239,7 @@ class DiceRollerScreenTest {
 
         decreaseButton(Dice.D6).performClick()
 
-        countText(Dice.D6).assertTextEquals("1")
+        countText(Dice.D6).assertTextEquals(str(R.string.number, 1))
     }
 
     @Test
@@ -245,7 +248,7 @@ class DiceRollerScreenTest {
 
         increaseButton(Dice.D6).performClick()
 
-        countText(Dice.D8).assertTextEquals("0")
+        countText(Dice.D8).assertTextEquals(str(R.string.number, 0))
     }
 
     // --- Stepper bounds ---
@@ -285,9 +288,9 @@ class DiceRollerScreenTest {
         launchWithViewModel(seed = 1)
         increaseButton(Dice.D6).performClick()
 
-        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+        composeTestRule.onNodeWithText(rollLabel("1D6")).performClick()
 
-        composeTestRule.onNodeWithText("Tap Roll to see results.").assertDoesNotExist()
+        composeTestRule.onNodeWithText(str(R.string.result_not_rolled_caption)).assertDoesNotExist()
     }
 
     @Test
@@ -295,23 +298,23 @@ class DiceRollerScreenTest {
         val viewModel = launchWithViewModel(seed = 1)
         increaseButton(Dice.D6).performClick()
 
-        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+        composeTestRule.onNodeWithText(rollLabel("1D6")).performClick()
 
-        composeTestRule.onNodeWithText("1×D6").assertIsDisplayed()
+        composeTestRule.onNodeWithText(groupHeader(1, "D6")).assertIsDisplayed()
         val total = viewModel.uiState.value.result!!.total
-        composeTestRule.onNodeWithText("Total $total").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.result_total, total)).assertIsDisplayed()
     }
 
     @Test
     fun givenARollResult_whenTheCountIsChangedAgain_thenTheResultIsCleared() {
         val viewModel = launchWithViewModel(seed = 1)
         increaseButton(Dice.D6).performClick()
-        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+        composeTestRule.onNodeWithText(rollLabel("1D6")).performClick()
         assert(viewModel.uiState.value.result != null)
 
         increaseButton(Dice.D6).performClick()
 
-        composeTestRule.onNodeWithText("Tap Roll to see results.").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.result_not_rolled_caption)).assertIsDisplayed()
     }
 
     // --- Whole-screen fit (issue #64) ---
@@ -336,23 +339,25 @@ class DiceRollerScreenTest {
         // Top band: the color picker. Only its leading swatch is asserted — the row holds twelve
         // 44dp targets and has always scrolled sideways; issue #64 is about vertical fit.
         composeTestRule
-            .onNodeWithContentDescription("${DiceColor.entries.first().label} dice")
+            .onNodeWithContentDescription(
+                str(R.string.swatch_description, str(DiceColor.entries.first().labelRes)),
+            )
             .assertIsDisplayed()
         // Selector band: all six die types, still reachable without scrolling.
         Dice.entries.forEach { dice -> increaseButton(dice).assertIsDisplayed() }
         // Result band: the first group is on screen, and the rest is one scroll away rather than
         // gone. performScrollTo passes untouched for a node already visible, so this is the same
         // assertion for whichever of them still fits.
-        composeTestRule.onNodeWithText("4×D6").assertIsDisplayed()
-        composeTestRule.onNodeWithText("4×D8").performScrollTo().assertIsDisplayed()
-        composeTestRule.onNodeWithText("4×D20").performScrollTo().assertIsDisplayed()
-        composeTestRule.onNodeWithText("Total $REALISTIC_POOL_TOTAL")
+        composeTestRule.onNodeWithText(groupHeader(4, "D6")).assertIsDisplayed()
+        composeTestRule.onNodeWithText(groupHeader(4, "D8")).performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText(groupHeader(4, "D20")).performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.result_total, REALISTIC_POOL_TOTAL))
             .performScrollTo()
             .assertIsDisplayed()
         // Bottom band: the Roll button, now alone in it (issue #66). The credit it used to carry
         // is behind the About button in the top band, which is asserted alongside it.
-        composeTestRule.onNodeWithText("Roll 4D6 + 4D8 + 4D20").assertIsDisplayed()
-        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithText(rollLabel("4D6 + 4D8 + 4D20")).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(SETTINGS_BUTTON_TAG).assertIsDisplayed()
     }
 
     /** The measured height at which the total fits outright again with no history band. */
@@ -364,8 +369,9 @@ class DiceRollerScreenTest {
             height = TOTAL_FIT_HEIGHT_NO_HISTORY,
         )
 
-        composeTestRule.onNodeWithText("4×D20").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Total $REALISTIC_POOL_TOTAL").assertIsDisplayed()
+        composeTestRule.onNodeWithText(groupHeader(4, "D20")).assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.result_total, REALISTIC_POOL_TOTAL))
+            .assertIsDisplayed()
     }
 
     /** The same threshold once a collapsed history band is also charging its ~45dp. */
@@ -377,9 +383,10 @@ class DiceRollerScreenTest {
             height = TOTAL_FIT_HEIGHT_WITH_HISTORY,
         )
 
-        composeTestRule.onNodeWithText("4×D20").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Total $REALISTIC_POOL_TOTAL").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Recent (1)").assertIsDisplayed()
+        composeTestRule.onNodeWithText(groupHeader(4, "D20")).assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.result_total, REALISTIC_POOL_TOTAL))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.history_header, 1)).assertIsDisplayed()
     }
 
     @Test
@@ -391,12 +398,12 @@ class DiceRollerScreenTest {
         )
 
         val totalBottom = composeTestRule
-            .onNodeWithText("Total $REALISTIC_POOL_TOTAL")
+            .onNodeWithText(str(R.string.result_total, REALISTIC_POOL_TOTAL))
             .fetchSemanticsNode()
             .boundsInRoot
             .bottom
         val buttonTop = composeTestRule
-            .onNodeWithText("Roll 4D6 + 4D8 + 4D20")
+            .onNodeWithText(rollLabel("4D6 + 4D8 + 4D20"))
             .fetchSemanticsNode()
             .boundsInRoot
             .top
@@ -421,9 +428,9 @@ class DiceRollerScreenTest {
         launchWithViewModel()
         increaseButton(Dice.D6).performClick()
 
-        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+        composeTestRule.onNodeWithText(rollLabel("1D6")).performClick()
 
-        composeTestRule.onNodeWithText("Recent (1)").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.history_header, 1)).assertIsDisplayed()
         composeTestRule.onNodeWithTag(ROLL_HISTORY_LIST_TAG).assertDoesNotExist()
     }
 
@@ -431,25 +438,25 @@ class DiceRollerScreenTest {
     fun givenTwoRollsAreMade_whenTheScreenUpdates_thenTheHistoryCountGrows() {
         launchWithViewModel()
         increaseButton(Dice.D6).performClick()
-        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+        composeTestRule.onNodeWithText(rollLabel("1D6")).performClick()
 
         // A roll empties the pool, so the second run has to be queued like the first.
         increaseButton(Dice.D6).performClick()
-        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+        composeTestRule.onNodeWithText(rollLabel("1D6")).performClick()
 
-        composeTestRule.onNodeWithText("Recent (2)").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.history_header, 2)).assertIsDisplayed()
     }
 
     @Test
     fun givenACollapsedHistoryBand_whenTheHeaderIsTapped_thenTheEntriesAppear() {
         launchWithViewModel()
         increaseButton(Dice.D6).performClick()
-        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+        composeTestRule.onNodeWithText(rollLabel("1D6")).performClick()
 
         composeTestRule.onNodeWithTag(ROLL_HISTORY_HEADER_TAG).performClick()
 
         composeTestRule.onNodeWithTag(ROLL_HISTORY_LIST_TAG).assertIsDisplayed()
-        composeTestRule.onNodeWithText("just now").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.relative_time_just_now)).assertIsDisplayed()
     }
 
     /**
@@ -460,7 +467,7 @@ class DiceRollerScreenTest {
     fun givenAnExpandedHistoryBand_whenLookingForAWayToEraseIt_thenThereIsNone() {
         launchWithViewModel()
         increaseButton(Dice.D6).performClick()
-        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+        composeTestRule.onNodeWithText(rollLabel("1D6")).performClick()
 
         composeTestRule.onNodeWithTag(ROLL_HISTORY_HEADER_TAG).performClick()
 
@@ -472,13 +479,13 @@ class DiceRollerScreenTest {
     fun givenAnExpandedHistoryBand_whenTheHeaderIsTappedAgain_thenItCollapsesWithoutLosingEntries() {
         launchWithViewModel()
         increaseButton(Dice.D6).performClick()
-        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+        composeTestRule.onNodeWithText(rollLabel("1D6")).performClick()
         composeTestRule.onNodeWithTag(ROLL_HISTORY_HEADER_TAG).performClick()
 
         composeTestRule.onNodeWithTag(ROLL_HISTORY_HEADER_TAG).performClick()
 
         composeTestRule.onNodeWithTag(ROLL_HISTORY_LIST_TAG).assertDoesNotExist()
-        composeTestRule.onNodeWithText("Recent (1)").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.history_header, 1)).assertIsDisplayed()
     }
 
     // --- Clearing the whole pool from the roll bar (issue #67) ---
@@ -496,7 +503,7 @@ class DiceRollerScreenTest {
         launchScreen(uiState = DiceRollerUiState(pool = mapOf(Dice.D6 to 2)))
 
         composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).assertIsDisplayed()
-        composeTestRule.onNodeWithText("Roll 2D6").assertIsDisplayed().assertIsEnabled()
+        composeTestRule.onNodeWithText(rollLabel("2D6")).assertIsDisplayed().assertIsEnabled()
     }
 
     @Test
@@ -508,7 +515,7 @@ class DiceRollerScreenTest {
 
         composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).performClick()
 
-        Dice.entries.forEach { dice -> countText(dice).assertTextEquals("0") }
+        Dice.entries.forEach { dice -> countText(dice).assertTextEquals(str(R.string.number, 0)) }
     }
 
     /**
@@ -523,8 +530,10 @@ class DiceRollerScreenTest {
 
         composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).performClick()
 
-        composeTestRule.onNodeWithText("Add dice above to build your pool.").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Add dice to roll").assertIsDisplayed().assertIsNotEnabled()
+        composeTestRule.onNodeWithText(str(R.string.result_empty_pool_caption)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.roll_button_empty))
+            .assertIsDisplayed()
+            .assertIsNotEnabled()
         composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).assertDoesNotExist()
     }
 
@@ -535,13 +544,15 @@ class DiceRollerScreenTest {
         repeat(3) { increaseButton(Dice.D6).performClick() }
         increaseButton(Dice.D8).performClick()
 
-        composeTestRule.onNodeWithText("Roll 3D6 + 1D8").performClick()
+        composeTestRule.onNodeWithText(rollLabel("3D6 + 1D8")).performClick()
 
-        Dice.entries.forEach { dice -> countText(dice).assertTextEquals("0") }
-        composeTestRule.onNodeWithText("Add dice to roll").assertIsDisplayed().assertIsNotEnabled()
+        Dice.entries.forEach { dice -> countText(dice).assertTextEquals(str(R.string.number, 0)) }
+        composeTestRule.onNodeWithText(str(R.string.roll_button_empty))
+            .assertIsDisplayed()
+            .assertIsNotEnabled()
         composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).assertDoesNotExist()
         // The ladder of the roll just made stays up, even though its pool is gone.
-        composeTestRule.onNodeWithText("3×D6").assertIsDisplayed()
+        composeTestRule.onNodeWithText(groupHeader(3, "D6")).assertIsDisplayed()
     }
 
     /** Cheap enough to redo by hand, which is the argument for not confirming it: no dialog. */
@@ -553,11 +564,11 @@ class DiceRollerScreenTest {
 
         increaseButton(Dice.D20).performClick()
 
-        composeTestRule.onNodeWithText("Roll 1D20").assertIsDisplayed().assertIsEnabled()
+        composeTestRule.onNodeWithText(rollLabel("1D20")).assertIsDisplayed().assertIsEnabled()
         composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).assertIsDisplayed()
     }
 
-    // --- The About sheet, and the footer it replaced (issue #66) ---
+    // --- The settings sheet, and the footer it replaced (issue #66) ---
 
     /**
      * The half of issue #66 that frees the space: the credit is no longer a permanent band under
@@ -568,25 +579,25 @@ class DiceRollerScreenTest {
     fun givenTheScreenAtRest_whenDisplayed_thenTheAttributionFooterIsGone() {
         launchScreen()
 
-        composeTestRule.onNodeWithText(ART_ATTRIBUTION).assertDoesNotExist()
+        composeTestRule.onNodeWithText(str(R.string.about_art_attribution)).assertDoesNotExist()
     }
 
     /** The other half: it is still reachable, from a control that is on screen from the start. */
     @Test
-    fun givenTheScreenAtRest_whenDisplayed_thenTheAboutButtonIsVisible() {
+    fun givenTheScreenAtRest_whenDisplayed_thenTheSettingsGearIsVisible() {
         launchScreen()
 
-        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).assertIsDisplayed()
-        composeTestRule.onNodeWithTag(ABOUT_SHEET_TAG).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(SETTINGS_BUTTON_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(SETTINGS_SHEET_TAG).assertDoesNotExist()
     }
 
     @Test
-    fun givenTheScreen_whenTheAboutButtonIsTapped_thenTheSheetShowsTheRequiredCredit() {
+    fun givenTheScreen_whenTheSettingsGearIsTapped_thenTheSheetShowsTheRequiredCredit() {
         launchWithViewModel()
 
-        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).performClick()
+        composeTestRule.onNodeWithTag(SETTINGS_BUTTON_TAG).performClick()
 
-        composeTestRule.onNodeWithText(ART_ATTRIBUTION).assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.about_art_attribution)).assertIsDisplayed()
     }
 
     /**
@@ -594,17 +605,17 @@ class DiceRollerScreenTest {
      * leave the roll the user is looking at exactly as it was.
      */
     @Test
-    fun givenARolledPool_whenTheAboutButtonIsTapped_thenTheResultIsUntouched() {
+    fun givenARolledPool_whenTheSettingsGearIsTapped_thenTheResultIsUntouched() {
         launchWithViewModel()
         increaseButton(Dice.D6).performClick()
-        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+        composeTestRule.onNodeWithText(rollLabel("1D6")).performClick()
         // The roll emptied the pool; the next run is already being queued when the credit is read.
         increaseButton(Dice.D8).performClick()
 
-        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).performClick()
+        composeTestRule.onNodeWithTag(SETTINGS_BUTTON_TAG).performClick()
 
-        composeTestRule.onNodeWithText("Roll 1D8").assertIsDisplayed().assertIsEnabled()
-        countText(Dice.D8).assertTextEquals("1")
+        composeTestRule.onNodeWithText(rollLabel("1D8")).assertIsDisplayed().assertIsEnabled()
+        countText(Dice.D8).assertTextEquals(str(R.string.number, 1))
     }
 
     // --- What history costs the whole-screen fit (issues #64 and #3) ---
@@ -626,10 +637,10 @@ class DiceRollerScreenTest {
         )
 
         Dice.entries.forEach { dice -> increaseButton(dice).assertIsDisplayed() }
-        composeTestRule.onNodeWithText("4×D6").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Recent (1)").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Roll 4D6 + 4D8 + 4D20").assertIsDisplayed()
-        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithText(groupHeader(4, "D6")).assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.history_header, 1)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(rollLabel("4D6 + 4D8 + 4D20")).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(SETTINGS_BUTTON_TAG).assertIsDisplayed()
         // Issue #67's control takes width from the roll button rather than height from the
         // screen: on the narrowest supported viewport both still fit on the one line.
         composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).assertIsDisplayed()
@@ -650,14 +661,14 @@ class DiceRollerScreenTest {
         )
 
         Dice.entries.forEach { dice -> increaseButton(dice).assertIsDisplayed() }
-        composeTestRule.onNodeWithText("4×D6").assertIsDisplayed()
-        composeTestRule.onNodeWithText("4×D20").performScrollTo().assertIsDisplayed()
-        composeTestRule.onNodeWithText("Total $REALISTIC_POOL_TOTAL")
+        composeTestRule.onNodeWithText(groupHeader(4, "D6")).assertIsDisplayed()
+        composeTestRule.onNodeWithText(groupHeader(4, "D20")).performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.result_total, REALISTIC_POOL_TOTAL))
             .performScrollTo()
             .assertIsDisplayed()
-        composeTestRule.onNodeWithText("Recent (1)").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Roll 4D6 + 4D8 + 4D20").assertIsDisplayed()
-        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.history_header, 1)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(rollLabel("4D6 + 4D8 + 4D20")).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(SETTINGS_BUTTON_TAG).assertIsDisplayed()
     }
 
     /**
@@ -674,7 +685,7 @@ class DiceRollerScreenTest {
             height = COMPACT_PHONE_HEIGHT,
         )
 
-        composeTestRule.onNodeWithText("Total $REALISTIC_POOL_TOTAL")
+        composeTestRule.onNodeWithText(str(R.string.result_total, REALISTIC_POOL_TOTAL))
             .performScrollTo()
             .assertIsDisplayed()
         composeTestRule.onNodeWithTag(ROLL_HISTORY_HEADER_TAG).assertDoesNotExist()
@@ -692,8 +703,8 @@ class DiceRollerScreenTest {
         // the pinned roll bar or the selector above it.
         composeTestRule.onNodeWithTag(ROLL_HISTORY_LIST_TAG).assertIsDisplayed()
         Dice.entries.forEach { dice -> increaseButton(dice).assertIsDisplayed() }
-        composeTestRule.onNodeWithText("Roll 4D6 + 4D8 + 4D20").assertIsDisplayed()
-        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithText(rollLabel("4D6 + 4D8 + 4D20")).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(SETTINGS_BUTTON_TAG).assertIsDisplayed()
     }
 
     @Test
@@ -710,7 +721,7 @@ class DiceRollerScreenTest {
             .boundsInRoot
             .bottom
         val buttonTop = composeTestRule
-            .onNodeWithText("Roll 4D6 + 4D8 + 4D20")
+            .onNodeWithText(rollLabel("4D6 + 4D8 + 4D20"))
             .fetchSemanticsNode()
             .boundsInRoot
             .top

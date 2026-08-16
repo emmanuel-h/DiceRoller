@@ -19,6 +19,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import fr.mandarine.diceroller.domain.CustomDie
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DiceRoller
+import fr.mandarine.diceroller.domain.DieType
 import fr.mandarine.diceroller.presentation.DiceRollerViewModel
 import fr.mandarine.diceroller.presentation.InMemoryCustomDiceStore
 import fr.mandarine.diceroller.presentation.MAX_CUSTOM_DICE
@@ -87,6 +88,12 @@ class CustomDiceUiTest {
     private fun countText(dice: CustomDie) =
         composeTestRule.onNodeWithTag(chipCountTestTag(dice), useUnmergedTree = true)
 
+    private fun increaseButton(dice: DieType) = composeTestRule
+        .onNodeWithContentDescription(str(R.string.chip_increase_description, dieNotation(dice)))
+
+    private fun decreaseButton(dice: DieType) = composeTestRule
+        .onNodeWithContentDescription(str(R.string.chip_decrease_description, dieNotation(dice)))
+
     /** Creates a custom die of [faces] the way a user would: add chip, type, Add. */
     private fun createDie(faces: Int) {
         addChip().performClick()
@@ -150,7 +157,7 @@ class CustomDiceUiTest {
         facesField().performTextInput("6")
 
         addButton().assertIsNotEnabled()
-        message().assertTextEquals("D6 is already one of the standard dice.")
+        message().assertTextEquals(str(R.string.custom_faces_is_preset, dieNotation(Dice.D6)))
     }
 
     @Test
@@ -161,7 +168,7 @@ class CustomDiceUiTest {
         facesField().performTextInput("7")
 
         addButton().assertIsNotEnabled()
-        message().assertTextEquals("D7 is already in your custom dice.")
+        message().assertTextEquals(str(R.string.custom_faces_duplicate, dieNotation(CustomDie(7))))
     }
 
     @Test
@@ -170,7 +177,7 @@ class CustomDiceUiTest {
 
         createDie(7)
 
-        countText(CustomDie(7)).assertTextEquals("0")
+        countText(CustomDie(7)).assertTextEquals(str(R.string.number, 0))
         facesField().assertDoesNotExist()
     }
 
@@ -180,7 +187,7 @@ class CustomDiceUiTest {
         addChip().performClick()
         facesField().performTextInput("7")
 
-        composeTestRule.onNodeWithText("Cancel").performClick()
+        composeTestRule.onNodeWithText(str(R.string.action_cancel)).performClick()
 
         countText(CustomDie(7)).assertDoesNotExist()
     }
@@ -190,8 +197,8 @@ class CustomDiceUiTest {
     fun givenACustomDie_whenItsChipIsDisplayed_thenTheChipIsLabelledWithItsFaceCount() {
         launch(initialDice = listOf(CustomDie(7)))
 
-        composeTestRule.onNodeWithContentDescription("Increase D7 count").assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("Decrease D7 count").assertExists()
+        increaseButton(CustomDie(7)).assertIsDisplayed()
+        decreaseButton(CustomDie(7)).assertExists()
     }
 
     // --- A custom die behaves like a preset ---
@@ -200,10 +207,10 @@ class CustomDiceUiTest {
     fun givenACustomDie_whenItsChipIsIncremented_thenTheCountAndTheRollLabelFollow() {
         launch(initialDice = listOf(CustomDie(7)))
 
-        composeTestRule.onNodeWithContentDescription("Increase D7 count").performClick()
+        increaseButton(CustomDie(7)).performClick()
 
-        countText(CustomDie(7)).assertTextEquals("1")
-        composeTestRule.onNodeWithText("Roll 1D7").assertIsDisplayed()
+        countText(CustomDie(7)).assertTextEquals(str(R.string.number, 1))
+        composeTestRule.onNodeWithText(rollLabel("1D7")).assertIsDisplayed()
     }
 
     /** Notation and the result ladder order by face count, so a D7 reads between the D6 and D8. */
@@ -211,21 +218,22 @@ class CustomDiceUiTest {
     fun givenAPoolMixingAPresetAndACustomDie_whenLabelled_thenTheD7SitsBetweenThem() {
         launch(initialDice = listOf(CustomDie(7)))
 
-        composeTestRule.onNodeWithContentDescription("Increase D8 count").performClick()
-        composeTestRule.onNodeWithContentDescription("Increase D6 count").performClick()
-        composeTestRule.onNodeWithContentDescription("Increase D7 count").performClick()
+        increaseButton(Dice.D8).performClick()
+        increaseButton(Dice.D6).performClick()
+        increaseButton(CustomDie(7)).performClick()
 
-        composeTestRule.onNodeWithText("Roll 1D6 + 1D7 + 1D8").assertIsDisplayed()
+        composeTestRule.onNodeWithText(rollLabel("1D6 + 1D7 + 1D8")).assertIsDisplayed()
     }
 
     @Test
     fun givenACustomDieInThePool_whenRolled_thenItsGroupAppearsInTheLadder() {
         launch(initialDice = listOf(CustomDie(7)))
-        composeTestRule.onNodeWithContentDescription("Increase D7 count").performClick()
+        increaseButton(CustomDie(7)).performClick()
 
-        composeTestRule.onNodeWithText("Roll 1D7").performClick()
+        composeTestRule.onNodeWithText(rollLabel("1D7")).performClick()
 
-        composeTestRule.onNodeWithText("1×D7").assertIsDisplayed()
+        composeTestRule.onNodeWithText(groupHeader(1, dieNotation(CustomDie(7))))
+            .assertIsDisplayed()
     }
 
     /**
@@ -236,14 +244,14 @@ class CustomDiceUiTest {
     @Test
     fun givenACustomDieInThePool_whenThePoolIsCleared_thenItsChipStaysAtZero() {
         launch(initialDice = listOf(CustomDie(7)))
-        composeTestRule.onNodeWithContentDescription("Increase D7 count").performClick()
-        composeTestRule.onNodeWithContentDescription("Increase D6 count").performClick()
+        increaseButton(CustomDie(7)).performClick()
+        increaseButton(Dice.D6).performClick()
 
         composeTestRule.onNodeWithTag(CLEAR_POOL_BUTTON_TAG).performClick()
 
-        countText(CustomDie(7)).assertTextEquals("0")
-        composeTestRule.onNodeWithContentDescription("Increase D7 count").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Add dice to roll").assertIsDisplayed()
+        countText(CustomDie(7)).assertTextEquals(str(R.string.number, 0))
+        increaseButton(CustomDie(7)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.roll_button_empty)).assertIsDisplayed()
     }
 
     // --- Removing a die, and undoing that ---
@@ -270,16 +278,18 @@ class CustomDiceUiTest {
     @Test
     fun givenACustomDieIsRemoved_whenTheSnackbarAppears_thenUndoBringsItBack() {
         launch(initialDice = listOf(CustomDie(7)))
-        composeTestRule.onNodeWithContentDescription("Increase D7 count").performClick()
+        increaseButton(CustomDie(7)).performClick()
 
         composeTestRule.onNodeWithTag(chipRemoveTestTag(CustomDie(7))).performClick()
         composeTestRule.waitUntil(timeoutMillis = 5_000) {
-            composeTestRule.onAllNodesWithText("Undo").fetchSemanticsNodes().isNotEmpty()
+            composeTestRule.onAllNodesWithText(str(R.string.action_undo))
+                .fetchSemanticsNodes()
+                .isNotEmpty()
         }
-        composeTestRule.onNodeWithText("Undo").performClick()
+        composeTestRule.onNodeWithText(str(R.string.action_undo)).performClick()
 
         // The count it was carrying comes back with it, not just the definition.
-        countText(CustomDie(7)).assertTextEquals("1")
+        countText(CustomDie(7)).assertTextEquals(str(R.string.number, 1))
     }
 
     @Test
@@ -302,7 +312,7 @@ class CustomDiceUiTest {
 
         addChip().assertDoesNotExist()
         (1..MAX_CUSTOM_DICE).forEach { index ->
-            countText(CustomDie(index + 100)).assertTextEquals("0")
+            countText(CustomDie(index + 100)).assertTextEquals(str(R.string.number, 0))
         }
     }
 
@@ -316,6 +326,8 @@ class CustomDiceUiTest {
         facesField().performTextReplacement("7")
 
         addButton().assertIsEnabled()
-        message().assertTextEquals("Adds D7 to your dice.")
+        message().assertTextEquals(
+            str(R.string.custom_die_valid_message, dieNotation(CustomDie(7))),
+        )
     }
 }

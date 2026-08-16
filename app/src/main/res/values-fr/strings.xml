@@ -1,0 +1,132 @@
+<resources>
+
+    <!--
+      French translation (issue #68). Only the strings values/strings.xml leaves translatable
+      appear here; dice notation, proper nouns and licence names are deliberately absent so they
+      cannot drift from the default locale.
+
+      Every <plurals> also carries a `many` item: French puts one there for values like 1 000 000,
+      where the noun takes "de". Unreachable in a dice roller, and included anyway so the set is
+      complete for the language rather than for this app's expected inputs.
+    -->
+
+    <!-- Roll bar -->
+    <string name="roll_button_empty">Ajouter des dés</string>
+    <string name="roll_button">Lancer %1$s</string>
+    <string name="clear_pool_description">Vider la réserve de dés</string>
+
+    <!-- Pool selector -->
+    <string name="chip_decrease_description">Diminuer le nombre de %1$s</string>
+    <string name="chip_increase_description">Augmenter le nombre de %1$s</string>
+    <string name="chip_remove_description">Supprimer %1$s</string>
+    <!-- Abrégé volontairement : la puce fait un tiers de la largeur de l'écran. -->
+    <string name="add_die_chip_label">Perso</string>
+    <string name="add_die_chip_description">Ajouter un dé personnalisé</string>
+    <string name="snackbar_custom_die_removed">%1$s supprimé</string>
+    <string name="action_undo">Annuler</string>
+
+    <!-- Colour picker -->
+    <string name="swatch_description">Dés %1$s</string>
+    <string name="color_amethyst">améthyste</string>
+    <string name="color_amber">ambre</string>
+    <string name="color_sapphire">saphir</string>
+    <string name="color_ruby">rubis</string>
+    <string name="color_gold">or</string>
+    <string name="color_orchid">orchidée</string>
+    <string name="color_smoke">fumée</string>
+    <string name="color_jade">jade</string>
+    <string name="color_moss">mousse</string>
+    <string name="color_bronze">bronze</string>
+    <string name="color_rose">rose</string>
+    <string name="color_indigo">indigo</string>
+
+    <!-- Result face-ladder -->
+    <string name="result_empty_pool_caption">Ajoutez des dés ci-dessus pour composer votre réserve.</string>
+    <string name="result_not_rolled_caption">Appuyez sur Lancer pour voir le résultat.</string>
+    <string name="result_total">Total %1$d</string>
+    <plurals name="result_group_description">
+        <item quantity="one">%1$d dé %2$s</item>
+        <item quantity="other">%1$d dés %2$s</item>
+        <item quantity="many">%1$d de dés %2$s</item>
+    </plurals>
+    <plurals name="result_face_description">
+        <item quantity="one">Valeur %1$d, obtenue %2$d fois</item>
+        <item quantity="other">Valeur %1$d, obtenue %2$d fois</item>
+        <item quantity="many">Valeur %1$d, obtenue %2$d de fois</item>
+    </plurals>
+
+    <string name="a11y_roll_summary">Lancer de %1$s. %2$s Total %3$d.</string>
+    <string name="a11y_pool_separator">" et "</string>
+    <string name="a11y_group_summary">%1$s : %2$s.</string>
+    <plurals name="a11y_value_tally">
+        <item quantity="one">%2$d une fois</item>
+        <item quantity="other">%2$d %1$d fois</item>
+        <item quantity="many">%2$d %1$d de fois</item>
+    </plurals>
+
+    <!-- Roll history band -->
+    <string name="history_header">Récents (%1$d)</string>
+    <string name="history_header_description">Lancers récents, %1$s, %2$s</string>
+    <plurals name="history_roll_count">
+        <item quantity="one">%1$d lancer</item>
+        <item quantity="other">%1$d lancers</item>
+        <item quantity="many">%1$d de lancers</item>
+    </plurals>
+    <string name="history_state_expanded">déplié</string>
+    <string name="history_state_collapsed">replié</string>
+    <string name="history_entry_description">%1$s, total %2$d, %3$s. %4$s</string>
+    <plurals name="history_face_tally">
+        <item quantity="one">%2$d</item>
+        <item quantity="other">%2$d %1$d fois</item>
+        <item quantity="many">%2$d %1$d de fois</item>
+    </plurals>
+
+    <!-- Ancienneté d'un lancer -->
+    <string name="relative_time_just_now">à l\'instant</string>
+    <plurals name="relative_time_minutes">
+        <item quantity="one">il y a %1$d min</item>
+        <item quantity="other">il y a %1$d min</item>
+        <item quantity="many">il y a %1$d de min</item>
+    </plurals>
+    <plurals name="relative_time_hours">
+        <item quantity="one">il y a %1$d h</item>
+        <item quantity="other">il y a %1$d h</item>
+        <item quantity="many">il y a %1$d de h</item>
+    </plurals>
+    <plurals name="relative_time_days">
+        <item quantity="one">il y a %1$d j</item>
+        <item quantity="other">il y a %1$d j</item>
+        <item quantity="many">il y a %1$d de j</item>
+    </plurals>
+
+    <!-- Custom-die creator -->
+    <string name="custom_die_dialog_title">Ajouter un dé personnalisé</string>
+    <string name="custom_die_faces_label">Faces</string>
+    <string name="action_add">Ajouter</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="custom_die_valid_message">Ajoute %1$s à vos dés.</string>
+    <string name="custom_faces_hint">Entre %1$d et %2$d faces.</string>
+    <string name="custom_faces_not_a_number">Saisissez un nombre entier de faces.</string>
+    <string name="custom_faces_out_of_range">Le nombre de faces doit être compris entre %1$d et %2$d.</string>
+    <string name="custom_faces_is_preset">%1$s fait déjà partie des dés standard.</string>
+    <string name="custom_faces_duplicate">%1$s est déjà dans vos dés personnalisés.</string>
+    <plurals name="custom_faces_full">
+        <item quantity="one">Vous pouvez avoir %1$d dé personnalisé. Supprimez-le pour en ajouter un autre.</item>
+        <item quantity="other">Vous pouvez avoir %1$d dés personnalisés. Supprimez-en un pour en ajouter un autre.</item>
+        <item quantity="many">Vous pouvez avoir %1$d de dés personnalisés. Supprimez-en un pour en ajouter un autre.</item>
+    </plurals>
+
+    <!-- Settings sheet -->
+    <string name="settings_title">Paramètres</string>
+    <string name="settings_section_language">Langue</string>
+    <string name="language_system">Langue du système</string>
+    <string name="settings_section_about">À propos</string>
+    <string name="about_section_license">Licence</string>
+    <string name="about_section_artwork">Illustrations</string>
+    <string name="about_section_contact">Contact</string>
+    <!-- « Aeynit » et « CC BY 4.0 » sont exigés mot pour mot, et la ligne doit finir par
+         « CC BY 4.0 » : la feuille À propos en fait le lien vers la licence. -->
+    <string name="about_art_attribution">Illustrations des dés par Aeynit · CC BY 4.0</string>
+    <string name="link_opens_externally">%1$s, ouvre un lien externe</string>
+
+</resources>

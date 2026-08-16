@@ -1,3 +1,154 @@
-<resources>
-    <string name="app_name">DiceRoller</string>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      Every user-facing string in the app, visible labels and contentDescriptions alike (issue #68).
+      The French translation lives in values-fr/; anything marked translatable="false" is either a
+      proper noun, a licence name, or dice notation, and must stay byte-identical in every locale.
+    -->
+
+    <string name="app_name" translatable="false">DiceRoller</string>
+
+    <!--
+      Dice notation and bare numerals. Not translatable text — "D6" and "4D6 + 2D8" are a domain
+      notation, not English — but routed through format strings anyway so the digits are shaped by
+      the active locale rather than hard-concatenated.
+    -->
+    <string name="die_label" translatable="false">D%1$d</string>
+    <string name="number" translatable="false">%1$d</string>
+    <string name="multiplier" translatable="false">×%1$d</string>
+    <string name="result_group_header" translatable="false">%1$d×%2$s</string>
+
+    <!-- Roll bar -->
+    <string name="roll_button_empty">Add dice to roll</string>
+    <string name="roll_button">Roll %1$s</string>
+    <string name="clear_pool_description">Clear the dice pool</string>
+
+    <!-- Pool selector -->
+    <string name="chip_decrease_description">Decrease %1$s count</string>
+    <string name="chip_increase_description">Increase %1$s count</string>
+    <string name="chip_remove_description">Remove %1$s</string>
+    <!-- Sits under a "+" inside a chip one third of the screen wide: keep it to one short word. -->
+    <string name="add_die_chip_label">Custom</string>
+    <string name="add_die_chip_description">Add a custom die</string>
+    <string name="snackbar_custom_die_removed">%1$s removed</string>
+    <string name="action_undo">Undo</string>
+
+    <!-- Colour picker. The enum name, not this label, is what gets persisted and asserted on. -->
+    <string name="swatch_description">%1$s dice</string>
+    <string name="dice_image_description" translatable="false">%1$s, %2$s</string>
+    <string name="color_amethyst">amethyst</string>
+    <string name="color_amber">amber</string>
+    <string name="color_sapphire">sapphire</string>
+    <string name="color_ruby">ruby</string>
+    <string name="color_gold">gold</string>
+    <string name="color_orchid">orchid</string>
+    <string name="color_smoke">smoke</string>
+    <string name="color_jade">jade</string>
+    <string name="color_moss">moss</string>
+    <string name="color_bronze">bronze</string>
+    <string name="color_rose">rose</string>
+    <string name="color_indigo">indigo</string>
+
+    <!-- Result face-ladder -->
+    <string name="result_empty_pool_caption">Add dice above to build your pool.</string>
+    <string name="result_not_rolled_caption">Tap Roll to see results.</string>
+    <string name="result_total">Total %1$d</string>
+    <plurals name="result_group_description">
+        <item quantity="one">%1$d %2$s die</item>
+        <item quantity="other">%1$d %2$s dice</item>
+    </plurals>
+    <plurals name="result_face_description">
+        <item quantity="one">Value %1$d, rolled %2$d time</item>
+        <item quantity="other">Value %1$d, rolled %2$d times</item>
+    </plurals>
+
+    <!--
+      The hidden live-region summary announced after each roll, assembled from the four strings
+      below: "Rolled 4 D6 and 2 D8. D6: one 6, 2 4s, one 3. D8: one 7, one 2. Total 26."
+    -->
+    <string name="a11y_roll_summary">Rolled %1$s. %2$s Total %3$d.</string>
+    <string name="a11y_pool_entry" translatable="false">%1$d %2$s</string>
+    <string name="a11y_pool_separator">" and "</string>
+    <string name="a11y_group_summary">%1$s: %2$s.</string>
+    <plurals name="a11y_value_tally">
+        <item quantity="one">one %2$d</item>
+        <item quantity="other">%1$d %2$ds</item>
+    </plurals>
+
+    <!-- Roll history band -->
+    <string name="history_header">Recent (%1$d)</string>
+    <string name="history_header_description">Recent rolls, %1$s, %2$s</string>
+    <plurals name="history_roll_count">
+        <item quantity="one">%1$d roll</item>
+        <item quantity="other">%1$d rolls</item>
+    </plurals>
+    <string name="history_state_expanded">expanded</string>
+    <string name="history_state_collapsed">collapsed</string>
+    <string name="history_entry_description">%1$s, total %2$d, %3$s. %4$s</string>
+    <plurals name="history_face_tally">
+        <item quantity="one">%2$d</item>
+        <item quantity="other">%2$d %1$d times</item>
+    </plurals>
+
+    <!-- How long ago a roll happened, coarsening as it recedes. -->
+    <string name="relative_time_just_now">just now</string>
+    <plurals name="relative_time_minutes">
+        <item quantity="one">%1$d min ago</item>
+        <item quantity="other">%1$d min ago</item>
+    </plurals>
+    <plurals name="relative_time_hours">
+        <item quantity="one">%1$d h ago</item>
+        <item quantity="other">%1$d h ago</item>
+    </plurals>
+    <plurals name="relative_time_days">
+        <item quantity="one">%1$d d ago</item>
+        <item quantity="other">%1$d d ago</item>
+    </plurals>
+
+    <!-- Custom-die creator -->
+    <string name="custom_die_dialog_title">Add a custom die</string>
+    <string name="custom_die_faces_label">Faces</string>
+    <string name="action_add">Add</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="custom_die_valid_message">Adds %1$s to your dice.</string>
+    <string name="custom_faces_hint" tools:ignore="PluralsCandidate">Between %1$d and %2$d faces.</string>
+    <string name="custom_faces_not_a_number">Enter a whole number of faces.</string>
+    <string name="custom_faces_out_of_range" tools:ignore="PluralsCandidate">Faces must be between %1$d and %2$d.</string>
+    <string name="custom_faces_is_preset">%1$s is already one of the standard dice.</string>
+    <string name="custom_faces_duplicate">%1$s is already in your custom dice.</string>
+    <plurals name="custom_faces_full">
+        <item quantity="one">You can have %1$d custom die. Remove it to add another.</item>
+        <item quantity="other">You can have %1$d custom dice. Remove one to add another.</item>
+    </plurals>
+
+    <!-- Settings sheet -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_language">Language</string>
+    <!-- The option that drops the override and follows the device again. -->
+    <string name="language_system">System default</string>
+    <!--
+      Each language named in itself, and therefore NOT translatable: a language list is read by
+      someone who does not yet read the language they are switching from, so translating these
+      would only help the people who did not need the row.
+    -->
+    <string name="language_en" translatable="false">English</string>
+    <string name="language_fr" translatable="false">Français</string>
+    <string name="settings_section_about">About</string>
+    <string name="about_version" translatable="false">%1$s %2$s</string>
+    <string name="about_section_license">License</string>
+    <string name="about_section_artwork">Artwork</string>
+    <string name="about_section_contact">Contact</string>
+    <string name="about_app_copyright" translatable="false">© 2026 Mandarine Tech</string>
+    <string name="about_app_license" translatable="false">Apache License 2.0</string>
+    <string name="about_art_license" translatable="false">CC BY 4.0</string>
+    <!--
+      Required by the CC BY 4.0 licence on the dice artwork (docs/licenses/third-party-assets.md).
+      TRANSLATORS: the author name "Aeynit" and the licence name "CC BY 4.0" are legally required
+      verbatim, and the line MUST still END with "CC BY 4.0" — the About sheet splits that suffix
+      off to turn it into the link to the licence deed. Only the surrounding wording is yours.
+    -->
+    <string name="about_art_attribution">Dice art by Aeynit · CC BY 4.0</string>
+    <string name="about_contact_email" translatable="false">mandarinetech.dev@gmail.com</string>
+    <string name="link_opens_externally">%1$s, opens externally</string>
+
 </resources>

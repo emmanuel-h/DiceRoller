@@ -36,11 +36,13 @@ class DiceRollerViewModelTest {
     private fun viewModel(
         seed: Long = 42,
         colorStore: DiceColorStore = InMemoryDiceColorStore(),
+        languageStore: AppLanguageStore = InMemoryAppLanguageStore(),
         historyStore: RollHistoryStore = InMemoryRollHistoryStore(),
         customDiceStore: CustomDiceStore = InMemoryCustomDiceStore(),
     ): DiceRollerViewModel = DiceRollerViewModel(
         diceRoller = DiceRoller(random = Random(seed)),
         colorStore = colorStore,
+        languageStore = languageStore,
         historyStore = historyStore,
         customDiceStore = customDiceStore,
         clock = { nowMillis },
@@ -561,6 +563,84 @@ class DiceRollerViewModelTest {
             vm.selectColor(color)
             assertEquals(color, vm.uiState.value.selectedColor)
         }
+    }
+
+    // --- Language: chosen independently of the device, and remembered ---
+
+    /** Every install starts following the device, which resources turn into English if unshipped. */
+    @Test
+    fun givenNewViewModelWithEmptyStore_whenReadingState_thenTheLanguageFollowsTheSystem() {
+        assertEquals(AppLanguage.System, viewModel().uiState.value.language)
+    }
+
+    @Test
+    fun givenALanguageSelected_whenReadingState_thenItIsReflected() {
+        val vm = viewModel()
+
+        vm.selectLanguage(AppLanguage.French)
+
+        assertEquals(AppLanguage.French, vm.uiState.value.language)
+    }
+
+    @Test
+    fun givenALanguageSelected_whenReadingTheStore_thenTheChoiceWasWrittenThrough() = runTest {
+        val store = InMemoryAppLanguageStore()
+        val vm = viewModel(languageStore = store)
+
+        vm.selectLanguage(AppLanguage.French)
+
+        assertEquals(AppLanguage.French, store.language.first())
+    }
+
+    @Test
+    fun givenALanguageSelected_whenANewViewModelSharesTheStore_thenTheChoiceSurvives() {
+        val store = InMemoryAppLanguageStore()
+        viewModel(languageStore = store).selectLanguage(AppLanguage.French)
+
+        val restarted = viewModel(languageStore = store)
+
+        assertEquals(AppLanguage.French, restarted.uiState.value.language)
+    }
+
+    @Test
+    fun givenAnOverriddenLanguage_whenSystemIsSelected_thenItFollowsTheDeviceAgain() = runTest {
+        val store = InMemoryAppLanguageStore(initial = AppLanguage.French)
+        val vm = viewModel(languageStore = store)
+
+        vm.selectLanguage(AppLanguage.System)
+
+        assertEquals(AppLanguage.System, vm.uiState.value.language)
+        assertEquals(AppLanguage.System, store.language.first())
+    }
+
+    @Test
+    fun givenEveryLanguage_whenSelected_thenStateReflectsIt() {
+        val vm = viewModel()
+
+        AppLanguage.entries.forEach { language ->
+            vm.selectLanguage(language)
+            assertEquals(language, vm.uiState.value.language)
+        }
+    }
+
+    /**
+     * Same rule as [selectColor]: changing how the screen is *written* is not a change to what
+     * Roll would produce, so the roll on screen survives it. Cheap to guarantee here, and only
+     * because the choice never leaves the ViewModel — the platform's way of applying a locale
+     * would have taken the whole activity down with it.
+     */
+    @Test
+    fun givenARollResult_whenTheLanguageIsChanged_thenTheResultAndLogSurvive() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        val result = vm.uiState.value.result
+        val history = vm.uiState.value.history
+
+        vm.selectLanguage(AppLanguage.French)
+
+        assertEquals(result, vm.uiState.value.result)
+        assertEquals(history, vm.uiState.value.history)
     }
 
     // --- Roll history: recording ---
@@ -1122,18 +1202,18 @@ class DiceRollerViewModelTest {
 
     @Test
     fun givenNewViewModel_whenReadingState_thenTheAboutSheetIsClosed() {
-        assertFalse(viewModel().uiState.value.isAboutVisible)
+        assertFalse(viewModel().uiState.value.isSettingsVisible)
     }
 
     @Test
     fun givenTheAboutSheetShown_whenItIsDismissed_thenItCloses() {
         val vm = viewModel()
 
-        vm.showAbout()
-        assertTrue(vm.uiState.value.isAboutVisible)
-        vm.dismissAbout()
+        vm.showSettings()
+        assertTrue(vm.uiState.value.isSettingsVisible)
+        vm.dismissSettings()
 
-        assertFalse(vm.uiState.value.isAboutVisible)
+        assertFalse(vm.uiState.value.isSettingsVisible)
     }
 
     /**
@@ -1149,7 +1229,7 @@ class DiceRollerViewModelTest {
         val pool = vm.uiState.value.pool
         assertNotNull(rolled)
 
-        vm.showAbout()
+        vm.showSettings()
 
         assertEquals(rolled, vm.uiState.value.result)
         assertEquals(pool, vm.uiState.value.pool)

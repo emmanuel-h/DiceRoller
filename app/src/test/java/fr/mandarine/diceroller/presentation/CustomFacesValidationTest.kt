@@ -1,6 +1,7 @@
 // app/src/test/java/fr/mandarine/diceroller/presentation/CustomFacesValidationTest.kt
 package fr.mandarine.diceroller.presentation
 
+import fr.mandarine.diceroller.R
 import fr.mandarine.diceroller.domain.CustomDie
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DieType
@@ -13,6 +14,10 @@ import org.junit.Test
  * The creator dialog's Add button and its inline message are two readings of one
  * [validateCustomFaces] verdict, so every rule the user can break is pinned here rather than in a
  * UI test — including *which* rule wins when an input breaks more than one.
+ *
+ * Since issue #68 a verdict names its message by resource rather than spelling it out, so these
+ * assertions are on the rule that fired and the arguments it fired with, and survive a translator
+ * rewording any of them.
  */
 class CustomFacesValidationTest {
 
@@ -28,7 +33,7 @@ class CustomFacesValidationTest {
     private fun verdict(input: String, existing: List<CustomDie> = emptyList()) =
         validateCustomFaces(input = input, existing = existing)
 
-    private fun message(input: String, existing: List<CustomDie> = emptyList()): String =
+    private fun message(input: String, existing: List<CustomDie> = emptyList()): UiText =
         (verdict(input, existing) as CustomFacesResult.Invalid).message
 
     // --- Accepting ---
@@ -68,6 +73,18 @@ class CustomFacesValidationTest {
         assertEquals(CUSTOM_FACES_HINT, result.message)
     }
 
+    /** The hint names the range rather than restating it in prose, so widening it needs no edit. */
+    @Test
+    fun givenTheRangeHint_whenRead_thenItCarriesBothBoundsAsArguments() {
+        assertEquals(
+            UiText.Res(
+                R.string.custom_faces_hint,
+                listOf(DieType.FACES_RANGE.first, DieType.FACES_RANGE.last),
+            ),
+            CUSTOM_FACES_HINT,
+        )
+    }
+
     @Test
     fun givenBlankInput_whenValidated_thenItIsIncomplete() {
         assertTrue((verdict("   ") as CustomFacesResult.Invalid).isIncomplete)
@@ -85,7 +102,13 @@ class CustomFacesValidationTest {
         val result = verdict("${DieType.FACES_RANGE.last + 1}") as CustomFacesResult.Invalid
 
         assertFalse(result.isIncomplete)
-        assertTrue(result.message.contains("${DieType.FACES_RANGE.last}"))
+        assertEquals(
+            UiText.Res(
+                R.string.custom_faces_out_of_range,
+                listOf(DieType.FACES_RANGE.first, DieType.FACES_RANGE.last),
+            ),
+            result.message,
+        )
     }
 
     @Test
@@ -93,7 +116,7 @@ class CustomFacesValidationTest {
         val result = verdict("seven") as CustomFacesResult.Invalid
 
         assertFalse(result.isIncomplete)
-        assertTrue(result.message.contains("whole number"))
+        assertEquals(UiText.Res(R.string.custom_faces_not_a_number), result.message)
     }
 
     // --- Rejecting, with the reason that actually applies ---
@@ -104,8 +127,10 @@ class CustomFacesValidationTest {
             val result = verdict("${dice.faces}") as CustomFacesResult.Invalid
 
             assertFalse(result.isIncomplete)
-            assertTrue(result.message.contains(dice.label))
-            assertTrue(result.message.contains("standard"))
+            assertEquals(
+                UiText.Res(R.string.custom_faces_is_preset, listOf(dice.label)),
+                result.message,
+            )
         }
     }
 
@@ -113,16 +138,17 @@ class CustomFacesValidationTest {
     fun givenADieAlreadyDefined_whenValidated_thenItSaysItIsADuplicate() {
         val result = verdict("7", existing = listOf(CustomDie(7))) as CustomFacesResult.Invalid
 
-        assertTrue(result.message.contains("D7"))
-        assertTrue(result.message.contains("already"))
+        assertEquals(
+            UiText.Res(R.string.custom_faces_duplicate, listOf("D7")),
+            result.message,
+        )
     }
 
     @Test
     fun givenTheDiceAreFull_whenValidatingANewOne_thenItSaysThereIsNoRoom() {
         val result = verdict("50", existing = fullDice) as CustomFacesResult.Invalid
 
-        assertTrue(result.message.contains("$MAX_CUSTOM_DICE"))
-        assertTrue(result.message.contains("Remove"))
+        assertEquals(UiText.Plural(R.plurals.custom_faces_full, MAX_CUSTOM_DICE), result.message)
     }
 
     /**
@@ -132,12 +158,20 @@ class CustomFacesValidationTest {
      */
     @Test
     fun givenTheDiceAreFullAndTheInputDuplicatesOne_whenValidated_thenTheDuplicateWins() {
-        assertTrue(message("${fullDice.first().faces}", existing = fullDice).contains("already"))
+        val die = fullDice.first()
+
+        assertEquals(
+            UiText.Res(R.string.custom_faces_duplicate, listOf(die.label)),
+            message("${die.faces}", existing = fullDice),
+        )
     }
 
     /** Likewise a preset beats fullness: `6` is on screen already, whatever the custom set holds. */
     @Test
     fun givenTheDiceAreFullAndTheInputIsAPreset_whenValidated_thenThePresetReasonWins() {
-        assertTrue(message("6", existing = fullDice).contains("standard"))
+        assertEquals(
+            UiText.Res(R.string.custom_faces_is_preset, listOf(Dice.D6.label)),
+            message("6", existing = fullDice),
+        )
     }
 }

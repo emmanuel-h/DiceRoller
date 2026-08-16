@@ -1,6 +1,7 @@
 // app/src/main/java/fr/mandarine/diceroller/presentation/component/RollHistoryBand.kt
 package fr.mandarine.diceroller.presentation.component
 
+import android.content.res.Resources
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,8 +22,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
@@ -37,6 +41,7 @@ import fr.mandarine.diceroller.domain.ValueTally
 import fr.mandarine.diceroller.presentation.model.DiceColor
 import fr.mandarine.diceroller.presentation.notation
 import fr.mandarine.diceroller.presentation.relativeTimeLabel
+import fr.mandarine.diceroller.presentation.resolve
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 
 /** Test tag on the header row, which is also the expand/collapse control. */
@@ -50,6 +55,9 @@ private const val EXPANDED_CHEVRON_ROTATION = 180f
 
 /** Separator drawn between two die-type runs on an entry's face line. */
 private const val GROUP_SEPARATOR = "·"
+
+/** Separator between two die-type clauses within an entry's spoken sentence. */
+private const val GROUP_SUMMARY_SEPARATOR = " "
 
 private val CHEVRON_SIZE = 18.dp
 private val HEADER_SPACING = 6.dp
@@ -141,8 +149,11 @@ private fun HistoryHeader(
     onToggleExpanded: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val stateWord = if (isExpanded) "expanded" else "collapsed"
-    val entryWord = if (entryCount == 1) "roll" else "rolls"
+    val stateWord = stringResource(
+        if (isExpanded) R.string.history_state_expanded else R.string.history_state_collapsed,
+    )
+    val countPhrase = pluralStringResource(R.plurals.history_roll_count, entryCount, entryCount)
+    val description = stringResource(R.string.history_header_description, countPhrase, stateWord)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -152,7 +163,7 @@ private fun HistoryHeader(
             .clickable(onClick = onToggleExpanded)
             .testTag(ROLL_HISTORY_HEADER_TAG)
             .semantics(mergeDescendants = true) {
-                contentDescription = "Recent rolls, $entryCount $entryWord, $stateWord"
+                contentDescription = description
             },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(HEADER_SPACING),
@@ -166,7 +177,7 @@ private fun HistoryHeader(
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = "Recent ($entryCount)",
+            text = stringResource(R.string.history_header, entryCount),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -181,12 +192,14 @@ private fun RollHistoryEntry(
     color: DiceColor,
     modifier: Modifier = Modifier,
 ) {
+    val resources = LocalResources.current
+    val description = record.toAccessibilityLabel(resources, nowMillis)
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = ENTRY_VERTICAL_PADDING)
             .semantics(mergeDescendants = true) {
-                contentDescription = record.toAccessibilityLabel(nowMillis)
+                contentDescription = description
             },
         verticalArrangement = Arrangement.spacedBy(ENTRY_LINE_SPACING),
     ) {
@@ -201,7 +214,7 @@ private fun RollHistoryEntry(
                 modifier = Modifier.weight(1f),
             )
             Text(
-                text = record.result.total.toString(),
+                text = stringResource(R.string.number, record.result.total),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -211,7 +224,7 @@ private fun RollHistoryEntry(
             text = relativeTimeLabel(
                 rolledAtMillis = record.rolledAtMillis,
                 nowMillis = nowMillis,
-            ),
+            ).resolve(),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -277,13 +290,13 @@ private fun HistoryFace(
             contentDescription = null,
         )
         Text(
-            text = tally.value.toString(),
+            text = stringResource(R.string.number, tally.value),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
         if (tally.count > 1) {
             Text(
-                text = "×${tally.count}",
+                text = stringResource(R.string.multiplier, tally.count),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -299,15 +312,27 @@ private fun HistoryFace(
  * semantics tree — a screen reader stepping through 20 separate numerals to hear one past roll
  * would be far worse than one sentence.
  */
-private fun RollRecord.toAccessibilityLabel(nowMillis: Long): String {
+private fun RollRecord.toAccessibilityLabel(resources: Resources, nowMillis: Long): String {
     val when_ = relativeTimeLabel(rolledAtMillis = rolledAtMillis, nowMillis = nowMillis)
-    val faces = result.groups.joinToString(separator = " ") { group ->
+        .resolve(resources)
+    val faces = result.groups.joinToString(separator = GROUP_SUMMARY_SEPARATOR) { group ->
         val values = group.tallies.joinToString(separator = ", ") { tally ->
-            if (tally.count > 1) "${tally.value} ${tally.count} times" else "${tally.value}"
+            resources.getQuantityString(
+                R.plurals.history_face_tally,
+                tally.count,
+                tally.count,
+                tally.value,
+            )
         }
-        "${group.dice.label}: $values."
+        resources.getString(R.string.a11y_group_summary, group.dice.label, values)
     }
-    return "${result.notation()}, total ${result.total}, $when_. $faces"
+    return resources.getString(
+        R.string.history_entry_description,
+        result.notation(),
+        result.total,
+        when_,
+        faces,
+    )
 }
 
 // -- Previews -----------------------------------------------------------------

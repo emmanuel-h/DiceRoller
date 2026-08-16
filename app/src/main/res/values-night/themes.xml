@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The dark half of Theme.DiceRoller; see values/themes.xml for why it is split in two. -->
+    <style name="Theme.DiceRoller" parent="android:Theme.Material.NoActionBar" />
+</resources>

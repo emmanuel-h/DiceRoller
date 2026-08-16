@@ -2,6 +2,7 @@
 package fr.mandarine.diceroller.presentation.model
 
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.Color
 import fr.mandarine.diceroller.R
 import fr.mandarine.diceroller.domain.Dice
@@ -9,27 +10,34 @@ import fr.mandarine.diceroller.domain.Dice
 /**
  * The twelve color variants shipped by the Fantasy Dices Pack.
  *
- * Each entry carries a human-readable [label] used in content descriptions,
- * a [swatch] color for the picker row (sampled from the variant's `d20` art),
- * and — via [drawableFor] — the pack drawable for every [Dice] type.
+ * Each entry carries a [labelRes] naming it in the user's language, a [swatch] color for the
+ * picker row (sampled from the variant's `d20` art), and — via [drawableFor] — the pack drawable
+ * for every [Dice] type.
  *
- * @property label lowercase display name, e.g. `"amethyst"`
+ * The display name is a *resource*, deliberately split from the enum's own [name] by issue #68:
+ * `name` is the stable identity — what [fr.mandarine.diceroller.data.DataStoreDiceColorStore]
+ * persists, what artwork test tags are keyed by — and translating it in place would have made
+ * yesterday's saved colour unreadable the moment the phone changed language. `name` never moves;
+ * `labelRes` is free to.
+ *
+ * @property labelRes lowercase display name, e.g. `"amethyst"` — a colour is always named in the
+ *   middle of a sentence ("amethyst dice", "D20, amethyst"), never on its own
  * @property swatch dominant color of the variant, used for the picker dot
  */
-enum class DiceColor(val label: String, val swatch: Color) {
+enum class DiceColor(@param:StringRes val labelRes: Int, val swatch: Color) {
 
-    Amethyst(label = "amethyst", swatch = Color(0xFF875E95)),
-    Amber(label = "amber", swatch = Color(0xFFE18744)),
-    Sapphire(label = "sapphire", swatch = Color(0xFF4C86B3)),
-    Ruby(label = "ruby", swatch = Color(0xFFB14B58)),
-    Gold(label = "gold", swatch = Color(0xFFA59654)),
-    Orchid(label = "orchid", swatch = Color(0xFFB34997)),
-    Smoke(label = "smoke", swatch = Color(0xFF4D4851)),
-    Jade(label = "jade", swatch = Color(0xFF599B89)),
-    Moss(label = "moss", swatch = Color(0xFF859A59)),
-    Bronze(label = "bronze", swatch = Color(0xFFAA7F51)),
-    Rose(label = "rose", swatch = Color(0xFFA4565D)),
-    Indigo(label = "indigo", swatch = Color(0xFF5F6095));
+    Amethyst(labelRes = R.string.color_amethyst, swatch = Color(0xFF875E95)),
+    Amber(labelRes = R.string.color_amber, swatch = Color(0xFFE18744)),
+    Sapphire(labelRes = R.string.color_sapphire, swatch = Color(0xFF4C86B3)),
+    Ruby(labelRes = R.string.color_ruby, swatch = Color(0xFFB14B58)),
+    Gold(labelRes = R.string.color_gold, swatch = Color(0xFFA59654)),
+    Orchid(labelRes = R.string.color_orchid, swatch = Color(0xFFB34997)),
+    Smoke(labelRes = R.string.color_smoke, swatch = Color(0xFF4D4851)),
+    Jade(labelRes = R.string.color_jade, swatch = Color(0xFF599B89)),
+    Moss(labelRes = R.string.color_moss, swatch = Color(0xFF859A59)),
+    Bronze(labelRes = R.string.color_bronze, swatch = Color(0xFFAA7F51)),
+    Rose(labelRes = R.string.color_rose, swatch = Color(0xFFA4565D)),
+    Indigo(labelRes = R.string.color_indigo, swatch = Color(0xFF5F6095));
 
     /**
      * Returns the drawable resource for this color variant of the given [dice].

@@ -2,9 +2,13 @@
 package fr.mandarine.diceroller
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import android.content.Context
+import android.content.res.Configuration
+import android.os.LocaleList
+import android.view.View
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,11 +30,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -42,10 +53,9 @@ import fr.mandarine.diceroller.domain.DicePoolResult
 import fr.mandarine.diceroller.domain.DieType
 import fr.mandarine.diceroller.domain.RollRecord
 import fr.mandarine.diceroller.domain.ValueTally
+import fr.mandarine.diceroller.presentation.AppLanguage
 import fr.mandarine.diceroller.presentation.DiceRollerUiState
 import fr.mandarine.diceroller.presentation.DiceRollerViewModel
-import fr.mandarine.diceroller.presentation.component.AboutIconButton
-import fr.mandarine.diceroller.presentation.component.AboutSheet
 import fr.mandarine.diceroller.presentation.component.AddDiceChip
 import fr.mandarine.diceroller.presentation.component.ClearPoolButton
 import fr.mandarine.diceroller.presentation.component.CustomDieCreatorDialog
@@ -53,15 +63,16 @@ import fr.mandarine.diceroller.presentation.component.DiceColorSwatchRow
 import fr.mandarine.diceroller.presentation.component.DiceResultDisplay
 import fr.mandarine.diceroller.presentation.component.DiceStepperChip
 import fr.mandarine.diceroller.presentation.component.RollHistoryBand
+import fr.mandarine.diceroller.presentation.component.SettingsIconButton
+import fr.mandarine.diceroller.presentation.component.SettingsSheet
+import fr.mandarine.diceroller.presentation.component.dieLabel
 import fr.mandarine.diceroller.presentation.model.DiceColor
+import fr.mandarine.diceroller.presentation.resolve
 import fr.mandarine.diceroller.presentation.rollButtonLabel
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 
 /** Die-type chips per row in the pool selector, giving each chip an equal share of the width. */
 private const val CHIPS_PER_ROW = 3
-
-/** Action label on the snackbar that puts a just-removed custom die back. */
-private const val UNDO_REMOVE_LABEL = "Undo"
 
 /** Horizontal inset shared by every band of the screen, so they align down a common edge. */
 private val SCREEN_HORIZONTAL_PADDING = 16.dp
@@ -76,6 +87,7 @@ class MainActivity : ComponentActivity() {
                     factory = DiceRollerViewModel.factory(this),
                 )
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                ProvideAppLanguage(uiState.language) {
                 DiceRollerScreen(
                     uiState = uiState,
                     onIncrementCount = viewModel::incrementCount,
@@ -90,13 +102,75 @@ class MainActivity : ComponentActivity() {
                     onRemoveCustomDie = viewModel::removeCustomDie,
                     onUndoRemoveCustomDie = viewModel::undoRemoveCustomDie,
                     onDismissRemovedCustomDie = viewModel::dismissRemovedCustomDie,
-                    onShowAbout = viewModel::showAbout,
-                    onDismissAbout = viewModel::dismissAbout,
+                    onSelectLanguage = viewModel::selectLanguage,
+                    onShowSettings = viewModel::showSettings,
+                    onDismissSettings = viewModel::dismissSettings,
                 )
+                }
             }
         }
     }
 }
+
+/**
+ * Runs [content] with every resource lookup resolved in [language].
+ *
+ * This is the whole language feature, and the reason it does not blink. The platform's own way of
+ * applying a locale — `LocaleManager` on Android 13+, `AppCompatDelegate` below it — works by
+ * changing the app's configuration, which makes the system **relaunch the activity**: destroy,
+ * create, redraw, and a measured ~148ms of black screen in between. That is unavoidable once the
+ * process configuration changes; it is not something `android:configChanges` can opt out of, which
+ * was measured too.
+ *
+ * So the configuration is left alone and the *composition* is localized instead. Swapping the
+ * language then costs one recomposition and no frames.
+ *
+ * All four locals have to be provided together, and each for its own reason: `stringResource`
+ * reads [LocalResources], `painterResource` and anything asking a [Context] for resources read
+ * [LocalContext], [LocalConfiguration] is what layout code consults, and [LocalLayoutDirection]
+ * does not follow a configuration on its own — so an RTL language would otherwise render in a
+ * left-to-right layout. Nothing here ships RTL yet; deriving the direction anyway is what keeps
+ * that from being a silent bug the day one does.
+ *
+ * What this deliberately does not touch is `Locale.getDefault()`. Nothing outside the composition
+ * shows the user a string — the launcher label is untranslated and there are no toasts or
+ * notifications — and resource formatting (`%1$d`) is done by the [android.content.res.Resources]
+ * provided here, so it follows the choice.
+ */
+@Composable
+private fun ProvideAppLanguage(
+    language: AppLanguage,
+    content: @Composable () -> Unit,
+) {
+    val base = LocalContext.current
+    val localized = remember(language, base) { base.localizedFor(language) }
+    val configuration = localized.resources.configuration
+    CompositionLocalProvider(
+        LocalContext provides localized,
+        LocalResources provides localized.resources,
+        LocalConfiguration provides configuration,
+        LocalLayoutDirection provides configuration.composeLayoutDirection(),
+        content = content,
+    )
+}
+
+/**
+ * This context, reading resources in [language] — or unchanged for [AppLanguage.System].
+ *
+ * "Unchanged" is what makes the system default work without any locale logic of its own: the base
+ * context already carries the device's locale, and Android's resource resolution already falls
+ * back to `values/` — English — for a device language this app does not ship.
+ */
+private fun Context.localizedFor(language: AppLanguage): Context {
+    val tag = language.tag ?: return this
+    val configuration = Configuration(resources.configuration)
+    configuration.setLocales(LocaleList.forLanguageTags(tag))
+    return createConfigurationContext(configuration)
+}
+
+/** This configuration's layout direction, as Compose spells it. */
+private fun Configuration.composeLayoutDirection(): LayoutDirection =
+    if (layoutDirection == View.LAYOUT_DIRECTION_RTL) LayoutDirection.Rtl else LayoutDirection.Ltr
 
 /**
  * Main dice roller screen composable.
@@ -113,7 +187,7 @@ class MainActivity : ComponentActivity() {
  * expense or push anything off screen. The Roll button sits in [Scaffold]'s `bottomBar` — with the
  * ✕ that empties the pool beside it since issue #67, which costs that band nothing since the button
  * already sets its height — so it cannot be pushed off screen either; the artwork attribution that
- * used to sit under it is one tap away in [AboutSheet] since issue #66, and the band it vacated
+ * used to sit under it is one tap away in [SettingsSheet] since issue #66, and the band it vacated
  * went to the results.
  *
  * The history band's cost is real and was measured, not assumed: at 360×640dp — the shortest
@@ -143,8 +217,9 @@ class MainActivity : ComponentActivity() {
  * @param onRemoveCustomDie callback when a custom chip's `×` badge is tapped
  * @param onUndoRemoveCustomDie callback when the removal snackbar's Undo action is used
  * @param onDismissRemovedCustomDie callback when that snackbar goes away un-actioned
- * @param onShowAbout callback when the info button beside the swatch row is tapped
- * @param onDismissAbout callback when the About sheet is swiped away or its scrim tapped
+ * @param onSelectLanguage callback with the language picked in the settings sheet
+ * @param onShowSettings callback when the gear beside the swatch row is tapped
+ * @param onDismissSettings callback when the settings sheet is swiped away or its scrim tapped
  * @param modifier optional modifier
  */
 @Composable
@@ -162,8 +237,9 @@ fun DiceRollerScreen(
     onRemoveCustomDie: (CustomDie) -> Unit = {},
     onUndoRemoveCustomDie: () -> Unit = {},
     onDismissRemovedCustomDie: () -> Unit = {},
-    onShowAbout: () -> Unit = {},
-    onDismissAbout: () -> Unit = {},
+    onSelectLanguage: (AppLanguage) -> Unit = {},
+    onShowSettings: () -> Unit = {},
+    onDismissSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -171,10 +247,14 @@ fun DiceRollerScreen(
     // Keyed on the die, so the snackbar is shown once per removal. A second removal of the same
     // die can only follow an undo, which nulls the field and disposes this effect in between.
     uiState.removedCustomDie?.let { removed ->
+        // Resolved out here rather than inside the effect: a coroutine is not a composition, so
+        // this is the last point at which the sheet's own resources are still in reach.
+        val message = stringResource(R.string.snackbar_custom_die_removed, dieLabel(removed))
+        val undoLabel = stringResource(R.string.action_undo)
         LaunchedEffect(removed) {
             val outcome = snackbarHostState.showSnackbar(
-                message = "${removed.label} removed",
-                actionLabel = UNDO_REMOVE_LABEL,
+                message = message,
+                actionLabel = undoLabel,
                 duration = SnackbarDuration.Short,
             )
             when (outcome) {
@@ -203,9 +283,9 @@ fun DiceRollerScreen(
                 .padding(horizontal = SCREEN_HORIZONTAL_PADDING),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Color first, since it recolors every die on screen below it. The About button
+            // Color first, since it recolors every die on screen below it. The settings gear
             // rides along at the end of that band rather than in one of its own: the swatches'
-            // 44dp touch targets already set the band's height, so the credit's entry point is
+            // 44dp touch targets already set the band's height, so the sheet's entry point is
             // free vertically — which is the whole point of issue #66.
             Row(
                 modifier = Modifier
@@ -218,7 +298,7 @@ fun DiceRollerScreen(
                     onSelectColor = onSelectColor,
                     modifier = Modifier.weight(1f),
                 )
-                AboutIconButton(onClick = onShowAbout)
+                SettingsIconButton(onClick = onShowSettings)
             }
 
             DicePoolSelector(
@@ -278,8 +358,12 @@ fun DiceRollerScreen(
         )
     }
 
-    if (uiState.isAboutVisible) {
-        AboutSheet(onDismiss = onDismissAbout)
+    if (uiState.isSettingsVisible) {
+        SettingsSheet(
+            onDismiss = onDismissSettings,
+            selectedLanguage = uiState.language,
+            onSelectLanguage = onSelectLanguage,
+        )
     }
 }
 
@@ -374,12 +458,12 @@ private fun DicePoolSelector(
  *
  * It held the CC BY attribution beneath the button until issue #66, where that line was judged to
  * be costing every screen a band for something read once, next to — and competing with — the one
- * primary action. The credit moved to [AboutSheet], one tap away behind the info button at the
+ * primary action. The credit moved to [SettingsSheet], one tap away behind the gear at the
  * end of the swatch row; the ~22dp it gave back goes to the weighted result band above.
  *
  * [ClearPoolButton] rejoined that band for issue #67 without taking any of it back: the Roll button
  * already sets the bar's height, so a 40dp icon button centred beside it is free vertically — the
- * same argument that put the info button on the swatch row. It is *absent* rather than disabled
+ * same argument that put the gear on the swatch row. It is *absent* rather than disabled
  * while [canRoll] is false, so before the first die is queued this bar is exactly what it was, Roll
  * spanning the full width; the two only share the row once there is a pool to clear.
  */
@@ -410,7 +494,7 @@ private fun RollBar(
                 enabled = canRoll,
                 modifier = Modifier.weight(1f),
             ) {
-                Text(rollButtonLabel(DicePool(pool)))
+                Text(rollButtonLabel(DicePool(pool)).resolve())
             }
         }
     }

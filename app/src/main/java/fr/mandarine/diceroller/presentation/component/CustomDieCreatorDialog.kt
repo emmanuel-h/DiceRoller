@@ -16,15 +16,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import fr.mandarine.diceroller.R
 import fr.mandarine.diceroller.domain.CustomDie
 import fr.mandarine.diceroller.domain.DieType
 import fr.mandarine.diceroller.presentation.CustomFacesResult
+import fr.mandarine.diceroller.presentation.resolve
 import fr.mandarine.diceroller.presentation.validateCustomFaces
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 
@@ -75,7 +78,7 @@ fun CustomDieCreatorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add a custom die") },
+        title = { Text(stringResource(R.string.custom_die_dialog_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(MESSAGE_SPACING)) {
                 OutlinedTextField(
@@ -86,7 +89,7 @@ fun CustomDieCreatorDialog(
                         // keyboard should not have offered in the first place.
                         facesInput = typed.filter { it.isDigit() }.take(MAX_FACES_DIGITS)
                     },
-                    label = { Text("Faces") },
+                    label = { Text(stringResource(R.string.custom_die_faces_label)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Number,
@@ -109,12 +112,12 @@ fun CustomDieCreatorDialog(
                 enabled = valid != null,
                 modifier = Modifier.testTag(CUSTOM_DIE_ADD_BUTTON_TAG),
             ) {
-                Text("Add")
+                Text(stringResource(R.string.action_add))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         },
     )
@@ -130,8 +133,10 @@ fun CustomDieCreatorDialog(
 private fun Message(verdict: CustomFacesResult, modifier: Modifier = Modifier) {
     val isProblem = verdict is CustomFacesResult.Invalid && !verdict.isIncomplete
     val text = when (verdict) {
-        is CustomFacesResult.Valid -> "Adds ${verdict.die.label} to your dice."
-        is CustomFacesResult.Invalid -> verdict.message
+        is CustomFacesResult.Valid ->
+            stringResource(R.string.custom_die_valid_message, dieLabel(verdict.die))
+
+        is CustomFacesResult.Invalid -> verdict.message.resolve()
     }
     Text(
         text = text,

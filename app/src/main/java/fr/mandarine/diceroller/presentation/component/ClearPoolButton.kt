@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import fr.mandarine.diceroller.R
@@ -17,9 +18,6 @@ import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 
 /** Test tag of the button that empties the dice pool. */
 const val CLEAR_POOL_BUTTON_TAG: String = "clear-pool-button"
-
-/** Content description of that button — it carries a glyph, so this is its whole label. */
-const val CLEAR_POOL_LABEL: String = "Clear the dice pool"
 
 /**
  * The control that puts every die type's count back to 0 in one tap (issue #67).
@@ -51,7 +49,8 @@ fun ClearPoolButton(
     ) {
         Icon(
             painter = painterResource(id = R.drawable.ic_close),
-            contentDescription = CLEAR_POOL_LABEL,
+            // The button carries a glyph, so this is its whole label.
+            contentDescription = stringResource(R.string.clear_pool_description),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }

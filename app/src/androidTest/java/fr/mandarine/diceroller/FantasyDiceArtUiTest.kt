@@ -18,11 +18,12 @@ import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DiceRoller
 import fr.mandarine.diceroller.presentation.DiceRollerUiState
 import fr.mandarine.diceroller.presentation.DiceRollerViewModel
-import fr.mandarine.diceroller.presentation.component.ABOUT_BUTTON_TAG
-import fr.mandarine.diceroller.presentation.component.ART_ATTRIBUTION
+import fr.mandarine.diceroller.presentation.component.SETTINGS_BUTTON_TAG
 import fr.mandarine.diceroller.presentation.model.DiceColor
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 import kotlin.random.Random
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -78,19 +79,19 @@ class FantasyDiceArtUiTest {
                     onSelectColor = viewModel::selectColor,
                     onRollDice = viewModel::rollDice,
                     onToggleHistory = viewModel::toggleHistoryExpanded,
-                    onShowAbout = viewModel::showAbout,
-                    onDismissAbout = viewModel::dismissAbout,
+                    onShowSettings = viewModel::showSettings,
+                    onDismissSettings = viewModel::dismissSettings,
                 )
             }
         }
         return viewModel
     }
 
-    private fun increaseButton(dice: Dice) =
-        composeTestRule.onNodeWithContentDescription("Increase ${dice.name} count")
+    private fun increaseButton(dice: Dice) = composeTestRule
+        .onNodeWithContentDescription(str(R.string.chip_increase_description, dieNotation(dice)))
 
-    private fun swatch(color: DiceColor) =
-        composeTestRule.onNodeWithContentDescription("${color.label} dice")
+    private fun swatch(color: DiceColor) = composeTestRule
+        .onNodeWithContentDescription(str(R.string.swatch_description, str(color.labelRes)))
 
     /** The die art inside one result entry; unmerged, since an entry merges its own descendants. */
     private fun rowArt(dice: Dice, value: Int, color: DiceColor) = composeTestRule.onNode(
@@ -107,6 +108,26 @@ class FantasyDiceArtUiTest {
         launchScreen()
 
         DiceColor.entries.forEach { color -> swatch(color).assertExists() }
+    }
+
+    /**
+     * The shipped names, against the resources rather than against Kotlin constants (issue #68).
+     *
+     * `DiceColorTest` can only see that the twelve entries point at twelve *different* string
+     * resources; that each of those resolves to a real, distinct, lowercase colour word is a fact
+     * about `values/strings.xml` and `values-fr/strings.xml`, and this is where the device running
+     * the suite in its own locale can check it — a missing or copy-pasted translation would
+     * otherwise leave two swatches announcing themselves identically to a screen reader.
+     */
+    @Test
+    fun givenColorRow_whenScreenIsDisplayed_thenEverySwatchIsNamedDistinctlyAndInLowercase() {
+        val names = DiceColor.entries.map { color -> str(color.labelRes) }
+
+        assertEquals("Colour names must be unique: $names", names.size, names.toSet().size)
+        names.forEach { name ->
+            assertTrue("Colour name must not be blank", name.isNotBlank())
+            assertEquals("Colour name '$name' must be lowercase", name.lowercase(), name)
+        }
     }
 
     @Test
@@ -135,7 +156,7 @@ class FantasyDiceArtUiTest {
     fun givenARollResult_whenTheColorIsChanged_thenTheResultRowsSwitchToTheNewColor() {
         val viewModel = launchWithViewModel(seed = 7)
         increaseButton(Dice.D6).performClick()
-        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+        composeTestRule.onNodeWithText(rollLabel("1D6")).performClick()
         val rolledValue = viewModel.uiState.value.result!!.groups.first().tallies.first().value
 
         swatch(DiceColor.Jade).performScrollTo().performClick()
@@ -148,12 +169,12 @@ class FantasyDiceArtUiTest {
     fun givenARollResult_whenTheColorIsChanged_thenTheResultIsKept() {
         val viewModel = launchWithViewModel(seed = 7)
         increaseButton(Dice.D6).performClick()
-        composeTestRule.onNodeWithText("Roll 1D6").performClick()
+        composeTestRule.onNodeWithText(rollLabel("1D6")).performClick()
         val total = viewModel.uiState.value.result!!.total
 
         swatch(DiceColor.Bronze).performScrollTo().performClick()
 
-        composeTestRule.onNodeWithText("Total $total").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.result_total, total)).assertIsDisplayed()
     }
 
     @Test
@@ -176,12 +197,12 @@ class FantasyDiceArtUiTest {
      * the exact required wording behind it.
      */
     @Test
-    fun givenTheScreen_whenTheAboutButtonIsTapped_thenTheArtworkAttributionIsVisible() {
+    fun givenTheScreen_whenTheSettingsGearIsTapped_thenTheArtworkAttributionIsVisible() {
         launchWithViewModel()
 
-        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).assertIsDisplayed().performClick()
+        composeTestRule.onNodeWithTag(SETTINGS_BUTTON_TAG).assertIsDisplayed().performClick()
 
-        composeTestRule.onNodeWithText(ART_ATTRIBUTION).assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.about_art_attribution)).assertIsDisplayed()
     }
 
     /**
@@ -190,14 +211,15 @@ class FantasyDiceArtUiTest {
      * row of its own, so there is deliberately no standalone `CC BY 4.0` node to find.
      */
     @Test
-    fun givenTheAboutSheet_whenOpened_thenTheCreditIsOneLineBesideTheAppsOwnLicense() {
+    fun givenTheSettingsSheet_whenOpened_thenTheCreditIsOneLineBesideTheAppsOwnLicense() {
         launchWithViewModel()
 
-        composeTestRule.onNodeWithTag(ABOUT_BUTTON_TAG).performClick()
+        composeTestRule.onNodeWithTag(SETTINGS_BUTTON_TAG).performClick()
 
-        composeTestRule.onNodeWithText("© 2026 Mandarine Tech · Apache License 2.0")
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText("CC BY 4.0").assertDoesNotExist()
+        val appLicenseLine = "${str(R.string.about_app_copyright)} · " +
+            str(R.string.about_app_license)
+        composeTestRule.onNodeWithText(appLicenseLine).assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.about_art_license)).assertDoesNotExist()
         composeTestRule.onNodeWithText("Fantasy Dices Pack by Aeynit").assertDoesNotExist()
     }
 }

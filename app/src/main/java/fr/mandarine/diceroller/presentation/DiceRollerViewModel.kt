@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import fr.mandarine.diceroller.data.DataStoreAppLanguageStore
 import fr.mandarine.diceroller.data.DataStoreCustomDiceStore
 import fr.mandarine.diceroller.data.DataStoreDiceColorStore
 import fr.mandarine.diceroller.data.DataStoreRollHistoryStore
@@ -35,6 +36,7 @@ import kotlinx.coroutines.launch
  *
  * @param diceRoller rolls the pool; injected with a seeded [kotlin.random.Random] in tests
  * @param colorStore persists the chosen color variant
+ * @param languageStore persists the language the user reads the app in
  * @param historyStore persists past rolls
  * @param customDiceStore persists the user's custom die definitions
  * @param clock reads the current epoch time, injected so timestamps are deterministic in tests
@@ -42,6 +44,7 @@ import kotlinx.coroutines.launch
 class DiceRollerViewModel(
     private val diceRoller: DiceRoller = DiceRoller(),
     private val colorStore: DiceColorStore = InMemoryDiceColorStore(),
+    private val languageStore: AppLanguageStore = InMemoryAppLanguageStore(),
     private val historyStore: RollHistoryStore = InMemoryRollHistoryStore(),
     private val customDiceStore: CustomDiceStore = InMemoryCustomDiceStore(),
     private val clock: () -> Long = System::currentTimeMillis,
@@ -65,6 +68,13 @@ class DiceRollerViewModel(
         viewModelScope.launch {
             val storedColor = colorStore.selectedColor.first()
             _uiState.update { state -> state.copy(selectedColor = storedColor) }
+        }
+        // Read once like the colour, not collected: nothing writes it but [selectLanguage], which
+        // updates the state itself. Restoring it before first draw is what makes a returning user
+        // see their language rather than the device's for a frame.
+        viewModelScope.launch {
+            val storedLanguage = languageStore.language.first()
+            _uiState.update { state -> state.copy(language = storedLanguage) }
         }
         // Collected rather than read once: the store is the single source of truth for the log,
         // so a recorded roll lands here instead of being applied to the state twice.
@@ -158,6 +168,22 @@ class DiceRollerViewModel(
         _uiState.update { state -> state.copy(selectedColor = color) }
         viewModelScope.launch {
             colorStore.setSelectedColor(color)
+        }
+    }
+
+    /**
+     * Puts the app into [language] and remembers it.
+     *
+     * Like [selectColor] and for the same reason, this leaves the pool, the result and the log
+     * exactly as they are: changing how the screen is *written* is not a change to what Roll would
+     * produce. That it can afford to is the point of storing the choice here rather than handing
+     * it to the platform — the platform's way of applying a locale is to relaunch the activity,
+     * which would take the whole screen down and rebuild it (see [AppLanguageStore]).
+     */
+    fun selectLanguage(language: AppLanguage) {
+        _uiState.update { state -> state.copy(language = language) }
+        viewModelScope.launch {
+            languageStore.setLanguage(language)
         }
     }
 
@@ -300,25 +326,26 @@ class DiceRollerViewModel(
     }
 
     /**
-     * Opens the About sheet, which carries the artwork's license-required credit (issue #66).
+     * Opens the settings sheet, which carries the language row and the artwork's
+     * license-required credit (issue #66).
      *
      * Like the creator dialog, this touches visibility only: it leaves the pool, the result and
      * the log exactly as they were, so reading the credit never costs the user a roll.
      */
-    fun showAbout() {
-        _uiState.update { state -> state.copy(isAboutVisible = true) }
+    fun showSettings() {
+        _uiState.update { state -> state.copy(isSettingsVisible = true) }
     }
 
-    /** Closes the About sheet. */
-    fun dismissAbout() {
-        _uiState.update { state -> state.copy(isAboutVisible = false) }
+    /** Closes the settings sheet. */
+    fun dismissSettings() {
+        _uiState.update { state -> state.copy(isSettingsVisible = false) }
     }
 
     companion object {
         /**
-         * Builds a factory that wires the ViewModel to the DataStore-backed color, history and
-         * custom-dice stores, so the chosen color, the roll log and the user's own dice all
-         * survive process death.
+         * Builds a factory that wires the ViewModel to the DataStore-backed color, language,
+         * history and custom-dice stores, so the chosen colour and language, the roll log and the
+         * user's own dice all survive process death.
          */
         fun factory(context: Context): ViewModelProvider.Factory {
             val appContext = context.applicationContext
@@ -326,6 +353,7 @@ class DiceRollerViewModel(
                 initializer {
                     DiceRollerViewModel(
                         colorStore = DataStoreDiceColorStore(appContext),
+                        languageStore = DataStoreAppLanguageStore(appContext),
                         historyStore = DataStoreRollHistoryStore(appContext),
                         customDiceStore = DataStoreCustomDiceStore(appContext),
                     )

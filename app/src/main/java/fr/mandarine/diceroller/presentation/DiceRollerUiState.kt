@@ -27,9 +27,13 @@ import fr.mandarine.diceroller.presentation.model.DiceColor
  *   drawer worth reopening.
  * @property isCustomDieCreatorVisible whether the "add a custom die" dialog is open. Session
  *   state for the same reason.
- * @property isAboutVisible whether the About sheet — which carries the license-required artwork
- *   credit since issue #66 took it off the main screen — is open. Session state too: a credit is
- *   something to be able to reach, not something to reopen on every launch.
+ * @property language the language the app is written in. [AppLanguage.System] — the value every
+ *   install starts at — means "whatever the device is set to", which Android's own resource
+ *   resolution turns into English for any device language this app does not ship.
+ * @property isSettingsVisible whether the settings sheet is open — the one that carries the
+ *   language row, and the license-required artwork credit since issue #66 took it off the main
+ *   screen. Session state too: a setting is something to be able to reach, not something to
+ *   reopen on every launch.
  * @property removedCustomDie the die the last [DiceRollerViewModel.removeCustomDie] took away, or
  *   null once that removal has been undone or its snackbar acknowledged. Present so the screen can
  *   offer an undo: the remove control is a small badge on the edge of the increment half, so a
@@ -41,11 +45,12 @@ data class DiceRollerUiState(
     val pool: Map<DieType, Int> = Dice.entries.associateWith { 0 },
     val customDice: List<CustomDie> = emptyList(),
     val selectedColor: DiceColor = DiceColor.Default,
+    val language: AppLanguage = AppLanguage.System,
     val result: DicePoolResult? = null,
     val history: List<RollRecord> = emptyList(),
     val isHistoryExpanded: Boolean = false,
     val isCustomDieCreatorVisible: Boolean = false,
-    val isAboutVisible: Boolean = false,
+    val isSettingsVisible: Boolean = false,
     val removedCustomDie: CustomDie? = null,
     val nowMillis: Long = 0L,
 ) {

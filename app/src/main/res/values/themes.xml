@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!--
+      Nothing is themed here: Compose draws every pixel of the app, so this style exists only to
+      dress the window behind it — which is what the user sees for the frame before Compose's
+      first draw.
+
+      That is why it is paired with a `values-night` variant instead of being Light-only as the
+      template left it: under a Compose UI that follows the system, a Light window showed as a
+      pale flash on launch in dark mode. Framework themes rather than AppCompat ones, because the
+      app has no AppCompat dependency — see docs/features/language-and-settings.md.
+    -->
     <style name="Theme.DiceRoller" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

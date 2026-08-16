@@ -7,7 +7,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import fr.mandarine.diceroller.R
 import fr.mandarine.diceroller.domain.CustomDie
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DieType
@@ -33,7 +35,8 @@ import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
  * @param sizeVariant controls the box the artwork is fitted into, and the badge's height
  * @param modifier optional [Modifier] applied to the image
  * @param alpha opacity applied to the artwork, used to dim the empty state
- * @param contentDescription accessibility label; defaults to `"D20, amethyst"` form. Callers
+ * @param contentDescription accessibility label; defaults to the localized `"D20, amethyst"` form
+ *        built from [dieLabel] and the colour's own name. Callers
  *        that wrap the image in their own labelled control should pass a distinct label so the
  *        two do not collide in the semantics tree, or `null` to mark the artwork decorative when
  *        an adjacent element already conveys everything the image would — e.g. a "D6" text label
@@ -47,7 +50,11 @@ fun DiceImage(
     sizeVariant: DiceImageSize,
     modifier: Modifier = Modifier,
     alpha: Float = 1f,
-    contentDescription: String? = "${dice.label}, ${color.label}",
+    contentDescription: String? = stringResource(
+        R.string.dice_image_description,
+        dieLabel(dice),
+        stringResource(color.labelRes),
+    ),
 ) {
     when (dice) {
         is Dice -> Image(

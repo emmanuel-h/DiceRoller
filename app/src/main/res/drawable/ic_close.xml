@@ -2,7 +2,7 @@
 <!-- Cross marking the control that empties the dice pool in one tap (issue #67). The same glyph
      the stepper chips' remove badge draws as text, as a vector here because this one sits in an
      icon button beside the Roll button and has to hold a 24dp box crisply. Hand-drawn for the same
-     reason as ic_casino, ic_expand_more and ic_info_outline: not worth the material-icons-extended
+     reason as ic_casino, ic_expand_more and ic_settings: not worth the material-icons-extended
      dependency. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"

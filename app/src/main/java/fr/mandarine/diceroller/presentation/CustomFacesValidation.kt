@@ -1,13 +1,16 @@
 // app/src/main/java/fr/mandarine/diceroller/presentation/CustomFacesValidation.kt
 package fr.mandarine.diceroller.presentation
 
+import fr.mandarine.diceroller.R
 import fr.mandarine.diceroller.domain.CustomDie
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DieType
 
 /** Hint shown under the faces field before the user has typed anything wrong. */
-val CUSTOM_FACES_HINT: String =
-    "Between ${DieType.FACES_RANGE.first} and ${DieType.FACES_RANGE.last} faces."
+val CUSTOM_FACES_HINT: UiText = UiText.Res(
+    R.string.custom_faces_hint,
+    listOf(DieType.FACES_RANGE.first, DieType.FACES_RANGE.last),
+)
 
 /**
  * The verdict on what the user typed into the custom-die creator's faces field.
@@ -25,12 +28,13 @@ sealed interface CustomFacesResult {
      * The input cannot be added, for the reason in [message].
      *
      * @property message user-facing, specific about *which* rule was broken, and shown inline
-     *   under the field rather than as a toast
+     *   under the field rather than as a toast. A [UiText] rather than a `String` so this whole
+     *   function stays pure and off-device-testable — see that type for why.
      * @property isIncomplete true while the field is simply not finished yet — empty, or `"1"` on
      *   the way to `"12"`. The dialog keeps such a message out of the way instead of scolding the
      *   user mid-type, but the Add button stays disabled either way.
      */
-    data class Invalid(val message: String, val isIncomplete: Boolean = false) : CustomFacesResult
+    data class Invalid(val message: UiText, val isIncomplete: Boolean = false) : CustomFacesResult
 }
 
 /**
@@ -58,25 +62,31 @@ fun validateCustomFaces(input: String, existing: List<CustomDie>): CustomFacesRe
         return CustomFacesResult.Invalid(CUSTOM_FACES_HINT, isIncomplete = true)
     }
     val faces = trimmed.toIntOrNull()
-        ?: return CustomFacesResult.Invalid("Enter a whole number of faces.")
+        ?: return CustomFacesResult.Invalid(UiText.Res(R.string.custom_faces_not_a_number))
 
     val die = DieType.ofFaces(faces)
         ?: return CustomFacesResult.Invalid(
-            "Faces must be between ${DieType.FACES_RANGE.first} and " +
-                "${DieType.FACES_RANGE.last}.",
+            UiText.Res(
+                R.string.custom_faces_out_of_range,
+                listOf(DieType.FACES_RANGE.first, DieType.FACES_RANGE.last),
+            ),
             // A lone "1" is on its way to "10" or "12" as often as it is a mistake.
             isIncomplete = faces < DieType.FACES_RANGE.first,
         )
 
     if (die is Dice) {
-        return CustomFacesResult.Invalid("${die.label} is already one of the standard dice.")
+        return CustomFacesResult.Invalid(
+            UiText.Res(R.string.custom_faces_is_preset, listOf(die.label)),
+        )
     }
     if (die in existing) {
-        return CustomFacesResult.Invalid("${die.label} is already in your custom dice.")
+        return CustomFacesResult.Invalid(
+            UiText.Res(R.string.custom_faces_duplicate, listOf(die.label)),
+        )
     }
     if (existing.size >= MAX_CUSTOM_DICE) {
         return CustomFacesResult.Invalid(
-            "You can have $MAX_CUSTOM_DICE custom dice. Remove one to add another.",
+            UiText.Plural(R.plurals.custom_faces_full, MAX_CUSTOM_DICE),
         )
     }
     // ofFaces returns a CustomDie for every face count that is neither out of range nor a preset,

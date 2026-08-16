@@ -34,6 +34,22 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+    bundle {
+        language {
+            // Every language ships in the base APK rather than as a downloadable split.
+            //
+            // Play's default splits language resources and installs only the ones matching the
+            // device's system locale — which would make the in-app picker a lie on the store
+            // build: an English phone would not have res/values-fr on disk at all, so choosing
+            // Français would silently keep showing English. The app changes its own language
+            // without Play Core, so it must carry them all.
+            //
+            // The cost is two short string tables in every install, which is nothing next to
+            // 72 dice renders.
+            enableSplit = false
+        }
+    }
+
     buildFeatures {
         compose = true
         // For BuildConfig.VERSION_NAME, which the About sheet shows so the version on screen

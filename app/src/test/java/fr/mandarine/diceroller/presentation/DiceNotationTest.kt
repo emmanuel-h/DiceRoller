@@ -69,7 +69,10 @@ class DiceNotationTest {
             total = 6,
         )
 
-        assertEquals("Roll ${result.notation()}", rollButtonLabel(DicePool(counts)))
+        assertEquals(
+            listOf<Any>(result.notation()),
+            (rollButtonLabel(DicePool(counts)) as UiText.Res).args,
+        )
     }
 
     // --- Custom dice notate exactly like presets (issue #4) ---
@@ -92,7 +95,10 @@ class DiceNotationTest {
     fun givenAPoolMixingPresetsAndACustomDie_whenLabelled_thenItReadsSmallestToLargest() {
         val pool = DicePool(mapOf(Dice.D8 to 2, CustomDie(7) to 1, Dice.D6 to 4))
 
-        assertEquals("Roll 4D6 + 1D7 + 2D8", rollButtonLabel(pool))
+        assertEquals(
+            listOf<Any>("4D6 + 1D7 + 2D8"),
+            (rollButtonLabel(pool) as UiText.Res).args,
+        )
     }
 
     @Test

@@ -145,7 +145,7 @@ has a pool entry**.
 | `presentation` | `DiceRollerViewModel.clearPool` | Zeroes every count and clears the result, in one state update |
 | `presentation` | `DiceRollerViewModel.rollDice` | Zeroes every count too — but keeps the result it just produced. Deliberately does *not* call `clearPool`, for exactly that reason |
 | `MainActivity` | `RollBar` | Became a `Row`; renders the button only while `canRoll` |
-| `res/drawable` | `ic_close.xml` | Hand-drawn, like `ic_casino`, `ic_expand_more` and `ic_info_outline` |
+| `res/drawable` | `ic_close.xml` | Hand-drawn, like `ic_casino`, `ic_expand_more` and `ic_settings` |
 
 No new UI state: `DiceRollerUiState.canRoll` already meant "the pool has something in it", which is
 exactly the button's visibility condition.

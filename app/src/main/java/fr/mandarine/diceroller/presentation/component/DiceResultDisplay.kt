@@ -1,6 +1,7 @@
 // app/src/main/java/fr/mandarine/diceroller/presentation/component/DiceResultDisplay.kt
 package fr.mandarine.diceroller.presentation.component
 
+import android.content.res.Resources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,8 +19,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -40,12 +44,6 @@ import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 /** Opacity applied to the empty-state icon. */
 private const val EMPTY_STATE_ALPHA = 0.4f
 
-/** Shown when the pool has no dice queued at all. */
-private const val EMPTY_POOL_CAPTION = "Add dice above to build your pool."
-
-/** Shown when the pool has dice queued but the roll button has not been pressed yet. */
-private const val NOT_ROLLED_CAPTION = "Tap Roll to see results."
-
 /** Gap between two face entries on the same wrapped line. */
 private val ENTRY_HORIZONTAL_SPACING = 14.dp
 
@@ -58,13 +56,8 @@ private val ENTRY_INTERNAL_SPACING = 4.dp
 /** Gap between one die-type group and the next. */
 private val GROUP_SPACING = 12.dp
 
-/** Words for 0..[fr.mandarine.diceroller.domain.DicePool.MAX_DICE_PER_TYPE], used by the
- * accessibility summary so it reads naturally instead of as bare digits. */
-private val NUMBER_WORDS = listOf(
-    "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
-    "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen",
-    "nineteen", "twenty",
-)
+/** Separator between two die-type groups within the spoken roll summary. */
+private const val GROUP_SUMMARY_SEPARATOR = " "
 
 /**
  * Displays the outcome of rolling a mixed dice pool as a per-die-type face-ladder turned sideways:
@@ -127,7 +120,13 @@ private fun EmptyResultState(isPoolEmpty: Boolean, modifier: Modifier = Modifier
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = EMPTY_STATE_ALPHA),
         )
         Text(
-            text = if (isPoolEmpty) EMPTY_POOL_CAPTION else NOT_ROLLED_CAPTION,
+            text = stringResource(
+                if (isPoolEmpty) {
+                    R.string.result_empty_pool_caption
+                } else {
+                    R.string.result_not_rolled_caption
+                },
+            ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -148,6 +147,7 @@ private fun PopulatedResultState(
     selectedColor: DiceColor,
     modifier: Modifier = Modifier,
 ) {
+    val resources = LocalResources.current
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -161,7 +161,7 @@ private fun PopulatedResultState(
                 .size(0.dp)
                 .clearAndSetSemantics {
                     liveRegion = LiveRegionMode.Polite
-                    contentDescription = result.toAccessibilitySummary()
+                    contentDescription = result.toAccessibilitySummary(resources)
                 },
         )
         result.groups.forEach { group ->
@@ -198,13 +198,20 @@ private fun DiceGroupBlock(
 
 @Composable
 private fun GroupHeader(group: DiceGroupResult, modifier: Modifier = Modifier) {
+    val label = dieLabel(group.dice)
+    val description = pluralStringResource(
+        R.plurals.result_group_description,
+        group.poolCount,
+        group.poolCount,
+        label,
+    )
     Text(
-        text = "${group.poolCount}×${group.dice.label}",
+        text = stringResource(R.string.result_group_header, group.poolCount, label),
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier
             .fillMaxWidth()
-            .semantics { contentDescription = "${group.poolCount} ${group.dice.label} dice" },
+            .semantics { contentDescription = description },
     )
 }
 
@@ -221,10 +228,15 @@ private fun FaceEntry(
     color: DiceColor,
     modifier: Modifier = Modifier,
 ) {
-    val timesWord = if (tally.count == 1) "time" else "times"
+    val description = pluralStringResource(
+        R.plurals.result_face_description,
+        tally.count,
+        tally.value,
+        tally.count,
+    )
     Row(
         modifier = modifier.semantics(mergeDescendants = true) {
-            contentDescription = "Value ${tally.value}, rolled ${tally.count} $timesWord"
+            contentDescription = description
         },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(ENTRY_INTERNAL_SPACING),
@@ -237,12 +249,12 @@ private fun FaceEntry(
             modifier = Modifier.testTag("dice-row-art-${dice.label}-${tally.value}-${color.name}"),
         )
         Text(
-            text = tally.value.toString(),
+            text = stringResource(R.string.number, tally.value),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = "×${tally.count}",
+            text = stringResource(R.string.multiplier, tally.count),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -251,37 +263,51 @@ private fun FaceEntry(
 
 @Composable
 private fun TotalLine(total: Int, modifier: Modifier = Modifier) {
+    val text = stringResource(R.string.result_total, total)
     Text(
-        text = "Total $total",
+        text = text,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.End,
         modifier = modifier
             .fillMaxWidth()
-            .semantics { contentDescription = "Total $total" },
+            .semantics { contentDescription = text },
     )
 }
 
 /**
  * Builds the hidden live-region summary announced after each roll, e.g.
- * `"Rolled 4 D6 and 2 D8. D6: one 6, two 4s, one 3. D8: one 7, one 2. Total 26."` — following the
+ * `"Rolled 4 D6 and 2 D8. D6: one 6, 2 4s, one 3. D8: one 7, one 2. Total 26."` — following the
  * same smallest-to-largest group order and descending-by-value entry order as the visible ladder.
+ *
+ * Assembled from [Resources] rather than from `stringResource`, because it is one sentence built
+ * out of a variable number of clauses: a composable could not loop over the groups without the
+ * resource lookups themselves becoming conditional. The caller reads the resources once and hands
+ * them down.
+ *
+ * Every clause is a resource, including the `" and "` joining the pool entries and the `s` that
+ * used to be glued onto a repeated value — issue #68's rule is that no user-facing wording is
+ * assembled in Kotlin. The English number words this used to spell out ("two 4s") went with it:
+ * they were 21 hard-coded English strings, and a screen reader says "two" for `2` anyway.
  */
-private fun DicePoolResult.toAccessibilitySummary(): String {
-    val poolSummary = groups.joinToString(separator = " and ") { group ->
-        "${group.poolCount} ${group.dice.label}"
+private fun DicePoolResult.toAccessibilitySummary(resources: Resources): String {
+    val separator = resources.getString(R.string.a11y_pool_separator)
+    val poolSummary = groups.joinToString(separator = separator) { group ->
+        resources.getString(R.string.a11y_pool_entry, group.poolCount, group.dice.label)
     }
-    val groupSummaries = groups.joinToString(separator = " ") { group ->
+    val groupSummaries = groups.joinToString(separator = GROUP_SUMMARY_SEPARATOR) { group ->
         val valuesSummary = group.tallies.joinToString(separator = ", ") { tally ->
-            val plural = if (tally.count > 1) "s" else ""
-            "${numberWord(tally.count)} ${tally.value}$plural"
+            resources.getQuantityString(
+                R.plurals.a11y_value_tally,
+                tally.count,
+                tally.count,
+                tally.value,
+            )
         }
-        "${group.dice.label}: $valuesSummary."
+        resources.getString(R.string.a11y_group_summary, group.dice.label, valuesSummary)
     }
-    return "Rolled $poolSummary. $groupSummaries Total $total."
+    return resources.getString(R.string.a11y_roll_summary, poolSummary, groupSummaries, total)
 }
-
-private fun numberWord(count: Int): String = NUMBER_WORDS.getOrElse(count) { count.toString() }
 
 // -- Previews -----------------------------------------------------------------
 

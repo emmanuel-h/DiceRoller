@@ -21,18 +21,22 @@ class DiceColorTest {
         assertEquals(DiceColor.Amethyst, DiceColor.Default)
     }
 
+    /**
+     * The names are strings now (issue #68), so what can be checked off-device is that each
+     * variant has its own — a copy-pasted `labelRes` would silently make two swatches announce
+     * themselves identically. That they read as lowercase colour words is a translator's business
+     * and is asserted against the shipped resources in `FantasyDiceArtUiTest`.
+     */
     @Test
-    fun givenDiceColorEnum_whenReadingLabels_thenEveryLabelIsUniqueAndLowercase() {
-        val labels = DiceColor.entries.map { it.label }
+    fun givenDiceColorEnum_whenReadingLabels_thenEveryVariantHasItsOwnStringResource() {
+        val labels = DiceColor.entries.map { it.labelRes }
 
         assertEquals(
-            "Labels must be unique: $labels",
+            "Label resources must be unique: $labels",
             labels.size,
             labels.toSet().size,
         )
-        labels.forEach { label ->
-            assertEquals("Label '$label' must be lowercase", label.lowercase(), label)
-        }
+        assertTrue("Every variant must name a real string resource", labels.none { it == 0 })
     }
 
     @Test
@@ -53,7 +57,7 @@ class DiceColorTest {
         DiceColor.entries.forEach { color ->
             Dice.entries.forEach { dice ->
                 assertNotEquals(
-                    "Missing drawable for ${color.label} $dice",
+                    "Missing drawable for ${color.name} $dice",
                     0,
                     color.drawableFor(dice),
                 )
@@ -103,10 +107,15 @@ class DiceColorTest {
         assertEquals(DiceColor.Default, DiceColor.fromNameOrDefault(null))
     }
 
+    /**
+     * Storage round-trips the enum `name`, which is exactly why the display name moved to a
+     * resource in issue #68: a colour saved yesterday must still resolve after the phone changes
+     * language, and it can only do that if what was written down was never the translated word.
+     */
     @Test
-    fun givenLabelInsteadOfEnumName_whenResolving_thenDefaultIsReturned() {
-        // Storage round-trips the enum `name`, not the display `label`
-        assertTrue(DiceColor.Ruby.label != DiceColor.Ruby.name)
-        assertEquals(DiceColor.Default, DiceColor.fromNameOrDefault(DiceColor.Ruby.label))
+    fun givenATranslatableLookingName_whenResolving_thenDefaultIsReturned() {
+        assertEquals(DiceColor.Default, DiceColor.fromNameOrDefault("rubis"))
+        assertEquals(DiceColor.Default, DiceColor.fromNameOrDefault("ruby"))
+        assertEquals(DiceColor.Ruby, DiceColor.fromNameOrDefault("Ruby"))
     }
 }

@@ -26,12 +26,14 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import fr.mandarine.diceroller.R
 import fr.mandarine.diceroller.domain.CustomDie
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DicePool
@@ -163,6 +165,7 @@ fun DiceStepperChip(
 ) {
     val isIncluded = count > 0
     val chipColors = chipColorsFor(isIncluded)
+    val label = dieLabel(dice)
 
     CompositionLocalProvider(LocalContentColor provides chipColors.content) {
         Box(
@@ -193,15 +196,16 @@ fun DiceStepperChip(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = dice.label,
+                        text = label,
                         style = MaterialTheme.typography.labelMedium,
                     )
+                    val countText = stringResource(R.string.number, count)
                     Text(
-                        text = "$count",
+                        text = countText,
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier
                             .testTag(chipCountTestTag(dice))
-                            .semantics { stateDescription = "$count" },
+                            .semantics { stateDescription = countText },
                     )
                 }
             }
@@ -211,7 +215,7 @@ fun DiceStepperChip(
             Row(modifier = Modifier.matchParentSize()) {
                 StepperHalf(
                     glyph = DECREMENT_GLYPH,
-                    description = "Decrease ${dice.label} count",
+                    description = stringResource(R.string.chip_decrease_description, label),
                     enabled = count > 0,
                     onClick = onDecrement,
                     glyphAlignment = Alignment.CenterStart,
@@ -219,7 +223,7 @@ fun DiceStepperChip(
                 )
                 StepperHalf(
                     glyph = INCREMENT_GLYPH,
-                    description = "Increase ${dice.label} count",
+                    description = stringResource(R.string.chip_increase_description, label),
                     enabled = count < DicePool.MAX_DICE_PER_TYPE,
                     onClick = onIncrement,
                     glyphAlignment = Alignment.CenterEnd,
@@ -233,6 +237,7 @@ fun DiceStepperChip(
             if (onRemove != null) {
                 RemoveBadge(
                     dice = dice,
+                    label = label,
                     onRemove = onRemove,
                     modifier = Modifier.align(Alignment.TopEnd),
                 )
@@ -261,16 +266,18 @@ fun chipRemoveTestTag(dice: DieType): String = "chip-remove-${dice.label}"
 @Composable
 private fun RemoveBadge(
     dice: DieType,
+    label: String,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val description = stringResource(R.string.chip_remove_description, label)
     Box(
         modifier = modifier
             .size(REMOVE_TARGET_SIZE)
             .clickable(role = Role.Button, onClick = onRemove)
             .testTag(chipRemoveTestTag(dice))
             .semantics(mergeDescendants = true) {
-                contentDescription = "Remove ${dice.label}"
+                contentDescription = description
             },
         contentAlignment = Alignment.Center,
     ) {
