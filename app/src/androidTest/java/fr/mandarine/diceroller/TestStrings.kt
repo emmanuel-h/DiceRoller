@@ -15,7 +15,7 @@ import fr.mandarine.diceroller.domain.DieType
  * `"Add dice to roll"` matches nothing — and a translation that broke a screen would then show up
  * as a red test rather than as a bug report. What the assertions still pin is the *structure*: that
  * the button carries the pool's notation, that the header counts the entries, that a value and its
- * multiplier land in the same row.
+ * count land in the same entry.
  *
  * Resolved against the *target* context — the app under test — rather than the instrumentation
  * one, so these are the same resources the composables read.

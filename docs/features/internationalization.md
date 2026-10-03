@@ -108,7 +108,7 @@ Instrumented tests no longer spell English sentences out. `androidTest/.../TestS
 context — the same resources the composables read. The suite therefore passes on a device set to
 French, and a translation that broke a screen shows up as a red test rather than as a bug report.
 What the assertions still pin is the structure: that the button carries the pool's notation, that
-the header counts the entries, that a value and its multiplier land in the same row.
+the header counts the entries, that a repeated value and its count land in the same entry.
 
 Two coverage notes:
 

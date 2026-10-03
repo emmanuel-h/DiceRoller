@@ -56,7 +56,7 @@ A **collapsible history band** sitting between the result and the Roll button.
    launch is identical to the screen before this feature existed.
 2. **Collapsed by default**, showing `⌄ Recent (N)`. Tapping the header expands or collapses it.
 3. **Each entry** shows the pool in dice notation with its total on the right, the individual
-   faces as compact artwork below (repeats as `×N`, matching the live result's compression), and
+   faces as compact artwork below (each die carrying its value as an outlined numeral, repeats adding `×N` beside it, matching the live result — issue #69), and
    how long ago it happened — `just now`, `3 min ago`, `2 h ago`, `5 d ago`.
 4. **Newest first**, capped at **50** records; older rolls fall off the end.
 5. **Persisted.** The log survives closing and reopening the app. The *pool* still does not —

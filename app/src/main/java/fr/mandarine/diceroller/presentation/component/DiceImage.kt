@@ -27,8 +27,8 @@ import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
  *   swatch-coloured pill carrying its face count (issue #4)
  *
  * The artwork is a fixed render with a numeral already painted on its faces, so it is decorative
- * only — the rolled value is never drawn on the die. Callers display the result separately (see
- * [DiceResultDisplay]).
+ * only. Where the rolled value goes on the die, [RolledDieImage] draws it as an outlined numeral
+ * over this image, so it stays legible against the painted ones.
  *
  * @param dice the die whose art or badge to render
  * @param color the color variant to render

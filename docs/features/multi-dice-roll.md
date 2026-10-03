@@ -24,7 +24,7 @@ DiceRoller currently lets a user select and roll only one die type at a time. Ta
 6. Rolling produces one independent random result per die in the pool, each uniformly random over that die's face count.
 7. Results are grouped by die type, in the same smallest-to-largest order as the Roll button label. Each group is headed by its pool size and type (e.g., "4×D6").
 8. Within a group, show one row per distinct value that was actually rolled, sorted descending (highest value first); values rolled zero times are omitted entirely — a group is only as tall as the number of distinct values it hit.
-9. Each row shows the die art for that value on the left and the count as a numeral (e.g., "×2") in a separate column on the right — not repeated icons/pips/bars — so row width stays constant whether the count is ×1 or ×20.
+9. Each entry shows the die art with the rolled value drawn over its centre (bold white numeral, dark outline, no backing so the die stays visible), then — when more than one die landed on it — a `×N` count (`×2`). Not repeated icons/pips/bars. Issue #69: with the value *beside* the die, `7 ×2` read as `7 × 2 = 14`; moving the value onto the die leaves `×2` attached to the die alone. A value rolled once shows no count. The roll history uses the same entry.
 10. Individual dice are no longer rendered one-tile-per-die; the per-value tally rows described in FR 7-9 are the entire result display.
 11. A total sum across all dice is still shown, demoted to a single quiet secondary line below all groups — not the headline.
 12. The selected color applies to every die in the pool and every result shown, same as today's single global color choice.
@@ -120,3 +120,4 @@ All unit tests (`src/test/`) were run and pass. **Instrumented tests (`src/andro
 | 2026-08-08 | Added Architecture section — links to `docs/architecture/multi-dice-roll.md` (issues #46, #47) |
 | 2026-08-08 | Added Design section — links to `docs/design/multi-dice-roll.md` (issues #44, #45) |
 | 2026-08-08 | Added Testing section — links to `docs/testing/multi-dice-roll.md` (issues #53–#56, PR #61) |
+| 2026-10-03 | FR 9: the value moves onto the die (outlined numeral) and repeat counts (`×N`) show only for repeats, in the live result and the history (issue #69) |
