@@ -119,6 +119,9 @@
     <string name="settings_title">Paramètres</string>
     <string name="settings_section_language">Langue</string>
     <string name="language_system">Langue du système</string>
+    <string name="settings_section_rolling">Lancer</string>
+    <string name="shake_to_roll_label">Secouer pour lancer</string>
+    <string name="shake_to_roll_description">Secouez votre téléphone pour lancer les dés choisis.</string>
     <string name="settings_section_about">À propos</string>
     <string name="about_section_license">Licence</string>
     <string name="about_section_artwork">Illustrations</string>

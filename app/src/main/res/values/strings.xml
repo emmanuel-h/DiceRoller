@@ -132,6 +132,9 @@
     -->
     <string name="language_en" translatable="false">English</string>
     <string name="language_fr" translatable="false">Français</string>
+    <string name="settings_section_rolling">Rolling</string>
+    <string name="shake_to_roll_label">Shake to roll</string>
+    <string name="shake_to_roll_description">Shake your phone to roll the dice you have picked.</string>
     <string name="settings_section_about">About</string>
     <string name="about_version" translatable="false">%1$s %2$s</string>
     <string name="about_section_license">License</string>

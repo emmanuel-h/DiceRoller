@@ -39,12 +39,14 @@ class DiceRollerViewModelTest {
         languageStore: AppLanguageStore = InMemoryAppLanguageStore(),
         historyStore: RollHistoryStore = InMemoryRollHistoryStore(),
         customDiceStore: CustomDiceStore = InMemoryCustomDiceStore(),
+        shakeToRollStore: ShakeToRollStore = InMemoryShakeToRollStore(),
     ): DiceRollerViewModel = DiceRollerViewModel(
         diceRoller = DiceRoller(random = Random(seed)),
         colorStore = colorStore,
         languageStore = languageStore,
         historyStore = historyStore,
         customDiceStore = customDiceStore,
+        shakeToRollStore = shakeToRollStore,
         clock = { nowMillis },
     )
 
@@ -563,6 +565,56 @@ class DiceRollerViewModelTest {
             vm.selectColor(color)
             assertEquals(color, vm.uiState.value.selectedColor)
         }
+    }
+
+    // --- Shake to roll: on unless switched off, and remembered ---
+
+    @Test
+    fun givenNewViewModelWithEmptyStore_whenReadingState_thenShakeToRollIsOn() {
+        assertTrue(viewModel().uiState.value.isShakeToRollEnabled)
+    }
+
+    @Test
+    fun givenAStoreHoldingShakeOff_whenViewModelIsCreated_thenShakeToRollIsOff() {
+        val vm = viewModel(shakeToRollStore = InMemoryShakeToRollStore(initial = false))
+
+        assertFalse(vm.uiState.value.isShakeToRollEnabled)
+    }
+
+    @Test
+    fun givenShakeToRollSwitchedOff_whenReadingStateAndStore_thenBothReflectIt() = runTest {
+        val store = InMemoryShakeToRollStore()
+        val vm = viewModel(shakeToRollStore = store)
+
+        vm.setShakeToRollEnabled(false)
+
+        assertFalse(vm.uiState.value.isShakeToRollEnabled)
+        assertFalse(store.isEnabled.first())
+    }
+
+    @Test
+    fun givenShakeToRollSwitchedOff_whenANewViewModelSharesTheStore_thenTheChoiceSurvives() {
+        val store = InMemoryShakeToRollStore()
+        viewModel(shakeToRollStore = store).setShakeToRollEnabled(false)
+
+        val restarted = viewModel(shakeToRollStore = store)
+
+        assertFalse(restarted.uiState.value.isShakeToRollEnabled)
+    }
+
+    /** A preference, like the colour: flipping it is not a change to what Roll would produce. */
+    @Test
+    fun givenARollResult_whenShakeToRollIsSwitched_thenTheResultAndLogSurvive() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        val result = vm.uiState.value.result
+        val history = vm.uiState.value.history
+
+        vm.setShakeToRollEnabled(false)
+
+        assertEquals(result, vm.uiState.value.result)
+        assertEquals(history, vm.uiState.value.history)
     }
 
     // --- Language: chosen independently of the device, and remembered ---

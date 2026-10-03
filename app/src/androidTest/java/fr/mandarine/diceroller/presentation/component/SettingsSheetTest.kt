@@ -2,6 +2,8 @@
 package fr.mandarine.diceroller.presentation.component
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -33,9 +35,14 @@ class SettingsSheetTest {
     val composeTestRule = createComposeRule()
 
     private val selected = mutableListOf<AppLanguage>()
+    private val shakeToggles = mutableListOf<Boolean>()
 
-    private fun launchSheet(selectedLanguage: AppLanguage = AppLanguage.System) {
+    private fun launchSheet(
+        selectedLanguage: AppLanguage = AppLanguage.System,
+        isShakeToRollEnabled: Boolean = true,
+    ) {
         selected.clear()
+        shakeToggles.clear()
         composeTestRule.setContent {
             DiceRollerTheme {
                 SettingsSheet(
@@ -44,6 +51,8 @@ class SettingsSheetTest {
                     onOpenLink = {},
                     selectedLanguage = selectedLanguage,
                     onSelectLanguage = { selected += it },
+                    isShakeToRollEnabled = isShakeToRollEnabled,
+                    onSetShakeToRollEnabled = { shakeToggles += it },
                 )
             }
         }
@@ -63,6 +72,34 @@ class SettingsSheetTest {
         .fetchSemanticsNode()
         .boundsInRoot
         .top
+
+    // --- Shake to roll (issue #1) ---
+
+    @Test
+    fun givenShakeToRollOn_whenTheSheetOpens_thenTheSwitchShowsOn() {
+        launchSheet(isShakeToRollEnabled = true)
+
+        composeTestRule.onNodeWithText(str(R.string.shake_to_roll_label)).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(SHAKE_TO_ROLL_TOGGLE_TAG).assertIsOn()
+    }
+
+    @Test
+    fun givenShakeToRollOn_whenTheRowIsTapped_thenItAsksToSwitchItOff() {
+        launchSheet(isShakeToRollEnabled = true)
+
+        composeTestRule.onNodeWithTag(SHAKE_TO_ROLL_TOGGLE_TAG).performClick()
+
+        assertEquals(listOf(false), shakeToggles)
+    }
+
+    @Test
+    fun givenShakeToRollOff_whenTheRowIsTapped_thenItAsksToSwitchItOn() {
+        launchSheet(isShakeToRollEnabled = false)
+
+        composeTestRule.onNodeWithTag(SHAKE_TO_ROLL_TOGGLE_TAG).assertIsOff().performClick()
+
+        assertEquals(listOf(true), shakeToggles)
+    }
 
     // --- It is a settings sheet now, not an About box ---
 

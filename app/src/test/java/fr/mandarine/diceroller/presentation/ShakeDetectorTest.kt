@@ -1,0 +1,112 @@
+package fr.mandarine.diceroller.presentation
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class ShakeDetectorTest {
+
+    /** A phone lying flat: gravity alone, 1g on the z axis. */
+    private val rest = floatArrayOf(0f, 0f, 9.81f)
+
+    /** A hard swing along x: about 3.3g in total, well past the default 2.5g threshold. */
+    private val jolt = floatArrayOf(31f, 0f, 9.81f)
+
+    /**
+     * Feeds [samples] (`true` = a jolt sample, `false` = a resting one) at [intervalMillis] apart
+     * starting at [startMillis], and returns the timestamps at which a shake fired.
+     */
+    private fun ShakeDetector.feed(
+        samples: List<Boolean>,
+        startMillis: Long = 0L,
+        intervalMillis: Long = 20L,
+    ): List<Long> = samples.mapIndexedNotNull { index, isJolt ->
+        val (x, y, z) = if (isJolt) jolt else rest
+        val time = startMillis + index * intervalMillis
+        time.takeIf { onSample(x, y, z, time) }
+    }
+
+    /** Back and forth [times]: a jolt sample then a resting one, repeated. */
+    private fun swings(times: Int): List<Boolean> = List(times) { listOf(true, false) }.flatten()
+
+    @Test
+    fun givenAPhoneAtRest_whenSampled_thenNoShakeIsDetected() {
+        val shakes = ShakeDetector().feed(List(200) { false })
+
+        assertTrue(shakes.isEmpty())
+    }
+
+    @Test
+    fun givenThreeQuickSwings_whenSampled_thenOneShakeFiresOnTheThird() {
+        val shakes = ShakeDetector().feed(swings(3))
+
+        assertEquals(listOf(80L), shakes)
+    }
+
+    @Test
+    fun givenTwoSwings_whenSampled_thenNoShakeIsDetected() {
+        val shakes = ShakeDetector().feed(swings(2))
+
+        assertTrue(shakes.isEmpty())
+    }
+
+    /** A phone put down hard stays above the threshold for several samples: one jolt, not three. */
+    @Test
+    fun givenOneSustainedKnock_whenSampled_thenItCountsAsASingleJolt() {
+        val shakes = ShakeDetector().feed(List(10) { true } + List(10) { false })
+
+        assertTrue(shakes.isEmpty())
+    }
+
+    @Test
+    fun givenSwingsSpreadWiderThanTheWindow_whenSampled_thenNoShakeIsDetected() {
+        val detector = ShakeDetector(windowMillis = 800L)
+
+        val shakes = listOf(0L, 500L, 1_000L, 1_500L, 2_000L).filter { time ->
+            val jolted = detector.onSample(jolt[0], jolt[1], jolt[2], time)
+            detector.onSample(rest[0], rest[1], rest[2], time + 20)
+            jolted
+        }
+
+        assertTrue(shakes.isEmpty())
+    }
+
+    @Test
+    fun givenALongShake_whenSampled_thenItFiresOncePerCooldown() {
+        // 50 swings at 40ms each = 2s of continuous shaking, against a 1.5s cooldown.
+        val shakes = ShakeDetector(cooldownMillis = 1_500L).feed(swings(50))
+
+        assertEquals(2, shakes.size)
+        assertTrue(shakes[1] - shakes[0] >= 1_500L)
+    }
+
+    @Test
+    fun givenAShakeThenAPause_whenShakenAgainAfterTheCooldown_thenItFiresAgain() {
+        val detector = ShakeDetector()
+
+        val first = detector.feed(swings(3))
+        val second = detector.feed(swings(3), startMillis = 5_000L)
+
+        assertEquals(1, first.size)
+        assertEquals(1, second.size)
+    }
+
+    @Test
+    fun givenAJoltBelowTheThreshold_whenSampled_thenItDoesNotCount() {
+        val detector = ShakeDetector(thresholdG = 2.5f)
+        val gentle = 2f * 9.81f
+
+        val fired = (0 until 20).any { index ->
+            val time = index * 20L
+            if (index % 2 == 0) detector.onSample(gentle, 0f, 0f, time) else detector.onSample(0f, 0f, 9.81f, time)
+        }
+
+        assertFalse(fired)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun givenZeroRequiredJolts_whenCreated_thenItIsRejected() {
+        ShakeDetector(requiredJolts = 0)
+    }
+}

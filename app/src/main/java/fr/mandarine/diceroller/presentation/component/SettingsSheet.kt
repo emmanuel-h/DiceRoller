@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -51,6 +53,9 @@ const val SETTINGS_SHEET_TAG: String = "settings-sheet"
 
 /** Test tag of the gear button that opens the sheet. */
 const val SETTINGS_BUTTON_TAG: String = "settings-button"
+
+/** Test tag on the shake-to-roll row, which is the switch's whole touch target. */
+const val SHAKE_TO_ROLL_TOGGLE_TAG: String = "shake-to-roll-toggle"
 
 /** Test tag of one language option in the picker, e.g. `language-option-fr`. */
 fun languageOptionTestTag(language: AppLanguage): String = "language-option-${language.tag ?: "system"}"
@@ -146,6 +151,8 @@ fun SettingsIconButton(
  *   tests can assert *which* URI a row opens without leaving the app
  * @param selectedLanguage the language the app is currently written in
  * @param onSelectLanguage invoked with the language the user picked
+ * @param isShakeToRollEnabled whether shaking the phone currently rolls the dice
+ * @param onSetShakeToRollEnabled invoked with the new value when the shake switch is flipped
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -156,17 +163,23 @@ fun SettingsSheet(
     onOpenLink: (String) -> Unit = LocalUriHandler.current::openUri,
     selectedLanguage: AppLanguage = AppLanguage.System,
     onSelectLanguage: (AppLanguage) -> Unit = {},
+    isShakeToRollEnabled: Boolean = true,
+    onSetShakeToRollEnabled: (Boolean) -> Unit = {},
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         modifier = modifier,
-        sheetState = rememberModalBottomSheetState(),
+        // Fully open from the start: half-open, the Rolling section (issue #1) pushed the artwork
+        // credit below the fold, and the licence needs it one tap away, not one tap and a drag.
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         SettingsSheetContent(
             versionName = versionName,
             onOpenLink = onOpenLink,
             selectedLanguage = selectedLanguage,
             onSelectLanguage = onSelectLanguage,
+            isShakeToRollEnabled = isShakeToRollEnabled,
+            onSetShakeToRollEnabled = onSetShakeToRollEnabled,
         )
     }
 }
@@ -181,6 +194,8 @@ private fun SettingsSheetContent(
     onOpenLink: (String) -> Unit,
     selectedLanguage: AppLanguage = AppLanguage.System,
     onSelectLanguage: (AppLanguage) -> Unit = {},
+    isShakeToRollEnabled: Boolean = true,
+    onSetShakeToRollEnabled: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // A device with no browser or no mail app throws rather than returning false, and a missing
@@ -206,12 +221,19 @@ private fun SettingsSheetContent(
             style = displayStyle(MaterialTheme.typography.headlineSmall),
         )
 
-        // First, because it is the only thing here that *does* anything; everything below it is
-        // something to read.
+        // The settings come first, because they are the only things here that *do* anything;
+        // everything below them is something to read.
         SettingsSection(title = stringResource(R.string.settings_section_language)) {
             LanguagePicker(
                 selectedLanguage = selectedLanguage,
                 onSelectLanguage = onSelectLanguage,
+            )
+        }
+
+        SettingsSection(title = stringResource(R.string.settings_section_rolling)) {
+            ShakeToRollToggle(
+                isEnabled = isShakeToRollEnabled,
+                onSetEnabled = onSetShakeToRollEnabled,
             )
         }
 
@@ -311,6 +333,43 @@ private fun LanguagePicker(
                 )
             }
         }
+    }
+}
+
+/**
+ * The shake-to-roll switch (issue #1), as a row whose label explains the gesture.
+ *
+ * The whole row toggles, not just the switch, for the same reason the language options are whole
+ * rows: the switch alone is a small target at the end of a line of text.
+ */
+@Composable
+private fun ShakeToRollToggle(
+    isEnabled: Boolean,
+    onSetEnabled: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = LANGUAGE_OPTION_MIN_HEIGHT)
+            .toggleable(value = isEnabled, role = Role.Switch, onValueChange = onSetEnabled)
+            .testTag(SHAKE_TO_ROLL_TOGGLE_TAG),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(LANGUAGE_OPTION_SPACING),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.shake_to_roll_label),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                text = stringResource(R.string.shake_to_roll_description),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        // Null callback: the row is the control, as with the language options' radio buttons.
+        Switch(checked = isEnabled, onCheckedChange = null)
     }
 }
 
