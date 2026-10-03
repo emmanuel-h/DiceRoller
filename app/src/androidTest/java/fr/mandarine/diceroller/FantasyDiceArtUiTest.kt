@@ -156,7 +156,7 @@ class FantasyDiceArtUiTest {
     fun givenARollResult_whenTheColorIsChanged_thenTheResultRowsSwitchToTheNewColor() {
         val viewModel = launchWithViewModel(seed = 7)
         increaseButton(Dice.D6).performClick()
-        composeTestRule.onNodeWithText(rollLabel("1D6")).performClick()
+        composeTestRule.onNodeWithText(rollLabel()).performClick()
         val rolledValue = viewModel.uiState.value.result!!.groups.first().tallies.first().value
 
         swatch(DiceColor.Jade).performScrollTo().performClick()
@@ -169,7 +169,7 @@ class FantasyDiceArtUiTest {
     fun givenARollResult_whenTheColorIsChanged_thenTheResultIsKept() {
         val viewModel = launchWithViewModel(seed = 7)
         increaseButton(Dice.D6).performClick()
-        composeTestRule.onNodeWithText(rollLabel("1D6")).performClick()
+        composeTestRule.onNodeWithText(rollLabel()).performClick()
         val total = viewModel.uiState.value.result!!.total
 
         swatch(DiceColor.Bronze).performScrollTo().performClick()

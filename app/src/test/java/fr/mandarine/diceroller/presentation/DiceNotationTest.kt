@@ -6,7 +6,6 @@ import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DiceGroupResult
 import fr.mandarine.diceroller.domain.DicePool
 import fr.mandarine.diceroller.domain.DicePoolResult
-import fr.mandarine.diceroller.domain.DieType
 import fr.mandarine.diceroller.domain.ValueTally
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -60,21 +59,6 @@ class DiceNotationTest {
         assertEquals("", DicePoolResult(groups = emptyList(), total = 0).notation())
     }
 
-    /** The Roll button and a history entry must never describe the same pool differently. */
-    @Test
-    fun givenSamePool_whenFormattedForButtonAndForResult_thenTheNotationMatches() {
-        val counts: Map<DieType, Int> = mapOf(Dice.D6 to 4, Dice.D8 to 2)
-        val result = DicePoolResult(
-            groups = listOf(group(Dice.D6, 4), group(Dice.D8, 2)),
-            total = 6,
-        )
-
-        assertEquals(
-            listOf<Any>(result.notation()),
-            (rollButtonLabel(DicePool(counts)) as UiText.Res).args,
-        )
-    }
-
     // --- Custom dice notate exactly like presets (issue #4) ---
 
     @Test
@@ -92,13 +76,10 @@ class DiceNotationTest {
 
     /** A pool built from a map notates in face-count order, custom dice included. */
     @Test
-    fun givenAPoolMixingPresetsAndACustomDie_whenLabelled_thenItReadsSmallestToLargest() {
+    fun givenAPoolMixingPresetsAndACustomDie_whenNotated_thenItReadsSmallestToLargest() {
         val pool = DicePool(mapOf(Dice.D8 to 2, CustomDie(7) to 1, Dice.D6 to 4))
 
-        assertEquals(
-            listOf<Any>("4D6 + 1D7 + 2D8"),
-            (rollButtonLabel(pool) as UiText.Res).args,
-        )
+        assertEquals("4D6 + 1D7 + 2D8", poolNotation(pool.entries))
     }
 
     @Test

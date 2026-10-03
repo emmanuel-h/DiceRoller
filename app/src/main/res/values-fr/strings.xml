@@ -11,8 +11,7 @@
     -->
 
     <!-- Roll bar -->
-    <string name="roll_button_empty">Ajouter des dés</string>
-    <string name="roll_button">Lancer %1$s</string>
+    <string name="roll_button">Lancer</string>
     <string name="clear_pool_description">Vider la réserve de dés</string>
 
     <!-- Pool selector -->

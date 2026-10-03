@@ -11,8 +11,8 @@ import androidx.compose.ui.platform.LocalResources
  * A piece of user-facing text named rather than spelled out: a resource id plus the arguments to
  * format it with, resolved against a locale only at the point it is displayed.
  *
- * Exists because three of this package's string builders — [rollButtonLabel], [relativeTimeLabel]
- * and [validateCustomFaces] — are pure functions covered by plain JVM unit tests, and issue #68
+ * Exists because this package's string builders — [relativeTimeLabel] and [validateCustomFaces]
+ * — are pure functions covered by plain JVM unit tests, and issue #68
  * would otherwise have forced them either into `@Composable` (moving ~300 lines of fast tests onto
  * a device) or into taking a [Resources] (which the JVM source set has no way to build). Returning
  * a [UiText] keeps them pure *and* locale-independent: a test asserts which string was chosen and

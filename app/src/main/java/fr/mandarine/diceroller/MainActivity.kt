@@ -48,7 +48,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import fr.mandarine.diceroller.domain.CustomDie
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DiceGroupResult
-import fr.mandarine.diceroller.domain.DicePool
 import fr.mandarine.diceroller.domain.DicePoolResult
 import fr.mandarine.diceroller.domain.DieType
 import fr.mandarine.diceroller.domain.RollRecord
@@ -68,7 +67,6 @@ import fr.mandarine.diceroller.presentation.component.SettingsSheet
 import fr.mandarine.diceroller.presentation.component.dieLabel
 import fr.mandarine.diceroller.presentation.model.DiceColor
 import fr.mandarine.diceroller.presentation.resolve
-import fr.mandarine.diceroller.presentation.rollButtonLabel
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 
 /** Die-type chips per row in the pool selector, giving each chip an equal share of the width. */
@@ -269,7 +267,6 @@ fun DiceRollerScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             RollBar(
-                pool = uiState.pool,
                 canRoll = uiState.canRoll,
                 onRollDice = onRollDice,
                 onClearPool = onClearPool,
@@ -469,7 +466,6 @@ private fun DicePoolSelector(
  */
 @Composable
 private fun RollBar(
-    pool: Map<DieType, Int>,
     canRoll: Boolean,
     onRollDice: () -> Unit,
     onClearPool: () -> Unit,
@@ -494,7 +490,7 @@ private fun RollBar(
                 enabled = canRoll,
                 modifier = Modifier.weight(1f),
             ) {
-                Text(rollButtonLabel(DicePool(pool)).resolve())
+                Text(stringResource(R.string.roll_button))
             }
         }
     }

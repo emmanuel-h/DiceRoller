@@ -39,8 +39,8 @@ fun plural(@PluralsRes id: Int, count: Int, vararg args: Any): String =
  */
 fun dieNotation(die: DieType): String = str(R.string.die_label, die.faces)
 
-/** The Roll button's label for a pool that notates as [notation]. */
-fun rollLabel(notation: String): String = str(R.string.roll_button, notation)
+/** The Roll button's label, which is the bare verb whatever the pool holds (issue #70). */
+fun rollLabel(): String = str(R.string.roll_button)
 
 /**
  * A result group's header, e.g. `"4×D6"`.

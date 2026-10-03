@@ -68,7 +68,7 @@ class AppLanguageResourcesTest {
     fun givenEveryOfferedLanguage_whenResolved_thenNothingComesBackBlank() {
         AppLanguage.entries.mapNotNull { it.tag }.forEach { tag ->
             val strings = stringsIn(tag)
-            listOf(probe, R.string.settings_title, R.string.roll_button_empty).forEach { id ->
+            listOf(probe, R.string.settings_title, R.string.roll_button).forEach { id ->
                 assertNotEquals("Blank string for '$tag'", "", strings(id).trim())
             }
         }

@@ -41,7 +41,7 @@ sealed interface CustomFacesResult {
  * Validates a typed face count against every rule that could stop it becoming a custom die, and
  * says which one it broke.
  *
- * Kept a pure function next to [poolNotation] and [rollButtonLabel] rather than pushed into
+ * Kept a pure function next to [poolNotation] and [relativeTimeLabel] rather than pushed into
  * [DiceRollerViewModel]: the creator's text field is transient UI state, so the ViewModel never
  * sees a half-typed number, and every rule here is unit-testable without a coroutine or a store.
  *
