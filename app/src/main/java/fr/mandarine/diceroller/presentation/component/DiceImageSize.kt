@@ -21,7 +21,7 @@ enum class DiceImageSize(val sizeDp: Dp) {
      */
     Compact(sizeDp = 24.dp),
 
-    /** Inline variant used inside a result face-ladder entry, beside its value and `×N` count. */
+    /** Inline variant used inside a result face-ladder entry, with its value drawn over it. */
     Inline(sizeDp = 36.dp),
 
     /** Chip variant: the artwork that fills a [DiceStepperChip] in the pool selector. */

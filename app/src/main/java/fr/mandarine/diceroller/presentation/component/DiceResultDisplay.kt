@@ -50,7 +50,7 @@ private val ENTRY_HORIZONTAL_SPACING = 14.dp
 /** Gap between two wrapped lines of face entries within one die-type group. */
 private val ENTRY_VERTICAL_SPACING = 6.dp
 
-/** Gap between the art, the value and the `×N` count inside a single entry. */
+/** Gap between the die and its repeat count inside a single entry. */
 private val ENTRY_INTERNAL_SPACING = 4.dp
 
 /** Gap between one die-type group and the next. */
@@ -62,7 +62,10 @@ private const val GROUP_SUMMARY_SEPARATOR = " "
 /**
  * Displays the outcome of rolling a mixed dice pool as a per-die-type face-ladder turned sideways:
  * one header per die type, then that type's distinct rolled values (highest first) as compact
- * inline `art + value + ×N` entries that wrap, followed by a demoted total-sum line.
+ * inline entries that wrap, followed by a demoted total-sum line. Each entry is the die with its
+ * rolled value on it ([RolledDieImage]), then — only when several dice landed on that value — a
+ * `×N` count. With the value on the die rather than beside it, `×2` can no longer read as `7 × 2`
+ * (issue #69).
  *
  * The sideways arrangement is what keeps the whole screen scroll-free for a realistic pool
  * (issues #63, #64): a die type costs roughly one line instead of one line per rolled value, which
@@ -216,7 +219,8 @@ private fun GroupHeader(group: DiceGroupResult, modifier: Modifier = Modifier) {
 }
 
 /**
- * One rolled value as a compact inline entry: die art, the value, then its `×N` multiplier.
+ * One rolled value as a compact inline entry: the die with its value on it, then a `×N` for how
+ * many dice landed on that value when it is more than one.
  *
  * The artwork is the largest element and the wording the smallest, inverting the previous row
  * layout where a `headlineSmall` numeral dominated a 56dp-tall row (issue #63).
@@ -241,23 +245,21 @@ private fun FaceEntry(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(ENTRY_INTERNAL_SPACING),
     ) {
-        DiceImage(
+        RolledDieImage(
             dice = dice,
             color = color,
             sizeVariant = DiceImageSize.Inline,
-            contentDescription = null,
-            modifier = Modifier.testTag("dice-row-art-${dice.label}-${tally.value}-${color.name}"),
+            value = tally.value,
+            imageModifier = Modifier.testTag("dice-row-art-${dice.label}-${tally.value}-${color.name}"),
         )
-        Text(
-            text = stringResource(R.string.number, tally.value),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = stringResource(R.string.multiplier, tally.count),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (tally.count > 1) {
+            Text(
+                text = stringResource(R.string.multiplier, tally.count),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("dice-row-count-${dice.label}-${tally.value}"),
+            )
+        }
     }
 }
 

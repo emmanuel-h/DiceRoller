@@ -156,20 +156,30 @@ class DiceResultDisplayTest {
         )
     }
 
-    /** Asserts that the row identified by [rowDescription] contains both the die art tagged
-     * [artTestTag] and the count text [countText] — i.e. the row pairs the correct art with the
-     * correct multiplier, not merely that both exist somewhere on screen. */
-    private fun assertRowPairsArtWithCount(rowDescription: String, artTestTag: String, countText: String) {
-        composeTestRule
-            .onNode(
-                hasContentDescription(rowDescription) and
-                    hasAnyDescendant(hasTestTag(artTestTag)) and
-                    hasAnyDescendant(hasText(countText)),
-                // The entry's descendants only exist as separate nodes in the unmerged tree;
-                // merged, they collapse into the single node this same matcher describes.
-                useUnmergedTree = true,
+    /** Asserts that the entry identified by [rowDescription] contains the die art tagged
+     * [artTestTag] and, when [count] is above 1, its `×N` count — i.e. the entry
+     * pairs the correct art with the correct count, not merely that both exist somewhere on
+     * screen. A value rolled once must carry no count at all (issue #69). */
+    private fun assertRowPairsArtWithCount(
+        rowDescription: String,
+        artTestTag: String,
+        badgeTestTag: String,
+        count: Int,
+    ) {
+        val row = hasContentDescription(rowDescription) and hasAnyDescendant(hasTestTag(artTestTag))
+        // The entry's descendants only exist as separate nodes in the unmerged tree; merged, they
+        // collapse into the single node this same matcher describes.
+        if (count > 1) {
+            val withBadge = row and hasAnyDescendant(
+                hasTestTag(badgeTestTag) and
+                    hasText(str(R.string.multiplier, count)),
             )
-            .assertExists()
+            composeTestRule.onNode(withBadge, useUnmergedTree = true).assertExists()
+        } else {
+            composeTestRule.onNode(row, useUnmergedTree = true).assertExists()
+            composeTestRule.onNode(hasTestTag(badgeTestTag), useUnmergedTree = true)
+                .assertDoesNotExist()
+        }
     }
 
     // --- Empty state ---
@@ -275,15 +285,16 @@ class DiceResultDisplayTest {
     }
 
     @Test
-    fun givenPopulatedResult_whenDisplayed_thenEveryEntryShowsItsOwnMultiplier() {
+    fun givenPopulatedResult_whenDisplayed_thenOnlyTheRepeatedValueShowsItsCount() {
         launch(result = sampleResult)
 
-        // The sample rolled four values once (D6 6, D6 3, D8 7, D8 2) and one value twice (D6 4),
-        // so the multipliers are counted, not merely shown to exist somewhere.
-        composeTestRule.onAllNodesWithText(str(R.string.multiplier, 1), useUnmergedTree = true)
-            .assertCountEquals(4)
-        composeTestRule.onAllNodesWithText(str(R.string.multiplier, 2), useUnmergedTree = true)
-            .assertCountEquals(1)
+        // The sample rolled four values once (D6 6, D6 3, D8 7, D8 2) and one value twice (D6 4).
+        composeTestRule.onNode(hasTestTag("dice-row-count-D6-4"), useUnmergedTree = true)
+            .assertExists()
+        listOf("D6-6", "D6-3", "D8-7", "D8-2").forEach { key ->
+            composeTestRule.onNode(hasTestTag("dice-row-count-$key"), useUnmergedTree = true)
+                .assertDoesNotExist()
+        }
     }
 
     @Test
@@ -360,7 +371,7 @@ class DiceResultDisplayTest {
         )
     }
 
-    // --- Populated state: each row pairs its own die art with its own count ---
+    // --- Populated state: each entry pairs its own die art with its own count ---
 
     @Test
     fun givenPopulatedResult_whenDisplayed_thenTheD6SixRowPairsItsOwnArtWithItsOwnCount() {
@@ -369,7 +380,8 @@ class DiceResultDisplayTest {
         assertRowPairsArtWithCount(
             rowDescription = faceDescription(value = 6, count = 1),
             artTestTag = "dice-row-art-D6-6-Ruby",
-            countText = str(R.string.multiplier, 1),
+            badgeTestTag = "dice-row-count-D6-6",
+            count = 1,
         )
     }
 
@@ -380,7 +392,8 @@ class DiceResultDisplayTest {
         assertRowPairsArtWithCount(
             rowDescription = faceDescription(value = 4, count = 2),
             artTestTag = "dice-row-art-D6-4-Ruby",
-            countText = str(R.string.multiplier, 2),
+            badgeTestTag = "dice-row-count-D6-4",
+            count = 2,
         )
     }
 
@@ -391,7 +404,8 @@ class DiceResultDisplayTest {
         assertRowPairsArtWithCount(
             rowDescription = faceDescription(value = 7, count = 1),
             artTestTag = "dice-row-art-D8-7-Ruby",
-            countText = str(R.string.multiplier, 1),
+            badgeTestTag = "dice-row-count-D8-7",
+            count = 1,
         )
     }
 
@@ -402,7 +416,8 @@ class DiceResultDisplayTest {
         assertRowPairsArtWithCount(
             rowDescription = faceDescription(value = 2, count = 1),
             artTestTag = "dice-row-art-D8-2-Ruby",
-            countText = str(R.string.multiplier, 1),
+            badgeTestTag = "dice-row-count-D8-2",
+            count = 1,
         )
     }
 

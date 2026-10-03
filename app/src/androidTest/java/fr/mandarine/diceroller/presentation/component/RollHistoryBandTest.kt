@@ -4,6 +4,8 @@ package fr.mandarine.diceroller.presentation.component
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -170,12 +172,15 @@ class RollHistoryBandTest {
     }
 
     @Test
-    fun givenExpandedBand_whenDisplayed_thenRepeatedValuesAreShownAsAMultiplier() {
+    fun givenExpandedBand_whenDisplayed_thenRepeatedValuesShowAMultiplier() {
         launchBand(isExpanded = true)
 
-        // The 4 was rolled twice; the 6 only once and so carries no multiplier.
-        composeTestRule.onNodeWithText(str(R.string.multiplier, 2)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(str(R.string.multiplier, 1)).assertDoesNotExist()
+        // The 4 was rolled twice; the 6 only once and so carries no count (issue #69).
+        composeTestRule.onNode(hasTestTag("history-face-count-D6-4"), useUnmergedTree = true)
+            .assertIsDisplayed()
+            .assertTextEquals(str(R.string.multiplier, 2))
+        composeTestRule.onNode(hasTestTag("history-face-count-D6-6"), useUnmergedTree = true)
+            .assertDoesNotExist()
     }
 
     /** The log is append-only: no state of this band offers a way to erase it. */

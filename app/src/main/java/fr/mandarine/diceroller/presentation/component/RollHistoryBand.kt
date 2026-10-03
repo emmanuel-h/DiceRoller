@@ -68,7 +68,7 @@ private val HEADER_MIN_HEIGHT = 40.dp
 private val ENTRY_VERTICAL_PADDING = 8.dp
 private val ENTRY_LINE_SPACING = 4.dp
 private val FACE_SPACING = 8.dp
-private val FACE_INTERNAL_SPACING = 2.dp
+private val FACE_INTERNAL_SPACING = 4.dp
 
 /**
  * The roll log as a collapsible band sitting between the live result and the Roll button.
@@ -235,8 +235,9 @@ private fun RollHistoryEntry(
  * The faces of one past roll, in the same order the live result uses: groups smallest-to-largest
  * by die, values descending within a group, separated by a [GROUP_SEPARATOR] between die types.
  *
- * Repeats are shown as `×N` rather than as N copies of the artwork, so a 20-die group stays one
- * short run instead of twenty icons — the same compression the live face-ladder uses.
+ * Each face is the die with its value on it ([RolledDieImage]); repeats add a `×N` rather than N
+ * copies of the artwork, so a 20-die group stays one short run instead of twenty
+ * icons — the same compression, and the same face, the live face-ladder uses.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -283,22 +284,18 @@ private fun HistoryFace(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(FACE_INTERNAL_SPACING),
     ) {
-        DiceImage(
+        RolledDieImage(
             dice = dice,
             color = color,
             sizeVariant = DiceImageSize.Compact,
-            contentDescription = null,
-        )
-        Text(
-            text = stringResource(R.string.number, tally.value),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            value = tally.value,
         )
         if (tally.count > 1) {
             Text(
                 text = stringResource(R.string.multiplier, tally.count),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("history-face-count-${dice.label}-${tally.value}"),
             )
         }
     }
