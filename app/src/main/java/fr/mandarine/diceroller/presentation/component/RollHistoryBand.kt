@@ -29,6 +29,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import fr.mandarine.diceroller.R
@@ -43,6 +44,7 @@ import fr.mandarine.diceroller.presentation.notation
 import fr.mandarine.diceroller.presentation.relativeTimeLabel
 import fr.mandarine.diceroller.presentation.resolve
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
+import fr.mandarine.diceroller.ui.theme.displayStyle
 
 /** Test tag on the header row, which is also the expand/collapse control. */
 const val ROLL_HISTORY_HEADER_TAG: String = "roll-history-header"
@@ -178,7 +180,7 @@ private fun HistoryHeader(
         )
         Text(
             text = stringResource(R.string.history_header, entryCount),
-            style = MaterialTheme.typography.labelLarge,
+            style = displayStyle(MaterialTheme.typography.labelLarge, weight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
@@ -396,7 +398,7 @@ private val PREVIEW_HISTORY = listOf(
 @Preview(name = "Collapsed", showBackground = true, widthDp = 360)
 @Composable
 private fun RollHistoryBandCollapsedPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         RollHistoryBand(
             history = PREVIEW_HISTORY,
             isExpanded = false,
@@ -410,7 +412,7 @@ private fun RollHistoryBandCollapsedPreview() {
 @Preview(name = "Expanded", showBackground = true, widthDp = 360, heightDp = 240)
 @Composable
 private fun RollHistoryBandExpandedPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         RollHistoryBand(
             history = PREVIEW_HISTORY,
             isExpanded = true,

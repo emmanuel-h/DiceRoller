@@ -51,7 +51,7 @@ class FantasyDiceArtUiTest {
         darkTheme: Boolean = false,
     ) {
         composeTestRule.setContent {
-            DiceRollerTheme(darkTheme = darkTheme, dynamicColor = false) {
+            DiceRollerTheme(darkTheme = darkTheme) {
                 DiceRollerScreen(
                     uiState = uiState,
                     onIncrementCount = {},
@@ -70,7 +70,7 @@ class FantasyDiceArtUiTest {
     ): DiceRollerViewModel {
         val viewModel = DiceRollerViewModel(diceRoller = DiceRoller(random = Random(seed)))
         composeTestRule.setContent {
-            DiceRollerTheme(darkTheme = darkTheme, dynamicColor = false) {
+            DiceRollerTheme(darkTheme = darkTheme) {
                 val uiState by viewModel.uiState.collectAsState()
                 DiceRollerScreen(
                     uiState = uiState,

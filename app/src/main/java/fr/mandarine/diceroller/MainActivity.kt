@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -35,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -68,6 +70,8 @@ import fr.mandarine.diceroller.presentation.component.dieLabel
 import fr.mandarine.diceroller.presentation.model.DiceColor
 import fr.mandarine.diceroller.presentation.resolve
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
+import fr.mandarine.diceroller.ui.theme.ParchmentBackground
+import fr.mandarine.diceroller.ui.theme.displayStyle
 
 /** Die-type chips per row in the pool selector, giving each chip an equal share of the width. */
 private const val CHIPS_PER_ROW = 3
@@ -262,87 +266,92 @@ fun DiceRollerScreen(
         }
     }
 
-    Scaffold(
-        modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
-            RollBar(
-                canRoll = uiState.canRoll,
-                onRollDice = onRollDice,
-                onClearPool = onClearPool,
-            )
-        },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = SCREEN_HORIZONTAL_PADDING),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            // Color first, since it recolors every die on screen below it. The settings gear
-            // rides along at the end of that band rather than in one of its own: the swatches'
-            // 44dp touch targets already set the band's height, so the sheet's entry point is
-            // free vertically — which is the whole point of issue #66.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                DiceColorSwatchRow(
-                    selectedColor = uiState.selectedColor,
-                    onSelectColor = onSelectColor,
-                    modifier = Modifier.weight(1f),
+    // The page is drawn once, behind everything, and the Scaffold is see-through over it: the
+    // vignette is the screen's background, not any one band's (issue #72).
+    ParchmentBackground(modifier = modifier) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = Color.Transparent,
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            bottomBar = {
+                RollBar(
+                    canRoll = uiState.canRoll,
+                    onRollDice = onRollDice,
+                    onClearPool = onClearPool,
                 )
-                SettingsIconButton(onClick = onShowSettings)
-            }
-
-            DicePoolSelector(
-                dieTypes = uiState.dieTypes,
-                pool = uiState.pool,
-                color = uiState.selectedColor,
-                canAddCustomDie = uiState.canAddCustomDie,
-                onIncrementCount = onIncrementCount,
-                onDecrementCount = onDecrementCount,
-                onRemoveCustomDie = onRemoveCustomDie,
-                onShowCustomDieCreator = onShowCustomDieCreator,
-            )
-
-            // Results and history share one flexible band and one gap between them, rather than
-            // being two children of the outer Column: the roll log is a continuation of the
-            // result, and at the shortest supported height every 8dp it does not take is 8dp
-            // the result keeps.
+            },
+        ) { innerPadding ->
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = SCREEN_HORIZONTAL_PADDING),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Box(
+                // Color first, since it recolors every die on screen below it. The settings gear
+                // rides along at the end of that band rather than in one of its own: the swatches'
+                // 44dp touch targets already set the band's height, so the sheet's entry point is
+                // free vertically — which is the whole point of issue #66.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    DiceColorSwatchRow(
+                        selectedColor = uiState.selectedColor,
+                        onSelectColor = onSelectColor,
+                        modifier = Modifier.weight(1f),
+                    )
+                    SettingsIconButton(onClick = onShowSettings)
+                }
+
+                DicePoolSelector(
+                    dieTypes = uiState.dieTypes,
+                    pool = uiState.pool,
+                    color = uiState.selectedColor,
+                    canAddCustomDie = uiState.canAddCustomDie,
+                    onIncrementCount = onIncrementCount,
+                    onDecrementCount = onDecrementCount,
+                    onRemoveCustomDie = onRemoveCustomDie,
+                    onShowCustomDieCreator = onShowCustomDieCreator,
+                )
+
+                // Results and history share one flexible band and one gap between them, rather than
+                // being two children of the outer Column: the roll log is a continuation of the
+                // result, and at the shortest supported height every 8dp it does not take is 8dp
+                // the result keeps.
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    DiceResultDisplay(
-                        result = uiState.result,
-                        isPoolEmpty = !uiState.canRoll,
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                    ) {
+                        DiceResultDisplay(
+                            result = uiState.result,
+                            isPoolEmpty = !uiState.canRoll,
+                            selectedColor = uiState.selectedColor,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+
+                    RollHistoryBand(
+                        history = uiState.history,
+                        isExpanded = uiState.isHistoryExpanded,
+                        nowMillis = uiState.nowMillis,
                         selectedColor = uiState.selectedColor,
-                        modifier = Modifier.fillMaxSize(),
+                        onToggleExpanded = onToggleHistory,
+                        // Weighted only when open, so the band takes half the flexible space to
+                        // scroll its entries in; collapsed it wraps to its header and gives the
+                        // rest back to the result.
+                        modifier = if (uiState.isHistoryExpanded) Modifier.weight(1f) else Modifier,
                     )
                 }
-
-                RollHistoryBand(
-                    history = uiState.history,
-                    isExpanded = uiState.isHistoryExpanded,
-                    nowMillis = uiState.nowMillis,
-                    selectedColor = uiState.selectedColor,
-                    onToggleExpanded = onToggleHistory,
-                    // Weighted only when open, so the band takes half the flexible space to
-                    // scroll its entries in; collapsed it wraps to its header and gives the
-                    // rest back to the result.
-                    modifier = if (uiState.isHistoryExpanded) Modifier.weight(1f) else Modifier,
-                )
             }
         }
     }
@@ -471,7 +480,9 @@ private fun RollBar(
     onClearPool: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(modifier = modifier, tonalElevation = 3.dp) {
+    // An explicit container rather than tonal elevation: elevation tints the surface with the
+    // primary colour, which on parchment is ink, and the bar came out grey-brown.
+    Surface(modifier = modifier, color = MaterialTheme.colorScheme.surfaceContainer) {
         Row(
             modifier = Modifier.padding(
                 start = SCREEN_HORIZONTAL_PADDING,
@@ -489,8 +500,12 @@ private fun RollBar(
                 onClick = onRollDice,
                 enabled = canRoll,
                 modifier = Modifier.weight(1f),
+                shape = MaterialTheme.shapes.small,
             ) {
-                Text(stringResource(R.string.roll_button))
+                Text(
+                    text = stringResource(R.string.roll_button),
+                    style = displayStyle(MaterialTheme.typography.titleMedium),
+                )
             }
         }
     }
@@ -587,7 +602,7 @@ private val PREVIEW_CUSTOM_RESULT = DicePoolResult(
 
 @Composable
 private fun DiceRollerScreenPreviewOf(uiState: DiceRollerUiState) {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         DiceRollerScreen(
             uiState = uiState,
             onIncrementCount = {},

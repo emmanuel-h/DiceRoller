@@ -30,6 +30,7 @@ import fr.mandarine.diceroller.presentation.CustomFacesResult
 import fr.mandarine.diceroller.presentation.resolve
 import fr.mandarine.diceroller.presentation.validateCustomFaces
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
+import fr.mandarine.diceroller.ui.theme.displayStyle
 
 /** Test tag of the faces input field. */
 const val CUSTOM_FACES_FIELD_TAG: String = "custom-faces-field"
@@ -78,7 +79,12 @@ fun CustomDieCreatorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.custom_die_dialog_title)) },
+        title = {
+            Text(
+                text = stringResource(R.string.custom_die_dialog_title),
+                style = displayStyle(MaterialTheme.typography.headlineSmall),
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(MESSAGE_SPACING)) {
                 OutlinedTextField(
@@ -155,7 +161,7 @@ private fun Message(verdict: CustomFacesResult, modifier: Modifier = Modifier) {
 @Preview(name = "Creator - empty", showBackground = true)
 @Composable
 private fun CustomDieCreatorDialogPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         CustomDieCreatorDialog(existing = emptyList(), onAdd = {}, onDismiss = {})
     }
 }
@@ -163,7 +169,7 @@ private fun CustomDieCreatorDialogPreview() {
 @Preview(name = "Creator - one die defined", showBackground = true)
 @Composable
 private fun CustomDieCreatorDialogWithExistingPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         CustomDieCreatorDialog(
             existing = listOf(CustomDie(7)),
             onAdd = {},

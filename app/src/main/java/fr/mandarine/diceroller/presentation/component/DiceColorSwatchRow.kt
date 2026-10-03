@@ -125,7 +125,7 @@ private fun DiceColorSwatch(
 @Preview(name = "Swatch row", showBackground = true)
 @Composable
 private fun DiceColorSwatchRowPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         DiceColorSwatchRow(
             selectedColor = DiceColor.Sapphire,
             onSelectColor = {},

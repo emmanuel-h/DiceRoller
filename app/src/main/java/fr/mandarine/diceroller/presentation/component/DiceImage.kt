@@ -81,7 +81,7 @@ fun DiceImage(
 @Preview(name = "D20 amethyst - Inline", showBackground = true)
 @Composable
 private fun DiceImageD20InlinePreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         DiceImage(
             dice = Dice.D20,
             color = DiceColor.Amethyst,
@@ -93,7 +93,7 @@ private fun DiceImageD20InlinePreview() {
 @Preview(name = "D10 jade - Small", showBackground = true)
 @Composable
 private fun DiceImageD10SmallPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         DiceImage(
             dice = Dice.D10,
             color = DiceColor.Jade,
@@ -106,7 +106,7 @@ private fun DiceImageD10SmallPreview() {
 @Preview(name = "D7 ruby - Small", showBackground = true)
 @Composable
 private fun DiceImageCustomSmallPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         DiceImage(
             dice = CustomDie(7),
             color = DiceColor.Ruby,

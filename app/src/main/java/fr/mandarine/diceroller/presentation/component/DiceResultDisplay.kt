@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -40,6 +41,7 @@ import fr.mandarine.diceroller.domain.DieType
 import fr.mandarine.diceroller.domain.ValueTally
 import fr.mandarine.diceroller.presentation.model.DiceColor
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
+import fr.mandarine.diceroller.ui.theme.displayStyle
 
 /** Opacity applied to the empty-state icon. */
 private const val EMPTY_STATE_ALPHA = 0.4f
@@ -268,7 +270,7 @@ private fun TotalLine(total: Int, modifier: Modifier = Modifier) {
     val text = stringResource(R.string.result_total, total)
     Text(
         text = text,
-        style = MaterialTheme.typography.bodyMedium,
+        style = displayStyle(MaterialTheme.typography.bodyMedium, weight = FontWeight.SemiBold),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.End,
         modifier = modifier
@@ -316,7 +318,7 @@ private fun DicePoolResult.toAccessibilitySummary(resources: Resources): String 
 @Preview(name = "Empty pool", showBackground = true)
 @Composable
 private fun DiceResultDisplayEmptyPoolPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         DiceResultDisplay(
             result = null,
             isPoolEmpty = true,
@@ -328,7 +330,7 @@ private fun DiceResultDisplayEmptyPoolPreview() {
 @Preview(name = "Non-empty pool, not rolled yet", showBackground = true)
 @Composable
 private fun DiceResultDisplayNotRolledPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         DiceResultDisplay(
             result = null,
             isPoolEmpty = false,
@@ -340,7 +342,7 @@ private fun DiceResultDisplayNotRolledPreview() {
 @Preview(name = "Populated - 4D6 + 2D8 + 1D20 ruby", showBackground = true, heightDp = 260)
 @Composable
 private fun DiceResultDisplayPopulatedPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         DiceResultDisplay(
             result = DicePoolResult(
                 groups = listOf(
@@ -378,7 +380,7 @@ private fun DiceResultDisplayPopulatedPreview() {
 @Preview(name = "Extreme - 20×D20 jade", showBackground = true, heightDp = 260)
 @Composable
 private fun DiceResultDisplayExtremePreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         DiceResultDisplay(
             result = DicePoolResult(
                 groups = listOf(

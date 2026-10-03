@@ -88,3 +88,31 @@ The `color1`…`color12` directory names from the pack map to readable names in
 | color4 | ruby | `#B14B58` | color10 | bronze | `#AA7F51` |
 | color5 | gold | `#A59654` | color11 | rose | `#A4565D` |
 | color6 | orchid | `#B34997` | color12 | indigo | `#5F6095` |
+
+## Cinzel — The Cinzel Project Authors
+
+| | |
+|---|---|
+| **Asset** | Cinzel typeface, two static weights: SemiBold (600) and Bold (700) |
+| **Author** | The Cinzel Project Authors (Natanael Gama) |
+| **License** | [SIL Open Font License 1.1](https://openfontlicense.org), full text in [`cinzel-OFL.txt`](cinzel-OFL.txt) |
+| **Source** | https://github.com/NDISCOVER/Cinzel · https://fonts.google.com/specimen/Cinzel |
+| **Added** | 3 October 2026, [#72](https://github.com/emmanuel-h/DiceRoller/issues/72) |
+
+The display face of the parchment theme — see
+[`docs/features/visual-identity.md`](../features/visual-identity.md).
+
+### What is committed
+
+`app/src/main/res/font/cinzel_semibold.ttf` and `cinzel_bold.ttf`: the static
+instances Google Fonts serves for those weights, unmodified. Static rather than
+the upstream variable font because variation axes need API 26 and the app's
+`minSdk` is 24.
+
+### Licensing note
+
+The OFL allows bundling the font in an app, commercial or not, with no in-app
+credit required. Its conditions are that the font is not sold on its own, that
+a modified version is not called "Cinzel", and that the copyright notice and
+licence travel with the font — which is what `cinzel-OFL.txt` is for. The
+files are unmodified, so the name restriction does not apply.

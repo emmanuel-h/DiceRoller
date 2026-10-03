@@ -44,6 +44,7 @@ import fr.mandarine.diceroller.BuildConfig
 import fr.mandarine.diceroller.R
 import fr.mandarine.diceroller.presentation.AppLanguage
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
+import fr.mandarine.diceroller.ui.theme.displayStyle
 
 /** Test tag of the settings sheet's content root. */
 const val SETTINGS_SHEET_TAG: String = "settings-sheet"
@@ -202,7 +203,7 @@ private fun SettingsSheetContent(
     ) {
         Text(
             text = stringResource(R.string.settings_title),
-            style = MaterialTheme.typography.headlineSmall,
+            style = displayStyle(MaterialTheme.typography.headlineSmall),
         )
 
         // First, because it is the only thing here that *does* anything; everything below it is
@@ -423,7 +424,7 @@ private fun ExternalActionRow(
 @Preview(name = "Settings sheet content", showBackground = true, widthDp = 360)
 @Composable
 private fun SettingsSheetContentPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         Surface {
             SettingsSheetContent(versionName = "1.0", onOpenLink = {})
         }
@@ -434,7 +435,7 @@ private fun SettingsSheetContentPreview() {
 @Preview(name = "Settings sheet content - French selected", showBackground = true, widthDp = 360)
 @Composable
 private fun SettingsSheetContentFrenchPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         Surface {
             SettingsSheetContent(
                 versionName = "1.0",
@@ -448,7 +449,7 @@ private fun SettingsSheetContentFrenchPreview() {
 @Preview(name = "Settings button", showBackground = true)
 @Composable
 private fun SettingsIconButtonPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         SettingsIconButton(onClick = {})
     }
 }

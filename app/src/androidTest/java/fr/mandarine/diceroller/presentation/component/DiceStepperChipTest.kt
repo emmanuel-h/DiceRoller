@@ -73,7 +73,7 @@ class DiceStepperChipTest {
         onDecrement: () -> Unit = {},
     ) {
         composeTestRule.setContent {
-            DiceRollerTheme(dynamicColor = false) {
+            DiceRollerTheme {
                 DiceStepperChip(
                     dice = dice,
                     count = count,
@@ -88,7 +88,7 @@ class DiceStepperChipTest {
     /** Mounts a stateful chip so tapping the buttons visibly changes the rendered count. */
     private fun launchStatefulChip(dice: Dice = Dice.D6, initialCount: Int = 0) {
         composeTestRule.setContent {
-            DiceRollerTheme(dynamicColor = false) {
+            DiceRollerTheme {
                 var count by remember { mutableIntStateOf(initialCount) }
                 DiceStepperChip(
                     dice = dice,

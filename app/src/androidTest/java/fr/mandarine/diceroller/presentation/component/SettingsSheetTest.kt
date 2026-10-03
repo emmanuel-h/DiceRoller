@@ -37,7 +37,7 @@ class SettingsSheetTest {
     private fun launchSheet(selectedLanguage: AppLanguage = AppLanguage.System) {
         selected.clear()
         composeTestRule.setContent {
-            DiceRollerTheme(dynamicColor = false) {
+            DiceRollerTheme {
                 SettingsSheet(
                     onDismiss = {},
                     versionName = "1.0",

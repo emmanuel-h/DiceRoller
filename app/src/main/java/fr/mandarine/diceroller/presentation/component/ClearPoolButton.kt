@@ -61,7 +61,7 @@ fun ClearPoolButton(
 @Preview(name = "Clear pool button", showBackground = true)
 @Composable
 private fun ClearPoolButtonPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         Surface {
             ClearPoolButton(onClick = {}, modifier = Modifier.padding(8.dp))
         }

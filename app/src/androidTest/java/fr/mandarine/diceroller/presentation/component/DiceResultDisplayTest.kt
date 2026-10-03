@@ -91,7 +91,7 @@ class DiceResultDisplayTest {
         selectedColor: DiceColor = DiceColor.Default,
     ) {
         composeTestRule.setContent {
-            DiceRollerTheme(dynamicColor = false) {
+            DiceRollerTheme {
                 DiceResultDisplay(
                     result = result,
                     isPoolEmpty = isPoolEmpty,

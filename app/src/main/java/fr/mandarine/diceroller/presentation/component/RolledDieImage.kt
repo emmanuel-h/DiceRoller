@@ -107,7 +107,7 @@ private fun DiceImageSize.valueOutlineWidth(): Dp = when (this) {
 @Preview(name = "D10 jade - Inline, rolled 9", showBackground = true)
 @Composable
 private fun RolledDieImageInlinePreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         RolledDieImage(
             dice = Dice.D10,
             color = DiceColor.Jade,
@@ -121,7 +121,7 @@ private fun RolledDieImageInlinePreview() {
 @Preview(name = "D20 amethyst - Compact, rolled 20", showBackground = true)
 @Composable
 private fun RolledDieImageCompactPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         RolledDieImage(
             dice = Dice.D20,
             color = DiceColor.Amethyst,
@@ -135,7 +135,7 @@ private fun RolledDieImageCompactPreview() {
 @Preview(name = "D100 ruby - Inline, rolled 100", showBackground = true)
 @Composable
 private fun RolledDieImageCustomPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         RolledDieImage(
             dice = CustomDie(faces = 100),
             color = DiceColor.Ruby,

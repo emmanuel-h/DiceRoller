@@ -11,5 +11,7 @@
       pale flash on launch in dark mode. Framework themes rather than AppCompat ones, because the
       app has no AppCompat dependency — see docs/features/language-and-settings.md.
     -->
-    <style name="Theme.DiceRoller" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.DiceRoller" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_parchment</item>
+    </style>
 </resources>

@@ -127,7 +127,7 @@ private fun DiceImageSize.badgeTextStyle(): TextStyle = when (this) {
 @Preview(name = "D7 amethyst - Small", showBackground = true)
 @Composable
 private fun CustomDieBadgeSmallPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         CustomDieBadge(
             die = CustomDie(7),
             color = DiceColor.Amethyst,
@@ -140,7 +140,7 @@ private fun CustomDieBadgeSmallPreview() {
 @Preview(name = "D1000 moss - Compact", showBackground = true)
 @Composable
 private fun CustomDieBadgeCompactWidePreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         CustomDieBadge(
             die = CustomDie(1000),
             color = DiceColor.Moss,
@@ -152,7 +152,7 @@ private fun CustomDieBadgeCompactWidePreview() {
 @Preview(name = "D3 gold - Inline", showBackground = true)
 @Composable
 private fun CustomDieBadgeInlinePreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         CustomDieBadge(
             die = CustomDie(3),
             color = DiceColor.Gold,

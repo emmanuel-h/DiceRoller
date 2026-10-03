@@ -106,7 +106,7 @@ fun AddDiceChip(
 @Preview(name = "Add chip", showBackground = true)
 @Composable
 private fun AddDiceChipPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         AddDiceChip(onClick = {}, modifier = Modifier.padding(4.dp))
     }
 }

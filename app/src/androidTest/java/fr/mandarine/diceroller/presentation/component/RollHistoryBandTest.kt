@@ -104,7 +104,7 @@ class RollHistoryBandTest {
         selectedColor: DiceColor = DiceColor.Ruby,
     ) {
         composeTestRule.setContent {
-            DiceRollerTheme(dynamicColor = false) {
+            DiceRollerTheme {
                 RollHistoryBand(
                     history = history,
                     isExpanded = isExpanded,

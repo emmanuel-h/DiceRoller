@@ -54,7 +54,7 @@ private const val REMOVE_GLYPH = "×"
  * Geometry shared with [AddDiceChip], which is a peer cell of the same grid and has to match this
  * chip's shape and footprint exactly for the rows to read as a grid rather than as a pile.
  */
-internal val CHIP_SHAPE = RoundedCornerShape(16.dp)
+internal val CHIP_SHAPE = RoundedCornerShape(6.dp)
 internal val CHIP_BORDER_WIDTH = 1.dp
 internal val CHIP_VERTICAL_PADDING = 8.dp
 internal val CHIP_LABEL_SPACING = 6.dp
@@ -347,7 +347,7 @@ private fun StepperHalf(
 @Preview(name = "Excluded (count 0)", showBackground = true)
 @Composable
 private fun DiceStepperChipExcludedPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         DiceStepperChip(
             dice = Dice.D6,
             count = 0,
@@ -361,7 +361,7 @@ private fun DiceStepperChipExcludedPreview() {
 @Preview(name = "Included (count 4)", showBackground = true)
 @Composable
 private fun DiceStepperChipIncludedPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         DiceStepperChip(
             dice = Dice.D6,
             count = 4,
@@ -375,7 +375,7 @@ private fun DiceStepperChipIncludedPreview() {
 @Preview(name = "At cap (count 20)", showBackground = true)
 @Composable
 private fun DiceStepperChipAtCapPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         DiceStepperChip(
             dice = Dice.D20,
             count = DicePool.MAX_DICE_PER_TYPE,
@@ -390,7 +390,7 @@ private fun DiceStepperChipAtCapPreview() {
 @Preview(name = "Custom D7 (count 1)", showBackground = true)
 @Composable
 private fun DiceStepperChipCustomPreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         DiceStepperChip(
             dice = CustomDie(7),
             count = 1,
@@ -406,7 +406,7 @@ private fun DiceStepperChipCustomPreview() {
 @Preview(name = "Custom D1000 (count 0)", showBackground = true)
 @Composable
 private fun DiceStepperChipCustomWidePreview() {
-    DiceRollerTheme(dynamicColor = false) {
+    DiceRollerTheme {
         DiceStepperChip(
             dice = CustomDie(1000),
             count = 0,
