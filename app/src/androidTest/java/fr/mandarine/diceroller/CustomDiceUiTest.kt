@@ -204,25 +204,13 @@ class CustomDiceUiTest {
     // --- A custom die behaves like a preset ---
 
     @Test
-    fun givenACustomDie_whenItsChipIsIncremented_thenTheCountAndTheRollLabelFollow() {
+    fun givenACustomDie_whenItsChipIsIncremented_thenTheCountFollowsAndRollIsEnabled() {
         launch(initialDice = listOf(CustomDie(7)))
 
         increaseButton(CustomDie(7)).performClick()
 
         countText(CustomDie(7)).assertTextEquals(str(R.string.number, 1))
-        composeTestRule.onNodeWithText(rollLabel("1D7")).assertIsDisplayed()
-    }
-
-    /** Notation and the result ladder order by face count, so a D7 reads between the D6 and D8. */
-    @Test
-    fun givenAPoolMixingAPresetAndACustomDie_whenLabelled_thenTheD7SitsBetweenThem() {
-        launch(initialDice = listOf(CustomDie(7)))
-
-        increaseButton(Dice.D8).performClick()
-        increaseButton(Dice.D6).performClick()
-        increaseButton(CustomDie(7)).performClick()
-
-        composeTestRule.onNodeWithText(rollLabel("1D6 + 1D7 + 1D8")).assertIsDisplayed()
+        composeTestRule.onNodeWithText(rollLabel()).assertIsDisplayed().assertIsEnabled()
     }
 
     @Test
@@ -230,7 +218,7 @@ class CustomDiceUiTest {
         launch(initialDice = listOf(CustomDie(7)))
         increaseButton(CustomDie(7)).performClick()
 
-        composeTestRule.onNodeWithText(rollLabel("1D7")).performClick()
+        composeTestRule.onNodeWithText(rollLabel()).performClick()
 
         composeTestRule.onNodeWithText(groupHeader(1, dieNotation(CustomDie(7))))
             .assertIsDisplayed()
@@ -251,7 +239,7 @@ class CustomDiceUiTest {
 
         countText(CustomDie(7)).assertTextEquals(str(R.string.number, 0))
         increaseButton(CustomDie(7)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(str(R.string.roll_button_empty)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(rollLabel()).assertIsDisplayed()
     }
 
     // --- Removing a die, and undoing that ---

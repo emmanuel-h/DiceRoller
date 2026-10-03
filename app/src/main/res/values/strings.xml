@@ -19,8 +19,7 @@
     <string name="result_group_header" translatable="false">%1$d×%2$s</string>
 
     <!-- Roll bar -->
-    <string name="roll_button_empty">Add dice to roll</string>
-    <string name="roll_button">Roll %1$s</string>
+    <string name="roll_button">Roll</string>
     <string name="clear_pool_description">Clear the dice pool</string>
 
     <!-- Pool selector -->

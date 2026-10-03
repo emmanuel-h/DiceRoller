@@ -20,7 +20,7 @@ DiceRoller currently lets a user select and roll only one die type at a time. Ta
 2. Count 0 means that die type is excluded from the pool; count > 0 means that many dice of that type will be rolled.
 3. Decrementing stops at 0. Incrementing stops at a maximum of **20 per die type** (assumption — keeps the results display and the roll readable; revisit if real usage needs more).
 4. Changing any count (+ or −) clears the currently displayed results, consistent with the existing rule that changing what will be rolled invalidates the previous roll. Changing color never clears results (unchanged behavior).
-5. The Roll button's label reflects the pool, e.g. "Roll 4D6 + 2D8", ordered smallest-to-largest die. When the pool is empty (all counts 0), the button is disabled.
+5. The Roll button reads just "Roll" whatever the pool holds — the chip grid already shows the counts (issue #70; it used to spell the pool out, e.g. "Roll 4D6 + 2D8"). When the pool is empty (all counts 0), the button is disabled.
 6. Rolling produces one independent random result per die in the pool, each uniformly random over that die's face count.
 7. Results are grouped by die type, in the same smallest-to-largest order as the Roll button label. Each group is headed by its pool size and type (e.g., "4×D6").
 8. Within a group, show one row per distinct value that was actually rolled, sorted descending (highest value first); values rolled zero times are omitted entirely — a group is only as tall as the number of distinct values it hit.
