@@ -116,3 +116,39 @@ credit required. Its conditions are that the font is not sold on its own, that
 a modified version is not called "Cinzel", and that the copyright notice and
 licence travel with the font — which is what `cinzel-OFL.txt` is for. The
 files are unmodified, so the name restriction does not apply.
+
+## Casino Audio — Kenney
+
+| | |
+|---|---|
+| **Asset** | Casino Audio 1.1, seven of its 50 clips: `die-throw-1…4`, `dice-throw-1…3` |
+| **Author** | Kenney Vleugels (Kenney.nl) |
+| **License** | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| **Source** | https://kenney.nl/assets/casino-audio |
+| **Added** | 4 October 2026, [#5](https://github.com/emmanuel-h/DiceRoller/issues/5) |
+
+The dice sound played on each roll — see
+[`docs/features/roll-sound.md`](../features/roll-sound.md).
+
+### What is committed
+
+Six files under `app/src/main/res/raw/` (Ogg Vorbis, 44.1 kHz stereo, 80 KiB
+total):
+
+| Resource | Made from |
+|---|---|
+| `roll_one_die_1…4.ogg` | `die-throw-1…4.ogg`, unmodified, renamed |
+| `roll_several_dice_1.ogg` | a 3-dice mix (0.79 s): `dice-throw-1` at 0 ms, `die-throw-2` at 140 ms, `die-throw-4` at 310 ms |
+| `roll_several_dice_2.ogg` | a 6-dice mix (1.20 s): `dice-throw-1` at 0, `die-throw-2` at 90, `dice-throw-3` at 180, `die-throw-4` at 260, `die-throw-1` at 380, `die-throw-3` at 470 ms |
+
+The pack's own `dice-throw` clips (0.40–0.63 s) sounded too short for a handful,
+which is why the multi-dice sounds are mixed. Both mixes were made with ffmpeg:
+each input delayed by `adelay`, summed by `amix=normalize=0`, then
+`alimiter=limit=0.9` to keep the peaks off 0 dBFS.
+
+### Licensing note
+
+CC0 is a public-domain dedication, so no in-app credit is required; the pack's
+`License.txt` says credit "would be nice but is not mandatory". It is recorded
+here for provenance only, and the settings sheet's credit line deliberately
+stays about the artwork, which *does* require one.

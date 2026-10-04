@@ -27,7 +27,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The sheet behind the gear: the inline language and theme pickers, shake to roll, and the
+ * The sheet behind the gear: the inline language and theme pickers, sound, shake to roll, and the
  * licence-required artwork credit — and none of the About, licence or contact rows it used to carry.
  *
  * The sheet is a pure function of its selections and reports picks through callbacks; what a pick
@@ -42,16 +42,19 @@ class SettingsSheetTest {
 
     private val selected = mutableListOf<AppLanguage>()
     private val selectedThemes = mutableListOf<AppTheme>()
+    private val soundToggles = mutableListOf<Boolean>()
     private val shakeToggles = mutableListOf<Boolean>()
     private val sensitivities = mutableListOf<Int>()
 
     private fun launchSheet(
         selectedLanguage: AppLanguage = AppLanguage.English,
         selectedTheme: AppTheme = AppTheme.Light,
+        isSoundEnabled: Boolean = true,
         isShakeToRollEnabled: Boolean = true,
     ) {
         selected.clear()
         selectedThemes.clear()
+        soundToggles.clear()
         shakeToggles.clear()
         sensitivities.clear()
         composeTestRule.setContent {
@@ -63,6 +66,8 @@ class SettingsSheetTest {
                     onSelectLanguage = { selected += it },
                     selectedTheme = selectedTheme,
                     onSelectTheme = { selectedThemes += it },
+                    isSoundEnabled = isSoundEnabled,
+                    onSetSoundEnabled = { soundToggles += it },
                     isShakeToRollEnabled = isShakeToRollEnabled,
                     onSetShakeToRollEnabled = { shakeToggles += it },
                     onSetShakeSensitivity = { sensitivities += it },
@@ -88,6 +93,50 @@ class SettingsSheetTest {
         .fetchSemanticsNode()
         .boundsInRoot
         .top
+
+    // --- Sound (issue #5) ---
+
+    @Test
+    fun givenSoundOn_whenTheSheetOpens_thenTheSwitchShowsOn() {
+        launchSheet(isSoundEnabled = true)
+
+        composeTestRule.onNodeWithText(str(R.string.sound_effects_label)).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(SOUND_TOGGLE_TAG).assertIsOn()
+    }
+
+    @Test
+    fun givenSoundOn_whenTheRowIsTapped_thenItAsksToSwitchItOff() {
+        launchSheet(isSoundEnabled = true)
+
+        composeTestRule.onNodeWithTag(SOUND_TOGGLE_TAG).performClick()
+
+        assertEquals(listOf(false), soundToggles)
+        assertTrue("Flipping sound must not touch shaking", shakeToggles.isEmpty())
+    }
+
+    @Test
+    fun givenSoundOff_whenTheRowIsTapped_thenItAsksToSwitchItOn() {
+        launchSheet(isSoundEnabled = false)
+
+        composeTestRule.onNodeWithTag(SOUND_TOGGLE_TAG).assertIsOff().performClick()
+
+        assertEquals(listOf(true), soundToggles)
+    }
+
+    /** Its own section, between the theme and the shake controls it does not belong to. */
+    @Test
+    fun givenTheSheet_whenOpened_thenSoundSitsBetweenThemeAndRolling() {
+        launchSheet()
+
+        val themeTop = topOfTag(themeOptionTestTag(AppTheme.Light))
+        val soundHeaderTop = topOfText(str(R.string.settings_section_sound).uppercase())
+        val soundTop = topOfTag(SOUND_TOGGLE_TAG)
+        val shakeTop = topOfTag(SHAKE_TO_ROLL_TOGGLE_TAG)
+
+        assertTrue("Expected theme ($themeTop) above sound ($soundHeaderTop)", themeTop < soundHeaderTop)
+        assertTrue("Expected the header ($soundHeaderTop) above its row ($soundTop)", soundHeaderTop < soundTop)
+        assertTrue("Expected sound ($soundTop) above shake ($shakeTop)", soundTop < shakeTop)
+    }
 
     // --- Shake to roll (issue #1) ---
 

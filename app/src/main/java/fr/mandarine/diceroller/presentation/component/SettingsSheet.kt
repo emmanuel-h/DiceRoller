@@ -60,6 +60,9 @@ const val SETTINGS_BUTTON_TAG: String = "settings-button"
 /** Test tag on the shake-to-roll row, which is the switch's whole touch target. */
 const val SHAKE_TO_ROLL_TOGGLE_TAG: String = "shake-to-roll-toggle"
 
+/** Test tag on the sound row, which is the switch's whole touch target. */
+const val SOUND_TOGGLE_TAG: String = "sound-toggle"
+
 /** Test tag on the shake sensitivity slider. */
 const val SHAKE_SENSITIVITY_SLIDER_TAG: String = "shake-sensitivity-slider"
 
@@ -135,7 +138,7 @@ fun SettingsIconButton(
 }
 
 /**
- * The modal bottom sheet holding the app's settings — language, theme, shake to roll — and the
+ * The modal bottom sheet holding the app's settings — language, theme, sound, shake to roll — and the
  * artwork's CC BY credit, the one read-only line the licence requires the app to show somewhere.
  *
  * This is still where the license-required credit line lives since issue #66 took it out of the
@@ -155,6 +158,8 @@ fun SettingsIconButton(
  * @param onSelectLanguage invoked with the language the user picked
  * @param selectedTheme whether the app is currently drawn light or dark
  * @param onSelectTheme invoked with the theme the user picked
+ * @param isSoundEnabled whether a roll currently plays its dice sound
+ * @param onSetSoundEnabled invoked with the new value when the sound switch is flipped
  * @param isShakeToRollEnabled whether shaking the phone currently rolls the dice
  * @param onSetShakeToRollEnabled invoked with the new value when the shake switch is flipped
  * @param shakeSensitivity the sensitivity slider's current step, 0 being the least sensitive
@@ -170,6 +175,8 @@ fun SettingsSheet(
     onSelectLanguage: (AppLanguage) -> Unit = {},
     selectedTheme: AppTheme = AppTheme.Light,
     onSelectTheme: (AppTheme) -> Unit = {},
+    isSoundEnabled: Boolean = true,
+    onSetSoundEnabled: (Boolean) -> Unit = {},
     isShakeToRollEnabled: Boolean = true,
     onSetShakeToRollEnabled: (Boolean) -> Unit = {},
     shakeSensitivity: Int = ShakeDetector.DEFAULT_SENSITIVITY,
@@ -195,6 +202,8 @@ fun SettingsSheet(
             onSelectLanguage = onSelectLanguage,
             selectedTheme = selectedTheme,
             onSelectTheme = onSelectTheme,
+            isSoundEnabled = isSoundEnabled,
+            onSetSoundEnabled = onSetSoundEnabled,
             isShakeToRollEnabled = isShakeToRollEnabled,
             onSetShakeToRollEnabled = onSetShakeToRollEnabled,
             shakeSensitivity = shakeSensitivity,
@@ -214,6 +223,8 @@ private fun SettingsSheetContent(
     onSelectLanguage: (AppLanguage) -> Unit = {},
     selectedTheme: AppTheme = AppTheme.Light,
     onSelectTheme: (AppTheme) -> Unit = {},
+    isSoundEnabled: Boolean = true,
+    onSetSoundEnabled: (Boolean) -> Unit = {},
     isShakeToRollEnabled: Boolean = true,
     onSetShakeToRollEnabled: (Boolean) -> Unit = {},
     shakeSensitivity: Int = ShakeDetector.DEFAULT_SENSITIVITY,
@@ -264,10 +275,25 @@ private fun SettingsSheetContent(
             )
         }
 
+        // Its own section rather than a row under Rolling: the sound plays for every roll, tapped
+        // or shaken, so filing it under the shake controls would suggest it belonged to them.
+        SettingsSection(title = stringResource(R.string.settings_section_sound)) {
+            SwitchRow(
+                label = stringResource(R.string.sound_effects_label),
+                description = stringResource(R.string.sound_effects_description),
+                checked = isSoundEnabled,
+                onCheckedChange = onSetSoundEnabled,
+                testTag = SOUND_TOGGLE_TAG,
+            )
+        }
+
         SettingsSection(title = stringResource(R.string.settings_section_rolling)) {
-            ShakeToRollToggle(
-                isEnabled = isShakeToRollEnabled,
-                onSetEnabled = onSetShakeToRollEnabled,
+            SwitchRow(
+                label = stringResource(R.string.shake_to_roll_label),
+                description = stringResource(R.string.shake_to_roll_description),
+                checked = isShakeToRollEnabled,
+                onCheckedChange = onSetShakeToRollEnabled,
+                testTag = SHAKE_TO_ROLL_TOGGLE_TAG,
             )
             ShakeSensitivitySlider(
                 level = shakeSensitivity,
@@ -347,39 +373,43 @@ private fun <T> InlineRadioGroup(
 }
 
 /**
- * The shake-to-roll switch (issue #1), as a row whose label explains the gesture.
+ * An on/off setting as a row: a label, a line explaining it, and the switch at the end. Shared by
+ * the sound switch (issue #5) and the shake-to-roll one (issue #1).
  *
  * The whole row toggles, not just the switch, for the same reason the language options are whole
  * rows: the switch alone is a small target at the end of a line of text.
  */
 @Composable
-private fun ShakeToRollToggle(
-    isEnabled: Boolean,
-    onSetEnabled: (Boolean) -> Unit,
+private fun SwitchRow(
+    label: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    testTag: String,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = OPTION_MIN_HEIGHT)
-            .toggleable(value = isEnabled, role = Role.Switch, onValueChange = onSetEnabled)
-            .testTag(SHAKE_TO_ROLL_TOGGLE_TAG),
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
+            .testTag(testTag),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(OPTION_SPACING),
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = stringResource(R.string.shake_to_roll_label),
+                text = label,
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(
-                text = stringResource(R.string.shake_to_roll_description),
+                text = description,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         // Null callback: the row is the control, as with the language options' radio buttons.
-        Switch(checked = isEnabled, onCheckedChange = null)
+        Switch(checked = checked, onCheckedChange = null)
     }
 }
 

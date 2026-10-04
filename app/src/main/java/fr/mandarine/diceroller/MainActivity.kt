@@ -7,6 +7,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import android.content.Context
 import android.content.res.Configuration
+import android.media.AudioManager
 import android.os.LocaleList
 import android.view.View
 import androidx.activity.ComponentActivity
@@ -60,6 +61,7 @@ import fr.mandarine.diceroller.presentation.AppLanguage
 import fr.mandarine.diceroller.presentation.AppTheme
 import fr.mandarine.diceroller.presentation.DiceRollerUiState
 import fr.mandarine.diceroller.presentation.DiceRollerViewModel
+import fr.mandarine.diceroller.presentation.RollSound
 import fr.mandarine.diceroller.presentation.ShakeDetector
 import fr.mandarine.diceroller.presentation.component.AddDiceChip
 import fr.mandarine.diceroller.presentation.component.ClearPoolButton
@@ -70,6 +72,7 @@ import fr.mandarine.diceroller.presentation.component.DiceStepperChip
 import fr.mandarine.diceroller.presentation.component.RollHistoryBand
 import fr.mandarine.diceroller.presentation.component.ShakeToRollEffect
 import fr.mandarine.diceroller.presentation.component.rememberRollReveal
+import fr.mandarine.diceroller.presentation.component.rememberRollSoundPlayer
 import fr.mandarine.diceroller.presentation.component.SettingsIconButton
 import fr.mandarine.diceroller.presentation.component.SettingsSheet
 import fr.mandarine.diceroller.presentation.component.dieLabel
@@ -88,6 +91,9 @@ private val SCREEN_HORIZONTAL_PADDING = 16.dp
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // The roll sound plays on the media stream (issue #5), so the volume keys should move that
+        // slider while the app is in front — not the ringer's, which would leave the dice as loud.
+        volumeControlStream = AudioManager.STREAM_MUSIC
         enableEdgeToEdge()
         setContent {
             val viewModel: DiceRollerViewModel = viewModel(
@@ -121,6 +127,7 @@ class MainActivity : ComponentActivity() {
                     onDismissRemovedCustomDie = viewModel::dismissRemovedCustomDie,
                     onSelectLanguage = viewModel::selectLanguage,
                     onSelectTheme = viewModel::selectTheme,
+                    onSetSoundEnabled = viewModel::setSoundEnabled,
                     onSetShakeToRollEnabled = viewModel::setShakeToRollEnabled,
                     onSetShakeSensitivity = viewModel::setShakeSensitivity,
                     onShowSettings = viewModel::showSettings,
@@ -233,12 +240,15 @@ private fun Configuration.composeLayoutDirection(): LayoutDirection =
  * @param onUndoRemoveCustomDie callback when the removal snackbar's Undo action is used
  * @param onDismissRemovedCustomDie callback when that snackbar goes away un-actioned
  * A roll is revealed rather than shown (issue #1): the dice tumble in the result band for a moment
- * before landing, and the log holds the new entry back until they do. Shaking the phone rolls too,
+ * before landing, and the log holds the new entry back until they do. While
+ * [DiceRollerUiState.isSoundEnabled], the tumble starts with the clatter of the dice (issue #5) —
+ * one die or several, as rolled. Shaking the phone rolls too,
  * while [DiceRollerUiState.isShakeToRollEnabled] and no dialog or sheet is open — a shake while
  * reading the settings is not a request to roll.
  *
  * @param onSelectLanguage callback with the language picked in the settings sheet
  * @param onSelectTheme callback with the light or dark theme picked in the settings sheet
+ * @param onSetSoundEnabled callback when the settings sheet's sound switch is flipped
  * @param onSetShakeToRollEnabled callback when the settings sheet's shake switch is flipped
  * @param onSetShakeSensitivity callback with the step the settings sheet's sensitivity slider
  *   moved to
@@ -263,6 +273,7 @@ fun DiceRollerScreen(
     onDismissRemovedCustomDie: () -> Unit = {},
     onSelectLanguage: (AppLanguage) -> Unit = {},
     onSelectTheme: (AppTheme) -> Unit = {},
+    onSetSoundEnabled: (Boolean) -> Unit = {},
     onSetShakeToRollEnabled: (Boolean) -> Unit = {},
     onSetShakeSensitivity: (Int) -> Unit = {},
     onShowSettings: () -> Unit = {},
@@ -270,7 +281,12 @@ fun DiceRollerScreen(
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    val reveal = rememberRollReveal(uiState.result)
+    val soundPlayer = rememberRollSoundPlayer()
+    // Off the reveal rather than off the Roll button, so a shake sounds the same as a tap and a
+    // rotation, which restores a result without revealing it again, stays silent.
+    val reveal = rememberRollReveal(uiState.result) { result ->
+        if (uiState.isSoundEnabled) soundPlayer.play(RollSound.of(result))
+    }
 
     // The same action as the button, so a shake with nothing queued is the same no-op as a tap on
     // a disabled Roll — and a shake mid-tumble is too, because rolling has already emptied the pool.
@@ -417,6 +433,8 @@ fun DiceRollerScreen(
             onSelectLanguage = onSelectLanguage,
             selectedTheme = uiState.theme,
             onSelectTheme = onSelectTheme,
+            isSoundEnabled = uiState.isSoundEnabled,
+            onSetSoundEnabled = onSetSoundEnabled,
             isShakeToRollEnabled = uiState.isShakeToRollEnabled,
             onSetShakeToRollEnabled = onSetShakeToRollEnabled,
             shakeSensitivity = uiState.shakeSensitivity,
