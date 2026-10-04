@@ -15,6 +15,7 @@ import fr.mandarine.diceroller.data.DataStoreCustomDiceStore
 import fr.mandarine.diceroller.data.DataStoreDiceColorStore
 import fr.mandarine.diceroller.data.DataStoreRollHistoryStore
 import fr.mandarine.diceroller.data.DataStoreShakeToRollStore
+import fr.mandarine.diceroller.data.DataStoreSoundStore
 import fr.mandarine.diceroller.domain.CustomDie
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DicePool
@@ -45,6 +46,7 @@ import kotlinx.coroutines.launch
  * @param historyStore persists past rolls
  * @param customDiceStore persists the user's custom die definitions
  * @param shakeToRollStore persists whether shaking the phone rolls the dice
+ * @param soundStore persists whether a roll plays its dice sound
  * @param clock reads the current epoch time, injected so timestamps are deterministic in tests
  * @param initialLanguage the language shown until [languageStore] answers — the device's, so the
  *   first frame is not drawn in a language the user is about to leave
@@ -61,6 +63,7 @@ class DiceRollerViewModel(
     private val themeStore: AppThemeStore = InMemoryAppThemeStore(),
     initialLanguage: AppLanguage = AppLanguage.English,
     initialTheme: AppTheme = AppTheme.Light,
+    private val soundStore: SoundStore = InMemorySoundStore(),
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -101,6 +104,10 @@ class DiceRollerViewModel(
             _uiState.update { state ->
                 state.copy(isShakeToRollEnabled = storedShakeToRoll, shakeSensitivity = storedSensitivity)
             }
+        }
+        viewModelScope.launch {
+            val storedSound = soundStore.isEnabled.first()
+            _uiState.update { state -> state.copy(isSoundEnabled = storedSound) }
         }
         // Collected rather than read once: the store is the single source of truth for the log,
         // so a recorded roll lands here instead of being applied to the state twice.
@@ -249,6 +256,18 @@ class DiceRollerViewModel(
         _uiState.update { state -> state.copy(shakeSensitivity = clamped) }
         viewModelScope.launch {
             shakeToRollStore.setSensitivity(clamped)
+        }
+    }
+
+    /**
+     * Turns the roll sound on or off and remembers the choice.
+     *
+     * A preference like [selectColor], so it leaves the pool, the result and the log alone.
+     */
+    fun setSoundEnabled(enabled: Boolean) {
+        _uiState.update { state -> state.copy(isSoundEnabled = enabled) }
+        viewModelScope.launch {
+            soundStore.setEnabled(enabled)
         }
     }
 
@@ -409,8 +428,8 @@ class DiceRollerViewModel(
     companion object {
         /**
          * Builds a factory that wires the ViewModel to the DataStore-backed stores, so the chosen
-         * colour, language and theme, the shake switch, the roll log and the user's own dice all survive
-         * process death.
+         * colour, language and theme, the shake and sound switches, the roll log and the user's own
+         * dice all survive process death.
          */
         fun factory(context: Context): ViewModelProvider.Factory {
             val appContext = context.applicationContext
@@ -423,6 +442,7 @@ class DiceRollerViewModel(
                         customDiceStore = DataStoreCustomDiceStore(appContext),
                         shakeToRollStore = DataStoreShakeToRollStore(appContext),
                         themeStore = DataStoreAppThemeStore(appContext),
+                        soundStore = DataStoreSoundStore(appContext),
                         initialLanguage = appContext.deviceLanguage(),
                         initialTheme = appContext.deviceTheme(),
                     )

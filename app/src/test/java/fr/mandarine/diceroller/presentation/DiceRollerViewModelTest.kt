@@ -41,6 +41,7 @@ class DiceRollerViewModelTest {
         customDiceStore: CustomDiceStore = InMemoryCustomDiceStore(),
         shakeToRollStore: ShakeToRollStore = InMemoryShakeToRollStore(),
         themeStore: AppThemeStore = InMemoryAppThemeStore(),
+        soundStore: SoundStore = InMemorySoundStore(),
     ): DiceRollerViewModel = DiceRollerViewModel(
         diceRoller = DiceRoller(random = Random(seed)),
         colorStore = colorStore,
@@ -50,6 +51,7 @@ class DiceRollerViewModelTest {
         shakeToRollStore = shakeToRollStore,
         clock = { nowMillis },
         themeStore = themeStore,
+        soundStore = soundStore,
     )
 
     // --- Initial state: pool ---
@@ -657,6 +659,54 @@ class DiceRollerViewModelTest {
         val history = vm.uiState.value.history
 
         vm.setShakeToRollEnabled(false)
+
+        assertEquals(result, vm.uiState.value.result)
+        assertEquals(history, vm.uiState.value.history)
+    }
+
+    // --- Sound (issue #5): on unless switched off, and remembered ---
+
+    @Test
+    fun givenNewViewModelWithEmptyStore_whenReadingState_thenSoundIsOn() {
+        assertTrue(viewModel().uiState.value.isSoundEnabled)
+    }
+
+    @Test
+    fun givenAStoreHoldingSoundOff_whenViewModelIsCreated_thenSoundIsOff() {
+        val vm = viewModel(soundStore = InMemorySoundStore(initial = false))
+
+        assertFalse(vm.uiState.value.isSoundEnabled)
+    }
+
+    @Test
+    fun givenSoundSwitchedOff_whenReadingStateAndStore_thenBothReflectIt() = runTest {
+        val store = InMemorySoundStore()
+        val vm = viewModel(soundStore = store)
+
+        vm.setSoundEnabled(false)
+
+        assertFalse(vm.uiState.value.isSoundEnabled)
+        assertFalse(store.isEnabled.first())
+    }
+
+    @Test
+    fun givenSoundSwitchedOff_whenANewViewModelSharesTheStore_thenTheChoiceSurvives() {
+        val store = InMemorySoundStore()
+        viewModel(soundStore = store).setSoundEnabled(false)
+
+        assertFalse(viewModel(soundStore = store).uiState.value.isSoundEnabled)
+    }
+
+    /** A preference, like the colour: flipping it is not a change to what Roll would produce. */
+    @Test
+    fun givenARollResult_whenSoundIsSwitched_thenTheResultAndLogSurvive() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        val result = vm.uiState.value.result
+        val history = vm.uiState.value.history
+
+        vm.setSoundEnabled(false)
 
         assertEquals(result, vm.uiState.value.result)
         assertEquals(history, vm.uiState.value.history)

@@ -43,6 +43,8 @@ import fr.mandarine.diceroller.presentation.model.DiceColor
  *   default; the settings sheet carries the switch, and the choice is persisted.
  * @property shakeSensitivity how hard a shake must be, as a step of the settings sheet's slider:
  *   0 is the least sensitive, see [ShakeDetector.thresholdForSensitivity]. Persisted too.
+ * @property isSoundEnabled whether a roll plays its dice sound (issue #5). On by default; the
+ *   settings sheet's Sound section carries the switch, and the choice is persisted.
  * @property nowMillis the reference time the history's relative timestamps are rendered against,
  *   refreshed on each roll and each expand rather than ticking continuously
  */
@@ -60,6 +62,7 @@ data class DiceRollerUiState(
     val removedCustomDie: CustomDie? = null,
     val isShakeToRollEnabled: Boolean = true,
     val shakeSensitivity: Int = ShakeDetector.DEFAULT_SENSITIVITY,
+    val isSoundEnabled: Boolean = true,
     val nowMillis: Long = 0L,
 ) {
 

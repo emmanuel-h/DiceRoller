@@ -87,13 +87,20 @@ class RollReveal internal constructor(
  * The animation needs no reduced-motion branch of its own: Compose scales every animation by the
  * system's animator duration scale, and at 0 both the tumble and the landing finish on their first
  * frame.
+ *
+ * [onRevealStart] is called as the tumble begins, with the result being revealed — the roll's sound
+ * (issue #5) hangs off it, so it follows the same "once per roll" rule and a rotation stays silent.
  */
 @Composable
-fun rememberRollReveal(result: DicePoolResult?): RollReveal {
+fun rememberRollReveal(
+    result: DicePoolResult?,
+    onRevealStart: (DicePoolResult) -> Unit = {},
+): RollReveal {
     val tumble = remember { Animatable(1f) }
     val landing = remember { Animatable(1f) }
     val hasRevealed = rememberSaveable { mutableStateOf(result != null) }
     val currentResult by rememberUpdatedState(result)
+    val currentOnRevealStart by rememberUpdatedState(onRevealStart)
 
     LaunchedEffect(result) {
         if (result == null) {
@@ -103,6 +110,7 @@ fun rememberRollReveal(result: DicePoolResult?): RollReveal {
         } else if (!hasRevealed.value) {
             tumble.snapTo(0f)
             hasRevealed.value = true
+            currentOnRevealStart(result)
             tumble.animateTo(1f, tween(durationMillis = ROLL_TUMBLE_MILLIS, easing = LinearEasing))
             landing.snapTo(LANDING_SCALE)
             landing.animateTo(
