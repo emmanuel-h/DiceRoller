@@ -74,13 +74,19 @@ class ShakeDetector(
     }
 
     companion object {
-        /** Firm enough that walking, or a phone in a bag, does not reach it. */
-        const val DEFAULT_THRESHOLD_G: Float = 2.5f
+        /**
+         * Above walking (about 1.2–1.5g at the hip) yet reachable with a flick of the wrist. 2.5g
+         * was tried first and proved hard to reach on a real phone.
+         */
+        const val DEFAULT_THRESHOLD_G: Float = 1.8f
 
-        /** Back, forth, back: one swing is a gesture, three is a shake. */
-        const val DEFAULT_REQUIRED_JOLTS: Int = 3
+        /**
+         * Back and forth: two jolts. One is not enough, since that is what a phone set down hard
+         * produces; three made the gesture feel laboured.
+         */
+        const val DEFAULT_REQUIRED_JOLTS: Int = 2
 
-        const val DEFAULT_WINDOW_MILLIS: Long = 800L
+        const val DEFAULT_WINDOW_MILLIS: Long = 1_000L
 
         /** Longer than the roll animation, so a shake that carries on does not roll again. */
         const val DEFAULT_COOLDOWN_MILLIS: Long = 1_500L

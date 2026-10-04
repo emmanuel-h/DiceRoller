@@ -10,7 +10,7 @@ class ShakeDetectorTest {
     /** A phone lying flat: gravity alone, 1g on the z axis. */
     private val rest = floatArrayOf(0f, 0f, 9.81f)
 
-    /** A hard swing along x: about 3.3g in total, well past the default 2.5g threshold. */
+    /** A hard swing along x: about 3.3g in total, well past the default threshold. */
     private val jolt = floatArrayOf(31f, 0f, 9.81f)
 
     /**
@@ -38,20 +38,20 @@ class ShakeDetectorTest {
     }
 
     @Test
-    fun givenThreeQuickSwings_whenSampled_thenOneShakeFiresOnTheThird() {
-        val shakes = ShakeDetector().feed(swings(3))
+    fun givenTwoQuickSwings_whenSampled_thenOneShakeFiresOnTheSecond() {
+        val shakes = ShakeDetector().feed(swings(2))
 
-        assertEquals(listOf(80L), shakes)
+        assertEquals(listOf(40L), shakes)
     }
 
     @Test
-    fun givenTwoSwings_whenSampled_thenNoShakeIsDetected() {
-        val shakes = ShakeDetector().feed(swings(2))
+    fun givenOneSwing_whenSampled_thenNoShakeIsDetected() {
+        val shakes = ShakeDetector().feed(swings(1))
 
         assertTrue(shakes.isEmpty())
     }
 
-    /** A phone put down hard stays above the threshold for several samples: one jolt, not three. */
+    /** A phone put down hard stays above the threshold for several samples: one jolt, not a shake. */
     @Test
     fun givenOneSustainedKnock_whenSampled_thenItCountsAsASingleJolt() {
         val shakes = ShakeDetector().feed(List(10) { true } + List(10) { false })
@@ -63,7 +63,7 @@ class ShakeDetectorTest {
     fun givenSwingsSpreadWiderThanTheWindow_whenSampled_thenNoShakeIsDetected() {
         val detector = ShakeDetector(windowMillis = 800L)
 
-        val shakes = listOf(0L, 500L, 1_000L, 1_500L, 2_000L).filter { time ->
+        val shakes = listOf(0L, 900L, 1_800L, 2_700L, 3_600L).filter { time ->
             val jolted = detector.onSample(jolt[0], jolt[1], jolt[2], time)
             detector.onSample(rest[0], rest[1], rest[2], time + 20)
             jolted
@@ -100,6 +100,20 @@ class ShakeDetectorTest {
         val fired = (0 until 20).any { index ->
             val time = index * 20L
             if (index % 2 == 0) detector.onSample(gentle, 0f, 0f, time) else detector.onSample(0f, 0f, 9.81f, time)
+        }
+
+        assertFalse(fired)
+    }
+
+    /** Walking jolts the phone about 1.2–1.5g, over and over; that must never roll. */
+    @Test
+    fun givenAWalkingRhythm_whenSampledWithDefaults_thenNoShakeIsDetected() {
+        val detector = ShakeDetector()
+        val step = 1.5f * 9.81f
+
+        val fired = (0 until 200).any { index ->
+            val time = index * 20L
+            if (index % 25 == 0) detector.onSample(0f, step, 0f, time) else detector.onSample(0f, 0f, 9.81f, time)
         }
 
         assertFalse(fired)
