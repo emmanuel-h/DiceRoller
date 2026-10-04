@@ -27,8 +27,11 @@ internal val ParchmentOxbloodWash = Color(0xFFF0D3C6)
 internal val ParchmentError = Color(0xFF9E2A1E)
 internal val ParchmentErrorWash = Color(0xFFF6D5CC)
 
-/** The singed edge the parchment page darkens towards; see [ParchmentBackground]. */
-internal val ParchmentVignette = Color(0xFFC9AE78)
+/** The top of the parchment page, nearest the lamp; see [ParchmentBackground]. */
+internal val ParchmentLamplight = Color(0xFFF5EBD2)
+
+/** The foot of the parchment page, furthest from the lamp; see [ParchmentBackground]. */
+internal val ParchmentShade = Color(0xFFE2CFA6)
 
 // Leather (dark)
 internal val LeatherCream = Color(0xFFECDCB6)
@@ -53,5 +56,8 @@ internal val LeatherError = Color(0xFFF2A08F)
 internal val LeatherErrorDeep = Color(0xFF4A0F06)
 internal val LeatherErrorWash = Color(0xFF6E2418)
 
-/** The worn edge the leather darkens towards; see [ParchmentBackground]. */
-internal val LeatherVignette = Color(0xFF120C07)
+/** The top of the leather, nearest the lamp; see [ParchmentBackground]. */
+internal val LeatherLamplight = Color(0xFF2E2218)
+
+/** The foot of the leather, furthest from the lamp; see [ParchmentBackground]. */
+internal val LeatherShade = Color(0xFF17100A)

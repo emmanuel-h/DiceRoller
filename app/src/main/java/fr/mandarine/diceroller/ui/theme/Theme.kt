@@ -111,11 +111,11 @@ private val DiceRollerShapes = Shapes(
     extraLarge = RoundedCornerShape(14.dp),
 )
 
-/** The colour the page darkens towards at its edges, which [ParchmentBackground] reads. */
+/** The page's colour at its top and at its foot, which [ParchmentBackground] reads. */
 @Immutable
-private data class Vignette(val edge: Color)
+private data class Lamplight(val top: Color, val bottom: Color)
 
-private val LocalVignette = staticCompositionLocalOf { Vignette(ParchmentVignette) }
+private val LocalLamplight = staticCompositionLocalOf { Lamplight(ParchmentLamplight, ParchmentShade) }
 
 /**
  * The app's theme: [ParchmentColorScheme] by day, [LeatherColorScheme] by night (issue #72).
@@ -129,8 +129,12 @@ fun DiceRollerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    val vignette = Vignette(edge = if (darkTheme) LeatherVignette else ParchmentVignette)
-    CompositionLocalProvider(LocalVignette provides vignette) {
+    val lamplight = if (darkTheme) {
+        Lamplight(top = LeatherLamplight, bottom = LeatherShade)
+    } else {
+        Lamplight(top = ParchmentLamplight, bottom = ParchmentShade)
+    }
+    CompositionLocalProvider(LocalLamplight provides lamplight) {
         MaterialTheme(
             colorScheme = if (darkTheme) LeatherColorScheme else ParchmentColorScheme,
             typography = Typography,
@@ -141,30 +145,31 @@ fun DiceRollerTheme(
 }
 
 /**
- * The page behind the screen: the theme's background, darkening towards its edges as an old
- * sheet does. A flat fill was the other half of the stock look; this costs one draw call and no
+ * The page behind the screen: the theme's background, lit from above. It is lightest at the top,
+ * passes through the plain background colour, and deepens slightly towards the Roll bar, as a
+ * page does under a lamp hung over the table.
+ *
+ * This replaced a radial vignette. Compose sizes a radial gradient's default radius to half the
+ * shorter side, so on a portrait screen it drew a visible disc in the middle of the page. A
+ * vertical wash has no shape to show at any aspect ratio, and it is still one draw call with no
  * asset.
  */
 @Composable
 fun ParchmentBackground(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     val page = MaterialTheme.colorScheme.background
-    val edge = LocalVignette.current.edge
+    val lamplight = LocalLamplight.current
     Box(
-        modifier = modifier
-            .background(page)
-            .background(
-                Brush.radialGradient(
-                    VIGNETTE_CLEAR_STOP to Color.Transparent,
-                    1f to edge.copy(alpha = VIGNETTE_EDGE_ALPHA),
-                ),
+        modifier = modifier.background(
+            Brush.verticalGradient(
+                0f to lamplight.top,
+                LAMPLIGHT_PLAIN_STOP to page,
+                1f to lamplight.bottom,
             ),
+        ),
     ) {
         content()
     }
 }
 
-/** How far out from the centre the page stays its plain colour before it starts to darken. */
-private const val VIGNETTE_CLEAR_STOP = 0.55f
-
-/** How dark the very edge gets: enough to read as aged, never enough to compete with the dice. */
-private const val VIGNETTE_EDGE_ALPHA = 0.55f
+/** How far down the page, as a fraction of its height, it reaches its plain background colour. */
+private const val LAMPLIGHT_PLAIN_STOP = 0.4f

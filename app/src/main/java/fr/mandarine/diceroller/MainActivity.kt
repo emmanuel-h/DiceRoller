@@ -312,7 +312,7 @@ fun DiceRollerScreen(
     }
 
     // The page is drawn once, behind everything, and the Scaffold is see-through over it: the
-    // vignette is the screen's background, not any one band's (issue #72).
+    // lamplit wash is the screen's background, not any one band's (issue #72).
     ParchmentBackground(modifier = modifier) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),

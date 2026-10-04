@@ -18,7 +18,7 @@ parchment). Parchment was chosen.
 
 | | Light: parchment | Dark: leather |
 |---|---|---|
-| Page | `#EFE2C4`, vignetted to `#C9AE78` | `#241A12`, vignetted to `#120C07` |
+| Page | `#EFE2C4`, washed from `#F5EBD2` (top) to `#E2CFA6` (foot) | `#241A12`, washed from `#2E2218` (top) to `#17100A` (foot) |
 | Text | ink `#3A2816` | cream `#ECDCB6` |
 | Primary (Roll, selection ring) | ink stamp `#4E321A` with gold-leaf text | gold `#C9A352` |
 | Selected chip | gold wash `#E0C993` | tooled leather `#4A3720` |
@@ -31,9 +31,11 @@ parchment). Parchment was chosen.
   without per-component overrides.
 - **The dice colour still only recolours the art** (and the swatch row). The
   chrome is fixed so that it sits beside all twelve pack variants.
-- **Vignette:** `ParchmentBackground` draws the page colour plus a radial
-  gradient towards a darker edge, behind a transparent `Scaffold`. It is one
-  draw, no asset.
+- **Lamplit wash:** `ParchmentBackground` draws a vertical gradient behind a
+  transparent `Scaffold`: lightest at the top, the plain page colour 40% of
+  the way down, slightly deeper at the foot by the Roll bar. It is one draw,
+  no asset. It replaced a radial vignette whose default radius (half the
+  shorter side) drew a visible disc in the middle of a portrait screen.
 - **Roll bar** uses `surfaceContainer` explicitly instead of tonal elevation,
   which would have tinted it with the ink primary.
 - **Shapes:** Material's corners tightened (`small` = 6dp), and the pool
