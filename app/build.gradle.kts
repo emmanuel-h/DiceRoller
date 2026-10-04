@@ -3,6 +3,26 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val releaseKeystoreFile: String? =
+    findProperty("RELEASE_KEYSTORE_FILE")?.toString()
+        ?: System.getenv("RELEASE_KEYSTORE_FILE")
+val releaseKeystorePassword: String? =
+    findProperty("RELEASE_KEYSTORE_PASSWORD")?.toString()
+        ?: System.getenv("RELEASE_KEYSTORE_PASSWORD")
+val releaseKeyAlias: String? =
+    findProperty("RELEASE_KEY_ALIAS")?.toString()
+        ?: System.getenv("RELEASE_KEY_ALIAS")
+val releaseKeyPassword: String? =
+    findProperty("RELEASE_KEY_PASSWORD")?.toString()
+        ?: System.getenv("RELEASE_KEY_PASSWORD")
+
+val hasSigningConfig = listOf(
+    releaseKeystoreFile,
+    releaseKeystorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+).none { it.isNullOrBlank() }
+
 android {
     namespace = "fr.mandarine.diceroller"
     compileSdk {
@@ -14,13 +34,25 @@ android {
         minSdk = 24
         targetSdk = 37
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    if (hasSigningConfig) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseKeystoreFile!!)
+                storePassword = releaseKeystorePassword!!
+                keyAlias = releaseKeyAlias!!
+                keyPassword = releaseKeyPassword!!
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

@@ -10,3 +10,8 @@
 local.properties
 /.claude/settings.local.json
 /.claude/spy/
+
+# Signing keys and Play credentials never belong in the repository
+*.jks
+*.keystore
+*service-account*.json

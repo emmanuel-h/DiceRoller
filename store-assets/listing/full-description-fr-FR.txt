@@ -1,0 +1,32 @@
+Lancez différentes combinaisons de dés pour toutes vos parties.
+
+LES DÉS
+
+• D4, D6, D8, D10, D12 et D20 par défaut.
+• 12 couleurs au choix.
+• Jusqu'à 20 dés de chaque type dans un même lancer.
+• Jusqu'à 3 dés personnalisés, de 2 à 1000 faces (D7, D30, D100…).
+
+Touchez la moitié droite d'un dé pour en ajouter un, la moitié gauche pour en retirer un.
+
+SECOUER POUR LANCER
+
+Secouez le téléphone pour lancer les dés choisis. La sensibilité est réglable et la fonction peut être désactivée.
+
+HISTORIQUE
+
+Les 50 derniers lancers sont conservés : les dés lancés, les valeurs obtenues et l'heure du lancer.
+
+CONFIDENTIALITÉ
+
+• Aucun compte.
+• Aucune publicité, aucun traceur, aucune statistique.
+• Aucune autorisation demandée et aucun accès à Internet : vos données restent sur votre téléphone.
+
+AUTRES
+
+• Thème clair ou sombre.
+• En français et en anglais.
+• Téléphones et tablettes, Android 7.0 ou plus récent.
+
+Illustrations des dés : Aeynit, licence CC BY 4.0.
