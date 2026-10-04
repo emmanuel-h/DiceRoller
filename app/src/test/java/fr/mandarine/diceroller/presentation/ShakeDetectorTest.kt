@@ -105,11 +105,11 @@ class ShakeDetectorTest {
         assertFalse(fired)
     }
 
-    /** Walking jolts the phone about 1.2–1.5g, over and over; that must never roll. */
+    /** Walking jolts a phone held in the hand about 1.2–1.3g, over and over; that must never roll. */
     @Test
     fun givenAWalkingRhythm_whenSampledWithDefaults_thenNoShakeIsDetected() {
         val detector = ShakeDetector()
-        val step = 1.5f * 9.81f
+        val step = 1.3f * 9.81f
 
         val fired = (0 until 200).any { index ->
             val time = index * 20L

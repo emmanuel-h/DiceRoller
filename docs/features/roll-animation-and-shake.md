@@ -36,8 +36,8 @@ and that a shake can request it.
 ## Shake to roll
 
 - `ShakeDetector` (pure Kotlin, JVM-tested): a shake is **2 jolts within 1s**, a jolt being the
-  acceleration *rising* through 1.8g. (First shipped at 3 jolts / 2.5g / 800ms, which proved hard
-  to trigger on a real phone.) Rising edges, not samples, so a phone set down hard counts
+  acceleration *rising* through 1.5g. (Tried first at 3 jolts / 2.5g / 800ms, then at 1.8g; both
+  proved hard to trigger on a real phone.) Rising edges, not samples, so a phone set down hard counts
   once. A 1.5s cooldown makes one long shake roll once.
 - `ShakeToRollEffect` registers the accelerometer only between `ON_RESUME` and `ON_PAUSE`
   (`LifecycleResumeEffect`), and only while enabled. A device without one never fires.

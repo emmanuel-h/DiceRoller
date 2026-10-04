@@ -75,10 +75,11 @@ class ShakeDetector(
 
     companion object {
         /**
-         * Above walking (about 1.2–1.5g at the hip) yet reachable with a flick of the wrist. 2.5g
-         * was tried first and proved hard to reach on a real phone.
+         * Just above what walking puts through a phone held in the hand (about 1.2–1.3g), so a
+         * light flick of the wrist reaches it. 2.5g and then 1.8g were tried first and both proved
+         * hard to reach on a real phone.
          */
-        const val DEFAULT_THRESHOLD_G: Float = 1.8f
+        const val DEFAULT_THRESHOLD_G: Float = 1.5f
 
         /**
          * Back and forth: two jolts. One is not enough, since that is what a phone set down hard
