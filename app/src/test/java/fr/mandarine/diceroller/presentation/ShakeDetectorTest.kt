@@ -119,6 +119,50 @@ class ShakeDetectorTest {
         assertFalse(fired)
     }
 
+    // --- Sensitivity steps ---
+
+    @Test
+    fun givenTheDefaultSensitivity_whenMappedToAThreshold_thenItIsTheDefaultThreshold() {
+        assertEquals(
+            ShakeDetector.DEFAULT_THRESHOLD_G,
+            ShakeDetector.thresholdForSensitivity(ShakeDetector.DEFAULT_SENSITIVITY),
+            0f,
+        )
+    }
+
+    @Test
+    fun givenEachSensitivityStep_whenMappedToAThreshold_thenMoreSensitiveMeansALowerThreshold() {
+        val thresholds = (0 until ShakeDetector.SENSITIVITY_LEVELS)
+            .map(ShakeDetector::thresholdForSensitivity)
+
+        assertEquals(thresholds.sortedDescending(), thresholds)
+        assertEquals(thresholds.size, thresholds.distinct().size)
+    }
+
+    @Test
+    fun givenAStepOutOfRange_whenMappedToAThreshold_thenItIsClampedToTheNearestEnd() {
+        val last = ShakeDetector.SENSITIVITY_LEVELS - 1
+
+        assertEquals(ShakeDetector.thresholdForSensitivity(0), ShakeDetector.thresholdForSensitivity(-3), 0f)
+        assertEquals(ShakeDetector.thresholdForSensitivity(last), ShakeDetector.thresholdForSensitivity(99), 0f)
+    }
+
+    /** The point of the most sensitive step: a swing the default ignores now rolls. */
+    @Test
+    fun givenAGentleShake_whenTheMostSensitiveStepIsUsed_thenItRollsWhereTheDefaultDoesNot() {
+        val gentle = floatArrayOf(1.3f * 9.81f, 0f, 0f)
+        fun shakesAt(thresholdG: Float): Int {
+            val detector = ShakeDetector(thresholdG = thresholdG)
+            return (0 until 8).count { index ->
+                val (x, y, z) = if (index % 2 == 0) gentle else rest
+                detector.onSample(x, y, z, index * 20L)
+            }
+        }
+
+        assertEquals(0, shakesAt(ShakeDetector.DEFAULT_THRESHOLD_G))
+        assertEquals(1, shakesAt(ShakeDetector.thresholdForSensitivity(ShakeDetector.SENSITIVITY_LEVELS - 1)))
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun givenZeroRequiredJolts_whenCreated_thenItIsRejected() {
         ShakeDetector(requiredJolts = 0)

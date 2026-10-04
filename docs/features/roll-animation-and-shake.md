@@ -45,6 +45,20 @@ and that a shake can request it.
 - **On by default**, switchable under *Rolling* in the settings sheet. Persisted by
   `DataStoreShakeToRollStore` (key `shake_to_roll_enabled`, absent = on) in the shared
   `diceDataStore`. Like colour and language, flipping it never touches the result or the log.
+- **Sensitivity** is a 5-step slider (*Less* … *More*) under the switch, greyed out rather than
+  hidden while shaking is off. Steps map to jolt thresholds via
+  `ShakeDetector.thresholdForSensitivity`:
+
+  | Step | 0 | 1 | **2 (default)** | 3 | 4 |
+  |---|---|---|---|---|---|
+  | Threshold | 2.2g | 1.8g | **1.5g** | 1.35g | 1.2g |
+
+  Step 4 can roll on a brisk walk; that's the user's trade to make. Stored as the 0-based index
+  (key `shake_sensitivity`, absent = 2) and clamped on read and write, so a stray value never
+  crashes. The ViewModel ignores repeats, since the slider reports every movement of a drag.
+  Changing it restarts the listener with a fresh detector. TalkBack reads the position as
+  "3 of 5" rather than a percentage. Shaking stays off while the sheet is open, so close it to
+  try a new setting.
 
 ## Side effect: the settings sheet opens fully expanded
 
@@ -56,9 +70,9 @@ needs it one tap away (`…TheRequiredCredit…` tests). The sheet now uses
 
 | Test | Covers |
 |---|---|
-| `ShakeDetectorTest` | threshold, jolt counting by rising edge, window, cooldown |
+| `ShakeDetectorTest` | threshold, jolt counting by rising edge, window, cooldown, sensitivity steps (ordered, clamped, default = 1.5g) |
 | `RollRevealTest` | faces stay in range and land on the result; tilt bounded and level when landed |
-| `DiceRollerViewModelTest` (shake section) | default on, restore, write-through, result/log untouched |
+| `DiceRollerViewModelTest` (shake section) | default on, restore, write-through, result/log untouched; sensitivity default, persistence, clamping |
 | `RollRevealUiTest` | no announcement and no log entry mid-tumble; both after landing; no replay of a result already on screen |
 | `RollRevealReducedMotionUiTest` | animations off → outcome within a few frames |
-| `SettingsSheetTest` (shake section) | switch state and toggling |
+| `SettingsSheetTest` (shake section) | switch state and toggling; slider enabled/disabled, moving it reports the step |

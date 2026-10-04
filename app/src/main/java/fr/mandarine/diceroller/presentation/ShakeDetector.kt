@@ -74,6 +74,27 @@ class ShakeDetector(
     }
 
     companion object {
+
+        /**
+         * The jolt threshold for each step of the settings sheet's sensitivity slider, least
+         * sensitive first. The middle step is [DEFAULT_THRESHOLD_G]; the most sensitive is low
+         * enough that a brisk walk may roll, which is the user's call to make rather than ours.
+         */
+        private val SENSITIVITY_THRESHOLDS_G = floatArrayOf(2.2f, 1.8f, 1.5f, 1.35f, 1.2f)
+
+        /** How many steps the sensitivity slider has. */
+        val SENSITIVITY_LEVELS: Int = SENSITIVITY_THRESHOLDS_G.size
+
+        /** The slider's starting step: the one whose threshold is [DEFAULT_THRESHOLD_G]. */
+        const val DEFAULT_SENSITIVITY: Int = 2
+
+        /**
+         * The jolt threshold for sensitivity [level], 0 being the least sensitive. A level out of
+         * range is clamped, so a value stored by some other build can never crash the detector.
+         */
+        fun thresholdForSensitivity(level: Int): Float =
+            SENSITIVITY_THRESHOLDS_G[level.coerceIn(0, SENSITIVITY_LEVELS - 1)]
+
         /**
          * Just above what walking puts through a phone held in the hand (about 1.2–1.3g), so a
          * light flick of the wrist reaches it. 2.5g and then 1.8g were tried first and both proved

@@ -1,7 +1,11 @@
 // app/src/androidTest/java/fr/mandarine/diceroller/presentation/component/SettingsSheetTest.kt
 package fr.mandarine.diceroller.presentation.component
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsNotSelected
@@ -36,6 +40,7 @@ class SettingsSheetTest {
 
     private val selected = mutableListOf<AppLanguage>()
     private val shakeToggles = mutableListOf<Boolean>()
+    private val sensitivities = mutableListOf<Int>()
 
     private fun launchSheet(
         selectedLanguage: AppLanguage = AppLanguage.System,
@@ -43,6 +48,7 @@ class SettingsSheetTest {
     ) {
         selected.clear()
         shakeToggles.clear()
+        sensitivities.clear()
         composeTestRule.setContent {
             DiceRollerTheme {
                 SettingsSheet(
@@ -53,6 +59,7 @@ class SettingsSheetTest {
                     onSelectLanguage = { selected += it },
                     isShakeToRollEnabled = isShakeToRollEnabled,
                     onSetShakeToRollEnabled = { shakeToggles += it },
+                    onSetShakeSensitivity = { sensitivities += it },
                 )
             }
         }
@@ -99,6 +106,31 @@ class SettingsSheetTest {
         composeTestRule.onNodeWithTag(SHAKE_TO_ROLL_TOGGLE_TAG).assertIsOff().performClick()
 
         assertEquals(listOf(true), shakeToggles)
+    }
+
+    @Test
+    fun givenShakeToRollOn_whenTheSheetOpens_thenTheSensitivitySliderIsUsable() {
+        launchSheet(isShakeToRollEnabled = true)
+
+        composeTestRule.onNodeWithTag(SHAKE_SENSITIVITY_SLIDER_TAG).assertIsEnabled()
+    }
+
+    /** Greyed out rather than hidden, so turning shaking back on does not move the rows below. */
+    @Test
+    fun givenShakeToRollOff_whenTheSheetOpens_thenTheSensitivitySliderIsShownDisabled() {
+        launchSheet(isShakeToRollEnabled = false)
+
+        composeTestRule.onNodeWithTag(SHAKE_SENSITIVITY_SLIDER_TAG).assertIsDisplayed().assertIsNotEnabled()
+    }
+
+    @Test
+    fun givenTheSlider_whenMovedToTheMostSensitiveEnd_thenThatStepIsRequested() {
+        launchSheet()
+
+        composeTestRule.onNodeWithTag(SHAKE_SENSITIVITY_SLIDER_TAG)
+            .performSemanticsAction(SemanticsActions.SetProgress) { setProgress -> setProgress(4f) }
+
+        assertEquals(4, sensitivities.last())
     }
 
     // --- It is a settings sheet now, not an About box ---

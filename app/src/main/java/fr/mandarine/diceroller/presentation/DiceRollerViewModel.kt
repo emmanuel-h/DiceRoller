@@ -81,7 +81,10 @@ class DiceRollerViewModel(
         }
         viewModelScope.launch {
             val storedShakeToRoll = shakeToRollStore.isEnabled.first()
-            _uiState.update { state -> state.copy(isShakeToRollEnabled = storedShakeToRoll) }
+            val storedSensitivity = shakeToRollStore.sensitivity.first().clampToSensitivityLevels()
+            _uiState.update { state ->
+                state.copy(isShakeToRollEnabled = storedShakeToRoll, shakeSensitivity = storedSensitivity)
+            }
         }
         // Collected rather than read once: the store is the single source of truth for the log,
         // so a recorded roll lands here instead of being applied to the state twice.
@@ -203,6 +206,21 @@ class DiceRollerViewModel(
         _uiState.update { state -> state.copy(isShakeToRollEnabled = enabled) }
         viewModelScope.launch {
             shakeToRollStore.setEnabled(enabled)
+        }
+    }
+
+    /**
+     * Sets how hard a shake must be to roll, as a step of the settings slider, and remembers it.
+     *
+     * Clamped to the slider's range, and a no-op when it would not change anything — the slider
+     * reports every movement of a drag, and only a new step is worth a write.
+     */
+    fun setShakeSensitivity(level: Int) {
+        val clamped = level.clampToSensitivityLevels()
+        if (clamped == _uiState.value.shakeSensitivity) return
+        _uiState.update { state -> state.copy(shakeSensitivity = clamped) }
+        viewModelScope.launch {
+            shakeToRollStore.setSensitivity(clamped)
         }
     }
 
@@ -382,6 +400,9 @@ class DiceRollerViewModel(
         }
     }
 }
+
+/** This level, brought within the sensitivity slider's steps. */
+private fun Int.clampToSensitivityLevels(): Int = coerceIn(0, ShakeDetector.SENSITIVITY_LEVELS - 1)
 
 /**
  * This state with [dice] as its custom dice and a pool that matches: a zero count for every

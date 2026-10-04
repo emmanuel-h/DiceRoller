@@ -57,6 +57,7 @@ import fr.mandarine.diceroller.domain.ValueTally
 import fr.mandarine.diceroller.presentation.AppLanguage
 import fr.mandarine.diceroller.presentation.DiceRollerUiState
 import fr.mandarine.diceroller.presentation.DiceRollerViewModel
+import fr.mandarine.diceroller.presentation.ShakeDetector
 import fr.mandarine.diceroller.presentation.component.AddDiceChip
 import fr.mandarine.diceroller.presentation.component.ClearPoolButton
 import fr.mandarine.diceroller.presentation.component.CustomDieCreatorDialog
@@ -108,6 +109,7 @@ class MainActivity : ComponentActivity() {
                     onDismissRemovedCustomDie = viewModel::dismissRemovedCustomDie,
                     onSelectLanguage = viewModel::selectLanguage,
                     onSetShakeToRollEnabled = viewModel::setShakeToRollEnabled,
+                    onSetShakeSensitivity = viewModel::setShakeSensitivity,
                     onShowSettings = viewModel::showSettings,
                     onDismissSettings = viewModel::dismissSettings,
                 )
@@ -229,6 +231,8 @@ private fun Configuration.composeLayoutDirection(): LayoutDirection =
  *
  * @param onSelectLanguage callback with the language picked in the settings sheet
  * @param onSetShakeToRollEnabled callback when the settings sheet's shake switch is flipped
+ * @param onSetShakeSensitivity callback with the step the settings sheet's sensitivity slider
+ *   moved to
  * @param onShowSettings callback when the gear beside the swatch row is tapped
  * @param onDismissSettings callback when the settings sheet is swiped away or its scrim tapped
  * @param modifier optional modifier
@@ -250,6 +254,7 @@ fun DiceRollerScreen(
     onDismissRemovedCustomDie: () -> Unit = {},
     onSelectLanguage: (AppLanguage) -> Unit = {},
     onSetShakeToRollEnabled: (Boolean) -> Unit = {},
+    onSetShakeSensitivity: (Int) -> Unit = {},
     onShowSettings: () -> Unit = {},
     onDismissSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -264,6 +269,7 @@ fun DiceRollerScreen(
             !uiState.isSettingsVisible &&
             !uiState.isCustomDieCreatorVisible,
         onShake = onRollDice,
+        thresholdG = ShakeDetector.thresholdForSensitivity(uiState.shakeSensitivity),
     )
 
     // While the dice tumble, the log's newest entry is the roll being revealed; showing it would
@@ -401,6 +407,8 @@ fun DiceRollerScreen(
             onSelectLanguage = onSelectLanguage,
             isShakeToRollEnabled = uiState.isShakeToRollEnabled,
             onSetShakeToRollEnabled = onSetShakeToRollEnabled,
+            shakeSensitivity = uiState.shakeSensitivity,
+            onSetShakeSensitivity = onSetShakeSensitivity,
         )
     }
 }

@@ -25,22 +25,27 @@ private const val NANOS_PER_MILLI = 1_000_000L
  * accelerometer simply never calls [onShake].
  *
  * What counts as a shake is entirely [ShakeDetector]'s business; this only delivers samples to it.
- * A fresh detector is made each time listening starts, so jolts from before a pause never combine
- * with ones after it.
+ * A fresh detector is made each time listening starts — and each time [thresholdG] changes — so
+ * jolts from before a pause never combine with ones after it.
  *
  * @param enabled whether to listen at all
+ * @param thresholdG how hard a jolt must be, from [ShakeDetector.thresholdForSensitivity]
  * @param onShake invoked on the main thread once per recognised shake
  */
 @Composable
-fun ShakeToRollEffect(enabled: Boolean, onShake: () -> Unit) {
+fun ShakeToRollEffect(
+    enabled: Boolean,
+    onShake: () -> Unit,
+    thresholdG: Float = ShakeDetector.DEFAULT_THRESHOLD_G,
+) {
     val context = LocalContext.current
     val currentOnShake by rememberUpdatedState(onShake)
 
-    LifecycleResumeEffect(enabled, context) {
+    LifecycleResumeEffect(enabled, thresholdG, context) {
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
         val accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         val listener = if (enabled && accelerometer != null) {
-            val detector = ShakeDetector()
+            val detector = ShakeDetector(thresholdG = thresholdG)
             object : SensorEventListener {
                 override fun onSensorChanged(event: SensorEvent) {
                     val (x, y, z) = event.values

@@ -20,6 +20,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -34,6 +35,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
@@ -45,6 +47,8 @@ import androidx.compose.ui.unit.dp
 import fr.mandarine.diceroller.BuildConfig
 import fr.mandarine.diceroller.R
 import fr.mandarine.diceroller.presentation.AppLanguage
+import fr.mandarine.diceroller.presentation.ShakeDetector
+import kotlin.math.roundToInt
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 import fr.mandarine.diceroller.ui.theme.displayStyle
 
@@ -56,6 +60,9 @@ const val SETTINGS_BUTTON_TAG: String = "settings-button"
 
 /** Test tag on the shake-to-roll row, which is the switch's whole touch target. */
 const val SHAKE_TO_ROLL_TOGGLE_TAG: String = "shake-to-roll-toggle"
+
+/** Test tag on the shake sensitivity slider. */
+const val SHAKE_SENSITIVITY_SLIDER_TAG: String = "shake-sensitivity-slider"
 
 /** Test tag of one language option in the picker, e.g. `language-option-fr`. */
 fun languageOptionTestTag(language: AppLanguage): String = "language-option-${language.tag ?: "system"}"
@@ -91,6 +98,9 @@ private val LINK_MIN_HEIGHT = 40.dp
 /** Height and internal gap of one language option, sized as a comfortable radio target. */
 private val LANGUAGE_OPTION_MIN_HEIGHT = 48.dp
 private val LANGUAGE_OPTION_SPACING = 8.dp
+
+/** Material's opacity for disabled content, applied to the slider's labels while shaking is off. */
+private const val DISABLED_ALPHA = 0.38f
 
 /**
  * The gear button that opens [SettingsSheet], pinned at the trailing end of the color swatch row.
@@ -153,6 +163,8 @@ fun SettingsIconButton(
  * @param onSelectLanguage invoked with the language the user picked
  * @param isShakeToRollEnabled whether shaking the phone currently rolls the dice
  * @param onSetShakeToRollEnabled invoked with the new value when the shake switch is flipped
+ * @param shakeSensitivity the sensitivity slider's current step, 0 being the least sensitive
+ * @param onSetShakeSensitivity invoked with the step the slider moved to
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -165,6 +177,8 @@ fun SettingsSheet(
     onSelectLanguage: (AppLanguage) -> Unit = {},
     isShakeToRollEnabled: Boolean = true,
     onSetShakeToRollEnabled: (Boolean) -> Unit = {},
+    shakeSensitivity: Int = ShakeDetector.DEFAULT_SENSITIVITY,
+    onSetShakeSensitivity: (Int) -> Unit = {},
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -180,6 +194,8 @@ fun SettingsSheet(
             onSelectLanguage = onSelectLanguage,
             isShakeToRollEnabled = isShakeToRollEnabled,
             onSetShakeToRollEnabled = onSetShakeToRollEnabled,
+            shakeSensitivity = shakeSensitivity,
+            onSetShakeSensitivity = onSetShakeSensitivity,
         )
     }
 }
@@ -196,6 +212,8 @@ private fun SettingsSheetContent(
     onSelectLanguage: (AppLanguage) -> Unit = {},
     isShakeToRollEnabled: Boolean = true,
     onSetShakeToRollEnabled: (Boolean) -> Unit = {},
+    shakeSensitivity: Int = ShakeDetector.DEFAULT_SENSITIVITY,
+    onSetShakeSensitivity: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // A device with no browser or no mail app throws rather than returning false, and a missing
@@ -234,6 +252,11 @@ private fun SettingsSheetContent(
             ShakeToRollToggle(
                 isEnabled = isShakeToRollEnabled,
                 onSetEnabled = onSetShakeToRollEnabled,
+            )
+            ShakeSensitivitySlider(
+                level = shakeSensitivity,
+                enabled = isShakeToRollEnabled,
+                onSetLevel = onSetShakeSensitivity,
             )
         }
 
@@ -370,6 +393,67 @@ private fun ShakeToRollToggle(
         }
         // Null callback: the row is the control, as with the language options' radio buttons.
         Switch(checked = isEnabled, onCheckedChange = null)
+    }
+}
+
+/**
+ * How hard a shake must be, as a stepped slider from Less to More sensitive.
+ *
+ * Steps rather than a continuous range, because each one is a fixed jolt threshold
+ * ([ShakeDetector.thresholdForSensitivity]); the ends are labelled in words rather than in g, which
+ * would mean nothing to most people holding the phone. Greyed out while shaking is off, rather than
+ * hidden, so switching it back on does not move the rows below.
+ *
+ * A screen reader announces the position as "3 of 5" instead of the slider's default percentage.
+ */
+@Composable
+private fun ShakeSensitivitySlider(
+    level: Int,
+    enabled: Boolean,
+    onSetLevel: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val lastLevel = ShakeDetector.SENSITIVITY_LEVELS - 1
+    val state = stringResource(R.string.shake_sensitivity_state, level + 1, ShakeDetector.SENSITIVITY_LEVELS)
+    val textColor = if (enabled) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA)
+    }
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.shake_sensitivity_label),
+            style = MaterialTheme.typography.bodyMedium,
+            color = textColor,
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(LANGUAGE_OPTION_SPACING),
+        ) {
+            Text(
+                text = stringResource(R.string.shake_sensitivity_less),
+                style = MaterialTheme.typography.bodySmall,
+                color = textColor,
+            )
+            Slider(
+                value = level.toFloat(),
+                // Fires on every movement of a drag; the ViewModel ignores repeats of a step.
+                onValueChange = { value -> onSetLevel(value.roundToInt()) },
+                enabled = enabled,
+                valueRange = 0f..lastLevel.toFloat(),
+                // `steps` counts the notches *between* the ends.
+                steps = lastLevel - 1,
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { stateDescription = state }
+                    .testTag(SHAKE_SENSITIVITY_SLIDER_TAG),
+            )
+            Text(
+                text = stringResource(R.string.shake_sensitivity_more),
+                style = MaterialTheme.typography.bodySmall,
+                color = textColor,
+            )
+        }
     }
 }
 

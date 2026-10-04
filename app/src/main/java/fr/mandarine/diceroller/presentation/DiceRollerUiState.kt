@@ -40,6 +40,8 @@ import fr.mandarine.diceroller.presentation.model.DiceColor
  *   mistap is likely enough that the definition should not vanish irrecoverably.
  * @property isShakeToRollEnabled whether shaking the phone rolls the pool (issue #1). On by
  *   default; the settings sheet carries the switch, and the choice is persisted.
+ * @property shakeSensitivity how hard a shake must be, as a step of the settings sheet's slider:
+ *   0 is the least sensitive, see [ShakeDetector.thresholdForSensitivity]. Persisted too.
  * @property nowMillis the reference time the history's relative timestamps are rendered against,
  *   refreshed on each roll and each expand rather than ticking continuously
  */
@@ -55,6 +57,7 @@ data class DiceRollerUiState(
     val isSettingsVisible: Boolean = false,
     val removedCustomDie: CustomDie? = null,
     val isShakeToRollEnabled: Boolean = true,
+    val shakeSensitivity: Int = ShakeDetector.DEFAULT_SENSITIVITY,
     val nowMillis: Long = 0L,
 ) {
 

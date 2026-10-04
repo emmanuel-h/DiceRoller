@@ -602,6 +602,49 @@ class DiceRollerViewModelTest {
         assertFalse(restarted.uiState.value.isShakeToRollEnabled)
     }
 
+    @Test
+    fun givenNewViewModelWithEmptyStore_whenReadingState_thenSensitivityIsTheDefault() {
+        assertEquals(ShakeDetector.DEFAULT_SENSITIVITY, viewModel().uiState.value.shakeSensitivity)
+    }
+
+    @Test
+    fun givenASensitivitySet_whenReadingStateAndStore_thenBothReflectIt() = runTest {
+        val store = InMemoryShakeToRollStore()
+        val vm = viewModel(shakeToRollStore = store)
+
+        vm.setShakeSensitivity(4)
+
+        assertEquals(4, vm.uiState.value.shakeSensitivity)
+        assertEquals(4, store.sensitivity.first())
+    }
+
+    @Test
+    fun givenASensitivitySet_whenANewViewModelSharesTheStore_thenTheChoiceSurvives() {
+        val store = InMemoryShakeToRollStore()
+        viewModel(shakeToRollStore = store).setShakeSensitivity(0)
+
+        assertEquals(0, viewModel(shakeToRollStore = store).uiState.value.shakeSensitivity)
+    }
+
+    @Test
+    fun givenASensitivityOutOfRange_whenSet_thenItIsClampedToTheSlider() {
+        val vm = viewModel()
+
+        vm.setShakeSensitivity(99)
+        assertEquals(ShakeDetector.SENSITIVITY_LEVELS - 1, vm.uiState.value.shakeSensitivity)
+
+        vm.setShakeSensitivity(-1)
+        assertEquals(0, vm.uiState.value.shakeSensitivity)
+    }
+
+    /** Whatever an older or newer build left behind, the slider must open on one of its steps. */
+    @Test
+    fun givenAStoredSensitivityOutOfRange_whenViewModelIsCreated_thenItIsClamped() {
+        val vm = viewModel(shakeToRollStore = InMemoryShakeToRollStore(initialSensitivity = 42))
+
+        assertEquals(ShakeDetector.SENSITIVITY_LEVELS - 1, vm.uiState.value.shakeSensitivity)
+    }
+
     /** A preference, like the colour: flipping it is not a change to what Roll would produce. */
     @Test
     fun givenARollResult_whenShakeToRollIsSwitched_thenTheResultAndLogSurvive() {

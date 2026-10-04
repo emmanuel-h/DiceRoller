@@ -19,20 +19,40 @@ interface ShakeToRollStore {
 
     /** Stores [enabled] as the user's choice. */
     suspend fun setEnabled(enabled: Boolean)
+
+    /**
+     * Emits the stored sensitivity step (see [ShakeDetector.thresholdForSensitivity]), falling
+     * back to [ShakeDetector.DEFAULT_SENSITIVITY] when none is set.
+     */
+    val sensitivity: Flow<Int>
+
+    /** Stores [level] as the user's sensitivity step. */
+    suspend fun setSensitivity(level: Int)
 }
 
 /**
  * Non-persistent [ShakeToRollStore] used by previews and unit tests.
  *
  * @param initial the choice the store starts with
+ * @param initialSensitivity the sensitivity step the store starts with
  */
-class InMemoryShakeToRollStore(initial: Boolean = true) : ShakeToRollStore {
+class InMemoryShakeToRollStore(
+    initial: Boolean = true,
+    initialSensitivity: Int = ShakeDetector.DEFAULT_SENSITIVITY,
+) : ShakeToRollStore {
 
     private val state = MutableStateFlow(initial)
+    private val sensitivityState = MutableStateFlow(initialSensitivity)
 
     override val isEnabled: Flow<Boolean> = state.asStateFlow()
 
     override suspend fun setEnabled(enabled: Boolean) {
         state.value = enabled
+    }
+
+    override val sensitivity: Flow<Int> = sensitivityState.asStateFlow()
+
+    override suspend fun setSensitivity(level: Int) {
+        sensitivityState.value = level
     }
 }
