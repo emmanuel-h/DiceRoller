@@ -11,6 +11,7 @@ import fr.mandarine.diceroller.data.DataStoreAppLanguageStore
 import fr.mandarine.diceroller.data.DataStoreCustomDiceStore
 import fr.mandarine.diceroller.data.DataStoreDiceColorStore
 import fr.mandarine.diceroller.data.DataStoreRollHistoryStore
+import fr.mandarine.diceroller.data.DataStoreShakeToRollStore
 import fr.mandarine.diceroller.domain.CustomDie
 import fr.mandarine.diceroller.domain.Dice
 import fr.mandarine.diceroller.domain.DicePool
@@ -39,6 +40,7 @@ import kotlinx.coroutines.launch
  * @param languageStore persists the language the user reads the app in
  * @param historyStore persists past rolls
  * @param customDiceStore persists the user's custom die definitions
+ * @param shakeToRollStore persists whether shaking the phone rolls the dice
  * @param clock reads the current epoch time, injected so timestamps are deterministic in tests
  */
 class DiceRollerViewModel(
@@ -47,6 +49,7 @@ class DiceRollerViewModel(
     private val languageStore: AppLanguageStore = InMemoryAppLanguageStore(),
     private val historyStore: RollHistoryStore = InMemoryRollHistoryStore(),
     private val customDiceStore: CustomDiceStore = InMemoryCustomDiceStore(),
+    private val shakeToRollStore: ShakeToRollStore = InMemoryShakeToRollStore(),
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
 
@@ -75,6 +78,13 @@ class DiceRollerViewModel(
         viewModelScope.launch {
             val storedLanguage = languageStore.language.first()
             _uiState.update { state -> state.copy(language = storedLanguage) }
+        }
+        viewModelScope.launch {
+            val storedShakeToRoll = shakeToRollStore.isEnabled.first()
+            val storedSensitivity = shakeToRollStore.sensitivity.first().clampToSensitivityLevels()
+            _uiState.update { state ->
+                state.copy(isShakeToRollEnabled = storedShakeToRoll, shakeSensitivity = storedSensitivity)
+            }
         }
         // Collected rather than read once: the store is the single source of truth for the log,
         // so a recorded roll lands here instead of being applied to the state twice.
@@ -184,6 +194,33 @@ class DiceRollerViewModel(
         _uiState.update { state -> state.copy(language = language) }
         viewModelScope.launch {
             languageStore.setLanguage(language)
+        }
+    }
+
+    /**
+     * Turns shake-to-roll on or off and remembers the choice.
+     *
+     * A preference like [selectColor], so it leaves the pool, the result and the log alone.
+     */
+    fun setShakeToRollEnabled(enabled: Boolean) {
+        _uiState.update { state -> state.copy(isShakeToRollEnabled = enabled) }
+        viewModelScope.launch {
+            shakeToRollStore.setEnabled(enabled)
+        }
+    }
+
+    /**
+     * Sets how hard a shake must be to roll, as a step of the settings slider, and remembers it.
+     *
+     * Clamped to the slider's range, and a no-op when it would not change anything — the slider
+     * reports every movement of a drag, and only a new step is worth a write.
+     */
+    fun setShakeSensitivity(level: Int) {
+        val clamped = level.clampToSensitivityLevels()
+        if (clamped == _uiState.value.shakeSensitivity) return
+        _uiState.update { state -> state.copy(shakeSensitivity = clamped) }
+        viewModelScope.launch {
+            shakeToRollStore.setSensitivity(clamped)
         }
     }
 
@@ -343,9 +380,9 @@ class DiceRollerViewModel(
 
     companion object {
         /**
-         * Builds a factory that wires the ViewModel to the DataStore-backed color, language,
-         * history and custom-dice stores, so the chosen colour and language, the roll log and the
-         * user's own dice all survive process death.
+         * Builds a factory that wires the ViewModel to the DataStore-backed stores, so the chosen
+         * colour and language, the shake switch, the roll log and the user's own dice all survive
+         * process death.
          */
         fun factory(context: Context): ViewModelProvider.Factory {
             val appContext = context.applicationContext
@@ -356,12 +393,16 @@ class DiceRollerViewModel(
                         languageStore = DataStoreAppLanguageStore(appContext),
                         historyStore = DataStoreRollHistoryStore(appContext),
                         customDiceStore = DataStoreCustomDiceStore(appContext),
+                        shakeToRollStore = DataStoreShakeToRollStore(appContext),
                     )
                 }
             }
         }
     }
 }
+
+/** This level, brought within the sensitivity slider's steps. */
+private fun Int.clampToSensitivityLevels(): Int = coerceIn(0, ShakeDetector.SENSITIVITY_LEVELS - 1)
 
 /**
  * This state with [dice] as its custom dice and a pool that matches: a zero count for every

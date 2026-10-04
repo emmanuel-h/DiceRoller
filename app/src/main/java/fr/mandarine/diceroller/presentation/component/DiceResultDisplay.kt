@@ -2,6 +2,7 @@
 package fr.mandarine.diceroller.presentation.component
 
 import android.content.res.Resources
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,8 +18,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -83,12 +86,18 @@ private const val GROUP_SUMMARY_SEPARATOR = " "
  * At the extreme (20 dice of one type, so up to 20 distinct values) the content scrolls
  * internally; at realistic sizes it does not scroll at all.
  *
+ * A fresh result arrives tumbling (issue #1): while [reveal] is in progress every die rocks and
+ * flickers through random faces, and what would give the outcome away — the `×N` counts, the total,
+ * and the spoken summary — is held back until the dice land. The layout is the final one from the
+ * first frame, so landing moves nothing but the numerals.
+ *
  * @param result the tallied outcome of the last roll, or null if no roll has happened yet or the
  *   pool changed since
  * @param isPoolEmpty whether every die type in the pool currently has a count of zero; only
  *   consulted when [result] is null, to choose the empty-state caption
  * @param selectedColor the color variant applied to every die rendered, across every group
  * @param modifier optional [Modifier] applied to the root container
+ * @param reveal where the roll animation is; [RollReveal.Settled] shows [result] as landed
  */
 @Composable
 fun DiceResultDisplay(
@@ -96,6 +105,7 @@ fun DiceResultDisplay(
     isPoolEmpty: Boolean,
     selectedColor: DiceColor,
     modifier: Modifier = Modifier,
+    reveal: RollReveal = RollReveal.Settled,
 ) {
     Box(
         modifier = modifier.fillMaxWidth(),
@@ -106,7 +116,7 @@ fun DiceResultDisplay(
         if (result == null) {
             EmptyResultState(isPoolEmpty = isPoolEmpty)
         } else {
-            PopulatedResultState(result = result, selectedColor = selectedColor)
+            PopulatedResultState(result = result, selectedColor = selectedColor, reveal = reveal)
         }
     }
 }
@@ -150,9 +160,16 @@ private fun EmptyResultState(isPoolEmpty: Boolean, modifier: Modifier = Modifier
 private fun PopulatedResultState(
     result: DicePoolResult,
     selectedColor: DiceColor,
+    reveal: RollReveal,
     modifier: Modifier = Modifier,
 ) {
     val resources = LocalResources.current
+    // Starts at whatever the reveal says when this result first composes, so a tumbling roll's
+    // counts and total never show for a frame before fading out.
+    val settledAlpha by animateFloatAsState(
+        targetValue = if (reveal.isRevealing) 0f else 1f,
+        label = "settled-alpha",
+    )
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -160,19 +177,35 @@ private fun PopulatedResultState(
         verticalArrangement = Arrangement.spacedBy(GROUP_SPACING),
     ) {
         // Invisible node carrying one generated summary, so a roll is announced once as a whole
-        // rather than entry by entry.
-        Box(
-            modifier = Modifier
-                .size(0.dp)
-                .clearAndSetSemantics {
-                    liveRegion = LiveRegionMode.Polite
-                    contentDescription = result.toAccessibilitySummary(resources)
-                },
-        )
-        result.groups.forEach { group ->
-            DiceGroupBlock(group = group, color = selectedColor)
+        // rather than entry by entry — and only once the dice have landed, so a screen reader
+        // announces the outcome when it appears rather than ahead of it.
+        if (!reveal.isRevealing) {
+            Box(
+                modifier = Modifier
+                    .size(0.dp)
+                    .clearAndSetSemantics {
+                        liveRegion = LiveRegionMode.Polite
+                        contentDescription = result.toAccessibilitySummary(resources)
+                    },
+            )
         }
-        TotalLine(total = result.total)
+        // Each die gets its own seed so neighbours tumble out of step; offsetting by the groups
+        // before it keeps the seeds distinct across the whole result.
+        var seedOffset = 0
+        result.groups.forEach { group ->
+            DiceGroupBlock(
+                group = group,
+                color = selectedColor,
+                reveal = reveal,
+                seedOffset = seedOffset,
+                countAlpha = { settledAlpha },
+            )
+            seedOffset += group.tallies.size
+        }
+        TotalLine(
+            total = result.total,
+            modifier = Modifier.graphicsLayer { alpha = settledAlpha },
+        )
     }
 }
 
@@ -182,6 +215,9 @@ private fun PopulatedResultState(
 private fun DiceGroupBlock(
     group: DiceGroupResult,
     color: DiceColor,
+    reveal: RollReveal,
+    seedOffset: Int,
+    countAlpha: () -> Float,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -194,8 +230,15 @@ private fun DiceGroupBlock(
             horizontalArrangement = Arrangement.spacedBy(ENTRY_HORIZONTAL_SPACING),
             verticalArrangement = Arrangement.spacedBy(ENTRY_VERTICAL_SPACING),
         ) {
-            group.tallies.forEach { tally ->
-                FaceEntry(dice = group.dice, tally = tally, color = color)
+            group.tallies.forEachIndexed { index, tally ->
+                FaceEntry(
+                    dice = group.dice,
+                    tally = tally,
+                    color = color,
+                    reveal = reveal,
+                    seed = seedOffset + index,
+                    countAlpha = countAlpha,
+                )
             }
         }
     }
@@ -226,12 +269,19 @@ private fun GroupHeader(group: DiceGroupResult, modifier: Modifier = Modifier) {
  *
  * The artwork is the largest element and the wording the smallest, inverting the previous row
  * layout where a `headlineSmall` numeral dominated a 56dp-tall row (issue #63).
+ *
+ * While [reveal] is in progress the die rocks and shows a random face rather than [tally]'s, and
+ * the count is faded out by [countAlpha]. The spoken description is the landed one throughout: it
+ * is what the entry *is*, and the live region is what times the announcement.
  */
 @Composable
 private fun FaceEntry(
     dice: DieType,
     tally: ValueTally,
     color: DiceColor,
+    reveal: RollReveal,
+    seed: Int,
+    countAlpha: () -> Float,
     modifier: Modifier = Modifier,
 ) {
     val description = pluralStringResource(
@@ -251,7 +301,12 @@ private fun FaceEntry(
             dice = dice,
             color = color,
             sizeVariant = DiceImageSize.Inline,
-            value = tally.value,
+            value = tumblingFace(dice.faces, tally.value, reveal.progress, seed),
+            modifier = Modifier.graphicsLayer {
+                rotationZ = tumblingTilt(reveal.progress, seed)
+                scaleX = reveal.landingScale
+                scaleY = reveal.landingScale
+            },
             imageModifier = Modifier.testTag("dice-row-art-${dice.label}-${tally.value}-${color.name}"),
         )
         if (tally.count > 1) {
@@ -259,7 +314,9 @@ private fun FaceEntry(
                 text = stringResource(R.string.multiplier, tally.count),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag("dice-row-count-${dice.label}-${tally.value}"),
+                modifier = Modifier
+                    .graphicsLayer { alpha = countAlpha() }
+                    .testTag("dice-row-count-${dice.label}-${tally.value}"),
             )
         }
     }

@@ -57,6 +57,7 @@ import fr.mandarine.diceroller.domain.ValueTally
 import fr.mandarine.diceroller.presentation.AppLanguage
 import fr.mandarine.diceroller.presentation.DiceRollerUiState
 import fr.mandarine.diceroller.presentation.DiceRollerViewModel
+import fr.mandarine.diceroller.presentation.ShakeDetector
 import fr.mandarine.diceroller.presentation.component.AddDiceChip
 import fr.mandarine.diceroller.presentation.component.ClearPoolButton
 import fr.mandarine.diceroller.presentation.component.CustomDieCreatorDialog
@@ -64,6 +65,8 @@ import fr.mandarine.diceroller.presentation.component.DiceColorSwatchRow
 import fr.mandarine.diceroller.presentation.component.DiceResultDisplay
 import fr.mandarine.diceroller.presentation.component.DiceStepperChip
 import fr.mandarine.diceroller.presentation.component.RollHistoryBand
+import fr.mandarine.diceroller.presentation.component.ShakeToRollEffect
+import fr.mandarine.diceroller.presentation.component.rememberRollReveal
 import fr.mandarine.diceroller.presentation.component.SettingsIconButton
 import fr.mandarine.diceroller.presentation.component.SettingsSheet
 import fr.mandarine.diceroller.presentation.component.dieLabel
@@ -105,6 +108,8 @@ class MainActivity : ComponentActivity() {
                     onUndoRemoveCustomDie = viewModel::undoRemoveCustomDie,
                     onDismissRemovedCustomDie = viewModel::dismissRemovedCustomDie,
                     onSelectLanguage = viewModel::selectLanguage,
+                    onSetShakeToRollEnabled = viewModel::setShakeToRollEnabled,
+                    onSetShakeSensitivity = viewModel::setShakeSensitivity,
                     onShowSettings = viewModel::showSettings,
                     onDismissSettings = viewModel::dismissSettings,
                 )
@@ -219,7 +224,15 @@ private fun Configuration.composeLayoutDirection(): LayoutDirection =
  * @param onRemoveCustomDie callback when a custom chip's `×` badge is tapped
  * @param onUndoRemoveCustomDie callback when the removal snackbar's Undo action is used
  * @param onDismissRemovedCustomDie callback when that snackbar goes away un-actioned
+ * A roll is revealed rather than shown (issue #1): the dice tumble in the result band for a moment
+ * before landing, and the log holds the new entry back until they do. Shaking the phone rolls too,
+ * while [DiceRollerUiState.isShakeToRollEnabled] and no dialog or sheet is open — a shake while
+ * reading the settings is not a request to roll.
+ *
  * @param onSelectLanguage callback with the language picked in the settings sheet
+ * @param onSetShakeToRollEnabled callback when the settings sheet's shake switch is flipped
+ * @param onSetShakeSensitivity callback with the step the settings sheet's sensitivity slider
+ *   moved to
  * @param onShowSettings callback when the gear beside the swatch row is tapped
  * @param onDismissSettings callback when the settings sheet is swiped away or its scrim tapped
  * @param modifier optional modifier
@@ -240,11 +253,33 @@ fun DiceRollerScreen(
     onUndoRemoveCustomDie: () -> Unit = {},
     onDismissRemovedCustomDie: () -> Unit = {},
     onSelectLanguage: (AppLanguage) -> Unit = {},
+    onSetShakeToRollEnabled: (Boolean) -> Unit = {},
+    onSetShakeSensitivity: (Int) -> Unit = {},
     onShowSettings: () -> Unit = {},
     onDismissSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val reveal = rememberRollReveal(uiState.result)
+
+    // The same action as the button, so a shake with nothing queued is the same no-op as a tap on
+    // a disabled Roll — and a shake mid-tumble is too, because rolling has already emptied the pool.
+    ShakeToRollEffect(
+        enabled = uiState.isShakeToRollEnabled &&
+            !uiState.isSettingsVisible &&
+            !uiState.isCustomDieCreatorVisible,
+        onShake = onRollDice,
+        thresholdG = ShakeDetector.thresholdForSensitivity(uiState.shakeSensitivity),
+    )
+
+    // While the dice tumble, the log's newest entry is the roll being revealed; showing it would
+    // print the outcome under the dice that are still deciding it. Matched on the result, because
+    // the store may not have delivered the new record yet — in which case there is nothing to hide.
+    val history = if (reveal.isRevealing && uiState.history.firstOrNull()?.result == uiState.result) {
+        uiState.history.drop(1)
+    } else {
+        uiState.history
+    }
 
     // Keyed on the die, so the snackbar is shown once per removal. A second removal of the same
     // die can only follow an undo, which nulls the field and disposes this effect in between.
@@ -337,11 +372,12 @@ fun DiceRollerScreen(
                             isPoolEmpty = !uiState.canRoll,
                             selectedColor = uiState.selectedColor,
                             modifier = Modifier.fillMaxSize(),
+                            reveal = reveal,
                         )
                     }
 
                     RollHistoryBand(
-                        history = uiState.history,
+                        history = history,
                         isExpanded = uiState.isHistoryExpanded,
                         nowMillis = uiState.nowMillis,
                         selectedColor = uiState.selectedColor,
@@ -369,6 +405,10 @@ fun DiceRollerScreen(
             onDismiss = onDismissSettings,
             selectedLanguage = uiState.language,
             onSelectLanguage = onSelectLanguage,
+            isShakeToRollEnabled = uiState.isShakeToRollEnabled,
+            onSetShakeToRollEnabled = onSetShakeToRollEnabled,
+            shakeSensitivity = uiState.shakeSensitivity,
+            onSetShakeSensitivity = onSetShakeSensitivity,
         )
     }
 }
