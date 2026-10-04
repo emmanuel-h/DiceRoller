@@ -50,9 +50,6 @@ android {
 
     buildFeatures {
         compose = true
-        // For BuildConfig.VERSION_NAME, which the About sheet shows so the version on screen
-        // cannot drift from the one declared above.
-        buildConfig = true
     }
 }
 

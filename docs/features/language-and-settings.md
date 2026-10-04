@@ -3,6 +3,11 @@
 Follow-up to [#68](https://github.com/emmanuel-h/DiceRoller/issues/68), which shipped the French
 translation but left the app following the device locale with no way to choose otherwise.
 
+> **Partly superseded** by [theme-and-inline-settings.md](theme-and-inline-settings.md): the picker
+> no longer offers *System default* (a fresh install starts on the device's language, or English),
+> its options sit on one line, and the About, licence and contact sections are gone. Why the choice
+> is ViewModel state rather than a platform locale still holds.
+
 ## What changed
 
 The ⓘ beside the colour swatch row is now a **⚙**, and the sheet behind it is titled **Settings**

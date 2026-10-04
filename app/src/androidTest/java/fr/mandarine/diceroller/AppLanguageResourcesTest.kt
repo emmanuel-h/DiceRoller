@@ -54,7 +54,7 @@ class AppLanguageResourcesTest {
     fun givenEveryOfferedLanguage_whenResolved_thenItHasItsOwnStrings() {
         val english = defaultStrings()(probe)
 
-        AppLanguage.entries.mapNotNull { it.tag }.filter { it != "en" }.forEach { tag ->
+        AppLanguage.entries.map { it.tag }.filter { it != "en" }.forEach { tag ->
             assertNotEquals(
                 "AppLanguage offers '$tag' but res/values-$tag/ has no translation for it — " +
                     "the picker would silently show English",
@@ -66,7 +66,7 @@ class AppLanguageResourcesTest {
 
     @Test
     fun givenEveryOfferedLanguage_whenResolved_thenNothingComesBackBlank() {
-        AppLanguage.entries.mapNotNull { it.tag }.forEach { tag ->
+        AppLanguage.entries.map { it.tag }.forEach { tag ->
             val strings = stringsIn(tag)
             listOf(probe, R.string.settings_title, R.string.roll_button).forEach { id ->
                 assertNotEquals("Blank string for '$tag'", "", strings(id).trim())

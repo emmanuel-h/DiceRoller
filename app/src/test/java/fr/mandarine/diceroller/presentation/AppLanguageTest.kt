@@ -2,37 +2,30 @@
 package fr.mandarine.diceroller.presentation
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
  * Resolving a stored language tag back to an option.
  *
- * The tag comes from `AppCompatDelegate`, i.e. from outside this build: it may have been written
- * by an older version, or by Android 13's own per-app language screen, which stores a full
- * `fr-FR` where this picker would have stored `fr`. Every one of those has to land somewhere
- * sensible rather than throw.
+ * The tag comes from storage or from the device's locale, i.e. from outside this build: it may
+ * have been written by an older version, or carry a region (`fr-FR`) where this picker stores
+ * `fr`. Every one of those has to land somewhere sensible rather than throw.
  */
 class AppLanguageTest {
 
     // --- The set on offer ---
 
+    /** The picker is inline, so the order here is the order on screen. */
     @Test
-    fun givenTheOptions_whenListed_thenSystemComesFirst() {
-        assertEquals(AppLanguage.System, AppLanguage.entries.first())
-    }
-
-    @Test
-    fun givenTheOptions_whenListed_thenOnlySystemHasNoTag() {
-        val untagged = AppLanguage.entries.filter { it.tag == null }
-
-        assertEquals(listOf(AppLanguage.System), untagged)
+    fun givenTheOptions_whenListed_thenEnglishThenFrench() {
+        assertEquals(listOf(AppLanguage.English, AppLanguage.French), AppLanguage.entries)
     }
 
     @Test
     fun givenTheOptions_whenListed_thenEveryTagAndLabelIsDistinct() {
-        val tags = AppLanguage.entries.mapNotNull { it.tag }
+        val tags = AppLanguage.entries.map { it.tag }
         val labels = AppLanguage.entries.map { it.labelRes }
 
         assertEquals("Tags must be unique: $tags", tags.size, tags.toSet().size)
@@ -42,7 +35,7 @@ class AppLanguageTest {
     /** A tag naming a region would not match a `values-<lang>/` folder this app ships. */
     @Test
     fun givenTheOptions_whenListed_thenEveryTagIsABareLanguageSubtag() {
-        AppLanguage.entries.mapNotNull { it.tag }.forEach { tag ->
+        AppLanguage.entries.map { it.tag }.forEach { tag ->
             assertTrue("'$tag' must be a bare language subtag", !tag.contains('-'))
             assertEquals("'$tag' must be lowercase", tag.lowercase(), tag)
         }
@@ -66,33 +59,39 @@ class AppLanguageTest {
         assertEquals(AppLanguage.English, AppLanguage.ofTag("en-US"))
     }
 
-    /** No override stored: the app is following the device, which is [AppLanguage.System]. */
     @Test
-    fun givenNoTag_whenResolved_thenSystemIsReturned() {
-        assertEquals(AppLanguage.System, AppLanguage.ofTag(null))
-        assertEquals(AppLanguage.System, AppLanguage.ofTag(""))
-        assertEquals(AppLanguage.System, AppLanguage.ofTag("   "))
+    fun givenNoTag_whenResolved_thenNothingIsReturned() {
+        assertNull(AppLanguage.ofTag(null))
+        assertNull(AppLanguage.ofTag(""))
+        assertNull(AppLanguage.ofTag("   "))
     }
 
     /** A locale an older build shipped and this one does not; falling back beats crashing. */
     @Test
-    fun givenAnUnshippedTag_whenResolved_thenSystemIsReturned() {
-        assertEquals(AppLanguage.System, AppLanguage.ofTag("de"))
-        assertEquals(AppLanguage.System, AppLanguage.ofTag("es-419"))
+    fun givenAnUnshippedTag_whenResolved_thenNothingIsReturned() {
+        assertNull(AppLanguage.ofTag("de"))
+        assertNull(AppLanguage.ofTag("es-419"))
+    }
+
+    // --- The default for a user who never picked ---
+
+    @Test
+    fun givenAShippedDeviceLanguage_whenResolvingTheDefault_thenItIsUsed() {
+        assertEquals(AppLanguage.French, AppLanguage.forDevice("fr"))
+        assertEquals(AppLanguage.English, AppLanguage.forDevice("en"))
+    }
+
+    /** What Android's resource fallback would show anyway, so the picker agrees with the screen. */
+    @Test
+    fun givenAnUnshippedDeviceLanguage_whenResolvingTheDefault_thenItIsEnglish() {
+        assertEquals(AppLanguage.English, AppLanguage.forDevice("de"))
+        assertEquals(AppLanguage.English, AppLanguage.forDevice(null))
     }
 
     @Test
     fun givenEveryOptionsOwnTag_whenResolved_thenItRoundTrips() {
         AppLanguage.entries.forEach { language ->
             assertEquals(language, AppLanguage.ofTag(language.tag))
-        }
-    }
-
-    /** `System` is the absence of a choice, so it must not be reachable by naming a language. */
-    @Test
-    fun givenANamedLanguage_whenResolved_thenItIsNotSystem() {
-        AppLanguage.entries.filter { it.tag != null }.forEach { language ->
-            assertNotEquals(AppLanguage.System, AppLanguage.ofTag(language.tag))
         }
     }
 }

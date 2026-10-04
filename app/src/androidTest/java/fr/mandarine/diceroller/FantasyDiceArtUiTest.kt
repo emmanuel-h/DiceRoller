@@ -206,19 +206,15 @@ class FantasyDiceArtUiTest {
     }
 
     /**
-     * The credit sits next to the app's own license so the two cannot be read as one, and it is
-     * the *whole* of the artwork section: the license link lives inside the line rather than on a
-     * row of its own, so there is deliberately no standalone `CC BY 4.0` node to find.
+     * The credit is the *whole* of the artwork section: the license link lives inside the line
+     * rather than on a row of its own, so there is deliberately no standalone `CC BY 4.0` node.
      */
     @Test
-    fun givenTheSettingsSheet_whenOpened_thenTheCreditIsOneLineBesideTheAppsOwnLicense() {
+    fun givenTheSettingsSheet_whenOpened_thenTheCreditIsOneLine() {
         launchWithViewModel()
 
         composeTestRule.onNodeWithTag(SETTINGS_BUTTON_TAG).performClick()
 
-        val appLicenseLine = "${str(R.string.about_app_copyright)} · " +
-            str(R.string.about_app_license)
-        composeTestRule.onNodeWithText(appLicenseLine).assertIsDisplayed()
         composeTestRule.onNodeWithText(str(R.string.about_art_license)).assertDoesNotExist()
         composeTestRule.onNodeWithText("Fantasy Dices Pack by Aeynit").assertDoesNotExist()
     }

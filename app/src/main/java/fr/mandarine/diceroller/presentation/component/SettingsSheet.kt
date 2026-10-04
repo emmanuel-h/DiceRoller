@@ -1,7 +1,6 @@
 // app/src/main/java/fr/mandarine/diceroller/presentation/component/SettingsSheet.kt
 package fr.mandarine.diceroller.presentation.component
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -19,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -28,12 +27,12 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.LinkAnnotation
@@ -44,9 +43,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import fr.mandarine.diceroller.BuildConfig
 import fr.mandarine.diceroller.R
 import fr.mandarine.diceroller.presentation.AppLanguage
+import fr.mandarine.diceroller.presentation.AppTheme
 import fr.mandarine.diceroller.presentation.ShakeDetector
 import kotlin.math.roundToInt
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
@@ -65,22 +64,19 @@ const val SHAKE_TO_ROLL_TOGGLE_TAG: String = "shake-to-roll-toggle"
 const val SHAKE_SENSITIVITY_SLIDER_TAG: String = "shake-sensitivity-slider"
 
 /** Test tag of one language option in the picker, e.g. `language-option-fr`. */
-fun languageOptionTestTag(language: AppLanguage): String = "language-option-${language.tag ?: "system"}"
+fun languageOptionTestTag(language: AppLanguage): String = "language-option-${language.tag}"
 
-/** Destination of the app's own license link; the label beside it is `about_app_license`. */
-private const val APP_LICENSE_URL = "https://www.apache.org/licenses/LICENSE-2.0"
+/** Test tag of one theme option in the picker, e.g. `theme-option-dark`. */
+fun themeOptionTestTag(theme: AppTheme): String = "theme-option-${theme.name.lowercase()}"
 
 /**
  * Destination of the artwork's license link.
  *
  * The label is [R.string.about_art_license], which is also the suffix
  * [R.string.about_art_attribution] must end in — see the note on that string, and
- * [AboutSheetContent] for what splits them.
+ * [SettingsSheetContent] for what splits them.
  */
 private const val ART_LICENSE_URL = "https://creativecommons.org/licenses/by/4.0/"
-
-/** Where to write about the app. Opened as a `mailto:` so it lands in the user's mail app. */
-private const val CONTACT_MAILTO_SCHEME = "mailto:"
 
 /** Inset of the sheet's content, wider than the screen's so the sheet reads as its own surface. */
 private val SHEET_HORIZONTAL_PADDING = 24.dp
@@ -92,12 +88,15 @@ private val SHEET_BOTTOM_PADDING = 32.dp
 private val SECTION_SPACING = 20.dp
 private val ROW_SPACING = 4.dp
 
-/** Minimum height of a tappable link row, so a one-line link is still a comfortable target. */
-private val LINK_MIN_HEIGHT = 40.dp
+/** Height and internal gap of one option row, sized as a comfortable radio or switch target. */
+private val OPTION_MIN_HEIGHT = 48.dp
+private val OPTION_SPACING = 8.dp
 
-/** Height and internal gap of one language option, sized as a comfortable radio target. */
-private val LANGUAGE_OPTION_MIN_HEIGHT = 48.dp
-private val LANGUAGE_OPTION_SPACING = 8.dp
+/** Gap between two radio options sharing a line, wide enough that they read as two choices. */
+private val INLINE_OPTION_SPACING = 24.dp
+
+/** Above this luminance the sheet's surface is light, so its bar icons must be dark. */
+private const val LIGHT_SURFACE_LUMINANCE = 0.5f
 
 /** Material's opacity for disabled content, applied to the slider's labels while shaking is off. */
 private const val DISABLED_ALPHA = 0.38f
@@ -136,12 +135,8 @@ fun SettingsIconButton(
 }
 
 /**
- * The modal bottom sheet holding the app's one setting and everything it has to say about itself:
- * the language, then its own license, the artwork's CC BY credit, and a contact address.
- *
- * It was an About sheet until it gained the language row. That is why the whole thing is now
- * titled *Settings* with **About demoted to a section**: a sheet that only tells you things and a
- * sheet you change things in are different promises, and the title has to make the right one.
+ * The modal bottom sheet holding the app's settings — language, theme, shake to roll — and the
+ * artwork's CC BY credit, the one read-only line the licence requires the app to show somewhere.
  *
  * This is still where the license-required credit line lives since issue #66 took it out of the
  * main screen's bottom bar. CC BY 4.0 asks for attribution that is visible to users, not
@@ -149,18 +144,17 @@ fun SettingsIconButton(
  * giving the roll button back the band it was competing with — and a gear is at least as findable
  * as the ⓘ it replaced.
  *
- * A sheet rather than a dialog because the content is several sections and a handful of links: it
- * scrolls internally, so a short viewport shortens the sheet instead of clipping the contact row
- * off the bottom of a fixed box.
+ * A sheet rather than a dialog because the content is several sections: it scrolls internally, so
+ * a short viewport shortens the sheet instead of clipping the credit off the bottom of a fixed box.
  *
  * @param onDismiss invoked when the sheet is swiped away or its scrim tapped
  * @param modifier optional [Modifier] applied to the sheet
- * @param versionName the app version shown in the About section; the real one unless a test
- *   overrides it
  * @param onOpenLink opens a link; defaults to the platform handler, overridable so instrumented
  *   tests can assert *which* URI a row opens without leaving the app
  * @param selectedLanguage the language the app is currently written in
  * @param onSelectLanguage invoked with the language the user picked
+ * @param selectedTheme whether the app is currently drawn light or dark
+ * @param onSelectTheme invoked with the theme the user picked
  * @param isShakeToRollEnabled whether shaking the phone currently rolls the dice
  * @param onSetShakeToRollEnabled invoked with the new value when the shake switch is flipped
  * @param shakeSensitivity the sensitivity slider's current step, 0 being the least sensitive
@@ -171,27 +165,36 @@ fun SettingsIconButton(
 fun SettingsSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    versionName: String = BuildConfig.VERSION_NAME,
     onOpenLink: (String) -> Unit = LocalUriHandler.current::openUri,
-    selectedLanguage: AppLanguage = AppLanguage.System,
+    selectedLanguage: AppLanguage = AppLanguage.English,
     onSelectLanguage: (AppLanguage) -> Unit = {},
+    selectedTheme: AppTheme = AppTheme.Light,
+    onSelectTheme: (AppTheme) -> Unit = {},
     isShakeToRollEnabled: Boolean = true,
     onSetShakeToRollEnabled: (Boolean) -> Unit = {},
     shakeSensitivity: Int = ShakeDetector.DEFAULT_SENSITIVITY,
     onSetShakeSensitivity: (Int) -> Unit = {},
 ) {
+    val isLightTheme = MaterialTheme.colorScheme.surface.luminance() > LIGHT_SURFACE_LUMINANCE
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         modifier = modifier,
         // Fully open from the start: half-open, the Rolling section (issue #1) pushed the artwork
         // credit below the fold, and the licence needs it one tap away, not one tap and a drag.
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        properties = ModalBottomSheetProperties(
+            // The sheet is its own window, whose bar icons otherwise follow the device's dark mode
+            // rather than the app's theme — and dark icons on leather are invisible.
+            isAppearanceLightStatusBars = isLightTheme,
+            isAppearanceLightNavigationBars = isLightTheme,
+        ),
     ) {
         SettingsSheetContent(
-            versionName = versionName,
             onOpenLink = onOpenLink,
             selectedLanguage = selectedLanguage,
             onSelectLanguage = onSelectLanguage,
+            selectedTheme = selectedTheme,
+            onSelectTheme = onSelectTheme,
             isShakeToRollEnabled = isShakeToRollEnabled,
             onSetShakeToRollEnabled = onSetShakeToRollEnabled,
             shakeSensitivity = shakeSensitivity,
@@ -206,21 +209,21 @@ fun SettingsSheet(
  */
 @Composable
 private fun SettingsSheetContent(
-    versionName: String,
     onOpenLink: (String) -> Unit,
-    selectedLanguage: AppLanguage = AppLanguage.System,
+    selectedLanguage: AppLanguage = AppLanguage.English,
     onSelectLanguage: (AppLanguage) -> Unit = {},
+    selectedTheme: AppTheme = AppTheme.Light,
+    onSelectTheme: (AppTheme) -> Unit = {},
     isShakeToRollEnabled: Boolean = true,
     onSetShakeToRollEnabled: (Boolean) -> Unit = {},
     shakeSensitivity: Int = ShakeDetector.DEFAULT_SENSITIVITY,
     onSetShakeSensitivity: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    // A device with no browser or no mail app throws rather than returning false, and a missing
-    // mail app is not worth crashing the dice roller over.
+    // A device with no browser throws rather than returning false, and that is not worth crashing
+    // the dice roller over.
     val openLink: (String) -> Unit = { uri -> runCatching { onOpenLink(uri) } }
     val artLicenseLabel = stringResource(R.string.about_art_license)
-    val contactEmail = stringResource(R.string.about_contact_email)
 
     Column(
         modifier = modifier
@@ -239,12 +242,25 @@ private fun SettingsSheetContent(
             style = displayStyle(MaterialTheme.typography.headlineSmall),
         )
 
-        // The settings come first, because they are the only things here that *do* anything;
-        // everything below them is something to read.
+        // The settings come first, because they are the only things here that *do* anything; the
+        // credit below them is something to read.
         SettingsSection(title = stringResource(R.string.settings_section_language)) {
-            LanguagePicker(
-                selectedLanguage = selectedLanguage,
-                onSelectLanguage = onSelectLanguage,
+            InlineRadioGroup(
+                options = AppLanguage.entries,
+                selected = selectedLanguage,
+                onSelect = onSelectLanguage,
+                labelRes = AppLanguage::labelRes,
+                testTag = ::languageOptionTestTag,
+            )
+        }
+
+        SettingsSection(title = stringResource(R.string.settings_section_theme)) {
+            InlineRadioGroup(
+                options = AppTheme.entries,
+                selected = selectedTheme,
+                onSelect = onSelectTheme,
+                labelRes = AppTheme::labelRes,
+                testTag = ::themeOptionTestTag,
             )
         }
 
@@ -257,27 +273,6 @@ private fun SettingsSheetContent(
                 level = shakeSensitivity,
                 enabled = isShakeToRollEnabled,
                 onSetLevel = onSetShakeSensitivity,
-            )
-        }
-
-        SettingsSection(title = stringResource(R.string.settings_section_about)) {
-            Text(
-                text = stringResource(
-                    R.string.about_version,
-                    stringResource(R.string.app_name),
-                    versionName,
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        SettingsSection(title = stringResource(R.string.about_section_license)) {
-            AboutLinkedLine(
-                prefix = "${stringResource(R.string.about_app_copyright)} · ",
-                linkLabel = stringResource(R.string.about_app_license),
-                uri = APP_LICENSE_URL,
-                onOpenLink = openLink,
             )
         }
 
@@ -298,60 +293,52 @@ private fun SettingsSheetContent(
             )
         }
 
-        SettingsSection(title = stringResource(R.string.about_section_contact)) {
-            AboutLink(
-                label = contactEmail,
-                uri = "$CONTACT_MAILTO_SCHEME$contactEmail",
-                onOpenLink = openLink,
-            )
-        }
     }
 }
 
 /**
- * The language options, as a radio group: the device's own language plus every language the app
- * ships strings for.
+ * A two- or three-way choice laid out on one line under its section header: a radio and a label
+ * per option, side by side. Used by the language and the theme, which each have exactly two
+ * options — a column of radios would spend a row each to say less than one line does.
  *
- * A radio group rather than a dropdown or a link out to Settings, because the whole point is that
- * the choice is *visible*: three options fit in the space a "Language ›" row would have taken, and
- * the user can see what the app can be without opening anything. It is a real
- * [selectableGroup] so a screen reader announces "2 of 3" and the options behave as one control.
- *
- * Picking one is an ordinary state change: the ViewModel records it, `ProvideAppLanguage` swaps
- * the resources the composition reads, and this list recomposes with its new selection and its
- * own labels already translated. Nothing is torn down, which is the point — see
- * `docs/features/language-and-settings.md`.
+ * It is a real [selectableGroup] so a screen reader announces "2 of 2" and the options behave as
+ * one control. Each whole option, not just its radio, is the tap target.
  */
 @Composable
-private fun LanguagePicker(
-    selectedLanguage: AppLanguage,
-    onSelectLanguage: (AppLanguage) -> Unit,
+private fun <T> InlineRadioGroup(
+    options: List<T>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    labelRes: (T) -> Int,
+    testTag: (T) -> String,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.selectableGroup()) {
-        AppLanguage.entries.forEach { language ->
-            val isSelected = language == selectedLanguage
+    Row(
+        modifier = modifier.selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(INLINE_OPTION_SPACING),
+    ) {
+        options.forEach { option ->
+            val isSelected = option == selected
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = LANGUAGE_OPTION_MIN_HEIGHT)
+                    .heightIn(min = OPTION_MIN_HEIGHT)
                     .selectable(
                         selected = isSelected,
                         role = Role.RadioButton,
-                        // Re-picking the language already in force would write the same value and
-                        // recompose to an identical screen, so the selected row is inert.
+                        // Re-picking the option already in force would write the same value and
+                        // recompose to an identical screen, so the selected one is inert.
                         enabled = !isSelected,
-                        onClick = { onSelectLanguage(language) },
+                        onClick = { onSelect(option) },
                     )
-                    .testTag(languageOptionTestTag(language)),
+                    .testTag(testTag(option)),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(LANGUAGE_OPTION_SPACING),
+                horizontalArrangement = Arrangement.spacedBy(OPTION_SPACING),
             ) {
-                // Null callback: the row above is the control, so the button must not be a second
+                // Null callback: the option is the control, so the button must not be a second
                 // focus stop announcing the same thing.
                 RadioButton(selected = isSelected, onClick = null)
                 Text(
-                    text = stringResource(language.labelRes),
+                    text = stringResource(labelRes(option)),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -374,11 +361,11 @@ private fun ShakeToRollToggle(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = LANGUAGE_OPTION_MIN_HEIGHT)
+            .heightIn(min = OPTION_MIN_HEIGHT)
             .toggleable(value = isEnabled, role = Role.Switch, onValueChange = onSetEnabled)
             .testTag(SHAKE_TO_ROLL_TOGGLE_TAG),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(LANGUAGE_OPTION_SPACING),
+        horizontalArrangement = Arrangement.spacedBy(OPTION_SPACING),
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -428,7 +415,7 @@ private fun ShakeSensitivitySlider(
         )
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(LANGUAGE_OPTION_SPACING),
+            horizontalArrangement = Arrangement.spacedBy(OPTION_SPACING),
         ) {
             Text(
                 text = stringResource(R.string.shake_sensitivity_less),
@@ -485,8 +472,7 @@ private fun SettingsSection(
  * already names the license, so a separate `CC BY 4.0 ↗` row underneath was a row spent repeating
  * what the line above it said — the link belongs on the words that are already there.
  *
- * The tap target is the glyph box of [linkLabel] alone, which is why full-row links like the
- * contact address still use [AboutLink] instead.
+ * The tap target is the glyph box of [linkLabel] alone.
  */
 @Composable
 private fun AboutLinkedLine(
@@ -520,47 +506,6 @@ private fun AboutLinkedLine(
     )
 }
 
-/** One tappable row opening [uri], underlined so it reads as a link without an affordance icon. */
-@Composable
-private fun AboutLink(
-    label: String,
-    uri: String,
-    onOpenLink: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    ExternalActionRow(label = label, onClick = { onOpenLink(uri) }, modifier = modifier)
-}
-
-/**
- * One tappable row that hands off to something outside this app, underlined so it reads as a link
- * without needing an affordance icon.
- *
- * Shared by the contact address and the language row, which look alike because they *are* alike:
- * both leave DiceRoller. That is also why both announce themselves as opening externally — the
- * language row navigates to a system screen, and a screen reader user deserves the same warning a
- * `mailto:` gets rather than being surprised by a context switch.
- */
-@Composable
-private fun ExternalActionRow(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val description = stringResource(R.string.link_opens_externally, label)
-    Text(
-        text = label,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.primary,
-        textDecoration = TextDecoration.Underline,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = LINK_MIN_HEIGHT)
-            .wrapContentHeight()
-            .clickable(role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = description },
-    )
-}
-
 // -- Previews -----------------------------------------------------------------
 
 /** The sheet's content, previewed without the sheet window it normally lives in. */
@@ -569,21 +514,21 @@ private fun ExternalActionRow(
 private fun SettingsSheetContentPreview() {
     DiceRollerTheme {
         Surface {
-            SettingsSheetContent(versionName = "1.0", onOpenLink = {})
+            SettingsSheetContent(onOpenLink = {})
         }
     }
 }
 
-/** The app put into French while the device stays in English — the whole point of the picker. */
+/** The app put into French and dark — both inline pickers on their second option. */
 @Preview(name = "Settings sheet content - French selected", showBackground = true, widthDp = 360)
 @Composable
 private fun SettingsSheetContentFrenchPreview() {
     DiceRollerTheme {
         Surface {
             SettingsSheetContent(
-                versionName = "1.0",
                 onOpenLink = {},
                 selectedLanguage = AppLanguage.French,
+                selectedTheme = AppTheme.Dark,
             )
         }
     }

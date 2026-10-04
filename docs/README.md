@@ -12,6 +12,7 @@
 - [Clear the pool from the roll bar](features/clear-pool.md)
 - [Internationalization (string resources + French)](features/internationalization.md)
 - [Language control & the Settings sheet](features/language-and-settings.md)
+- [Light/dark setting & inline pickers](features/theme-and-inline-settings.md)
 
 ## Architecture
 - [Dice Rolling](architecture/dice-rolling.md) (superseded for pool rolling — see below)

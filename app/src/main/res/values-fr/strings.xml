@@ -118,7 +118,9 @@
     <!-- Settings sheet -->
     <string name="settings_title">Paramètres</string>
     <string name="settings_section_language">Langue</string>
-    <string name="language_system">Langue du système</string>
+    <string name="settings_section_theme">Thème</string>
+    <string name="theme_light">Clair</string>
+    <string name="theme_dark">Sombre</string>
     <string name="settings_section_rolling">Lancer</string>
     <string name="shake_to_roll_label">Secouer pour lancer</string>
     <string name="shake_to_roll_description">Secouez votre téléphone pour lancer les dés choisis.</string>
@@ -126,13 +128,9 @@
     <string name="shake_sensitivity_less">Moins</string>
     <string name="shake_sensitivity_more">Plus</string>
     <string name="shake_sensitivity_state">%1$d sur %2$d</string>
-    <string name="settings_section_about">À propos</string>
-    <string name="about_section_license">Licence</string>
     <string name="about_section_artwork">Illustrations</string>
-    <string name="about_section_contact">Contact</string>
     <!-- « Aeynit » et « CC BY 4.0 » sont exigés mot pour mot, et la ligne doit finir par
-         « CC BY 4.0 » : la feuille À propos en fait le lien vers la licence. -->
+         « CC BY 4.0 » : la feuille Paramètres en fait le lien vers la licence. -->
     <string name="about_art_attribution">Illustrations des dés par Aeynit · CC BY 4.0</string>
-    <string name="link_opens_externally">%1$s, ouvre un lien externe</string>
 
 </resources>

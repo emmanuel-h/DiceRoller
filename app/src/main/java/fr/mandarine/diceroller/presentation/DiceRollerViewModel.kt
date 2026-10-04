@@ -8,6 +8,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import fr.mandarine.diceroller.data.DataStoreAppLanguageStore
+import fr.mandarine.diceroller.data.DataStoreAppThemeStore
+import fr.mandarine.diceroller.data.deviceLanguage
+import fr.mandarine.diceroller.data.deviceTheme
 import fr.mandarine.diceroller.data.DataStoreCustomDiceStore
 import fr.mandarine.diceroller.data.DataStoreDiceColorStore
 import fr.mandarine.diceroller.data.DataStoreRollHistoryStore
@@ -38,10 +41,14 @@ import kotlinx.coroutines.launch
  * @param diceRoller rolls the pool; injected with a seeded [kotlin.random.Random] in tests
  * @param colorStore persists the chosen color variant
  * @param languageStore persists the language the user reads the app in
+ * @param themeStore persists the light or dark theme the user chose
  * @param historyStore persists past rolls
  * @param customDiceStore persists the user's custom die definitions
  * @param shakeToRollStore persists whether shaking the phone rolls the dice
  * @param clock reads the current epoch time, injected so timestamps are deterministic in tests
+ * @param initialLanguage the language shown until [languageStore] answers — the device's, so the
+ *   first frame is not drawn in a language the user is about to leave
+ * @param initialTheme the theme shown until [themeStore] answers, the device's for the same reason
  */
 class DiceRollerViewModel(
     private val diceRoller: DiceRoller = DiceRoller(),
@@ -51,9 +58,14 @@ class DiceRollerViewModel(
     private val customDiceStore: CustomDiceStore = InMemoryCustomDiceStore(),
     private val shakeToRollStore: ShakeToRollStore = InMemoryShakeToRollStore(),
     private val clock: () -> Long = System::currentTimeMillis,
+    private val themeStore: AppThemeStore = InMemoryAppThemeStore(),
+    initialLanguage: AppLanguage = AppLanguage.English,
+    initialTheme: AppTheme = AppTheme.Light,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(DiceRollerUiState(nowMillis = clock()))
+    private val _uiState = MutableStateFlow(
+        DiceRollerUiState(language = initialLanguage, theme = initialTheme, nowMillis = clock()),
+    )
 
     /** Observable UI state for the dice roller screen. */
     val uiState: StateFlow<DiceRollerUiState> = _uiState.asStateFlow()
@@ -78,6 +90,10 @@ class DiceRollerViewModel(
         viewModelScope.launch {
             val storedLanguage = languageStore.language.first()
             _uiState.update { state -> state.copy(language = storedLanguage) }
+        }
+        viewModelScope.launch {
+            val storedTheme = themeStore.theme.first()
+            _uiState.update { state -> state.copy(theme = storedTheme) }
         }
         viewModelScope.launch {
             val storedShakeToRoll = shakeToRollStore.isEnabled.first()
@@ -194,6 +210,18 @@ class DiceRollerViewModel(
         _uiState.update { state -> state.copy(language = language) }
         viewModelScope.launch {
             languageStore.setLanguage(language)
+        }
+    }
+
+    /**
+     * Switches the app between light and dark and remembers the choice.
+     *
+     * A preference like [selectColor], so it leaves the pool, the result and the log alone.
+     */
+    fun selectTheme(theme: AppTheme) {
+        _uiState.update { state -> state.copy(theme = theme) }
+        viewModelScope.launch {
+            themeStore.setTheme(theme)
         }
     }
 
@@ -381,7 +409,7 @@ class DiceRollerViewModel(
     companion object {
         /**
          * Builds a factory that wires the ViewModel to the DataStore-backed stores, so the chosen
-         * colour and language, the shake switch, the roll log and the user's own dice all survive
+         * colour, language and theme, the shake switch, the roll log and the user's own dice all survive
          * process death.
          */
         fun factory(context: Context): ViewModelProvider.Factory {
@@ -394,6 +422,9 @@ class DiceRollerViewModel(
                         historyStore = DataStoreRollHistoryStore(appContext),
                         customDiceStore = DataStoreCustomDiceStore(appContext),
                         shakeToRollStore = DataStoreShakeToRollStore(appContext),
+                        themeStore = DataStoreAppThemeStore(appContext),
+                        initialLanguage = appContext.deviceLanguage(),
+                        initialTheme = appContext.deviceTheme(),
                     )
                 }
             }

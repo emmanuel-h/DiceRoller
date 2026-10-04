@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 interface AppLanguageStore {
 
-    /** Emits the stored language, falling back to [AppLanguage.System] when none is set. */
+    /** Emits the stored language, falling back to the device's ([AppLanguage.forDevice]). */
     val language: Flow<AppLanguage>
 
     /** Stores [language] as the user's choice. */
@@ -32,7 +32,7 @@ interface AppLanguageStore {
  * @param initial the language the store starts with
  */
 class InMemoryAppLanguageStore(
-    initial: AppLanguage = AppLanguage.System,
+    initial: AppLanguage = AppLanguage.English,
 ) : AppLanguageStore {
 
     private val state = MutableStateFlow(initial)

@@ -123,8 +123,6 @@
     <!-- Settings sheet -->
     <string name="settings_title">Settings</string>
     <string name="settings_section_language">Language</string>
-    <!-- The option that drops the override and follows the device again. -->
-    <string name="language_system">System default</string>
     <!--
       Each language named in itself, and therefore NOT translatable: a language list is read by
       someone who does not yet read the language they are switching from, so translating these
@@ -132,6 +130,9 @@
     -->
     <string name="language_en" translatable="false">English</string>
     <string name="language_fr" translatable="false">Français</string>
+    <string name="settings_section_theme">Theme</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
     <string name="settings_section_rolling">Rolling</string>
     <string name="shake_to_roll_label">Shake to roll</string>
     <string name="shake_to_roll_description">Shake your phone to roll the dice you have picked.</string>
@@ -140,22 +141,14 @@
     <string name="shake_sensitivity_more">More</string>
     <!-- Spoken by a screen reader for the slider's position, e.g. "3 of 5". -->
     <string name="shake_sensitivity_state">%1$d of %2$d</string>
-    <string name="settings_section_about">About</string>
-    <string name="about_version" translatable="false">%1$s %2$s</string>
-    <string name="about_section_license">License</string>
     <string name="about_section_artwork">Artwork</string>
-    <string name="about_section_contact">Contact</string>
-    <string name="about_app_copyright" translatable="false">© 2026 Mandarine Tech</string>
-    <string name="about_app_license" translatable="false">Apache License 2.0</string>
     <string name="about_art_license" translatable="false">CC BY 4.0</string>
     <!--
       Required by the CC BY 4.0 licence on the dice artwork (docs/licenses/third-party-assets.md).
       TRANSLATORS: the author name "Aeynit" and the licence name "CC BY 4.0" are legally required
-      verbatim, and the line MUST still END with "CC BY 4.0" — the About sheet splits that suffix
+      verbatim, and the line MUST still END with "CC BY 4.0" — the settings sheet splits that suffix
       off to turn it into the link to the licence deed. Only the surrounding wording is yours.
     -->
     <string name="about_art_attribution">Dice art by Aeynit · CC BY 4.0</string>
-    <string name="about_contact_email" translatable="false">mandarinetech.dev@gmail.com</string>
-    <string name="link_opens_externally">%1$s, opens externally</string>
 
 </resources>

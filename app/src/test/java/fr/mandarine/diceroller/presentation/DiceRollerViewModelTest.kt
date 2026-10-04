@@ -40,6 +40,7 @@ class DiceRollerViewModelTest {
         historyStore: RollHistoryStore = InMemoryRollHistoryStore(),
         customDiceStore: CustomDiceStore = InMemoryCustomDiceStore(),
         shakeToRollStore: ShakeToRollStore = InMemoryShakeToRollStore(),
+        themeStore: AppThemeStore = InMemoryAppThemeStore(),
     ): DiceRollerViewModel = DiceRollerViewModel(
         diceRoller = DiceRoller(random = Random(seed)),
         colorStore = colorStore,
@@ -48,6 +49,7 @@ class DiceRollerViewModelTest {
         customDiceStore = customDiceStore,
         shakeToRollStore = shakeToRollStore,
         clock = { nowMillis },
+        themeStore = themeStore,
     )
 
     // --- Initial state: pool ---
@@ -662,10 +664,12 @@ class DiceRollerViewModelTest {
 
     // --- Language: chosen independently of the device, and remembered ---
 
-    /** Every install starts following the device, which resources turn into English if unshipped. */
+    /** The store resolves the device default; the ViewModel takes whatever it answers. */
     @Test
-    fun givenNewViewModelWithEmptyStore_whenReadingState_thenTheLanguageFollowsTheSystem() {
-        assertEquals(AppLanguage.System, viewModel().uiState.value.language)
+    fun givenAStoreAnsweringFrench_whenANewViewModelStarts_thenItIsInFrench() {
+        val store = InMemoryAppLanguageStore(initial = AppLanguage.French)
+
+        assertEquals(AppLanguage.French, viewModel(languageStore = store).uiState.value.language)
     }
 
     @Test
@@ -698,17 +702,6 @@ class DiceRollerViewModelTest {
     }
 
     @Test
-    fun givenAnOverriddenLanguage_whenSystemIsSelected_thenItFollowsTheDeviceAgain() = runTest {
-        val store = InMemoryAppLanguageStore(initial = AppLanguage.French)
-        val vm = viewModel(languageStore = store)
-
-        vm.selectLanguage(AppLanguage.System)
-
-        assertEquals(AppLanguage.System, vm.uiState.value.language)
-        assertEquals(AppLanguage.System, store.language.first())
-    }
-
-    @Test
     fun givenEveryLanguage_whenSelected_thenStateReflectsIt() {
         val vm = viewModel()
 
@@ -733,6 +726,48 @@ class DiceRollerViewModelTest {
         val history = vm.uiState.value.history
 
         vm.selectLanguage(AppLanguage.French)
+
+        assertEquals(result, vm.uiState.value.result)
+        assertEquals(history, vm.uiState.value.history)
+    }
+
+    // --- Theme: chosen independently of the device, and remembered ---
+
+    @Test
+    fun givenAStoreAnsweringDark_whenANewViewModelStarts_thenItIsDark() {
+        val store = InMemoryAppThemeStore(initial = AppTheme.Dark)
+
+        assertEquals(AppTheme.Dark, viewModel(themeStore = store).uiState.value.theme)
+    }
+
+    @Test
+    fun givenAThemeSelected_whenReadingState_thenItIsReflected() {
+        val vm = viewModel()
+
+        vm.selectTheme(AppTheme.Dark)
+
+        assertEquals(AppTheme.Dark, vm.uiState.value.theme)
+    }
+
+    @Test
+    fun givenAThemeSelected_whenANewViewModelSharesTheStore_thenTheChoiceSurvives() = runTest {
+        val store = InMemoryAppThemeStore()
+        viewModel(themeStore = store).selectTheme(AppTheme.Dark)
+
+        assertEquals(AppTheme.Dark, store.theme.first())
+        assertEquals(AppTheme.Dark, viewModel(themeStore = store).uiState.value.theme)
+    }
+
+    /** Same rule as colour and language: how the screen looks is not what Roll would produce. */
+    @Test
+    fun givenARollResult_whenTheThemeIsChanged_thenTheResultAndLogSurvive() {
+        val vm = viewModel()
+        vm.incrementCount(Dice.D6)
+        vm.rollDice()
+        val result = vm.uiState.value.result
+        val history = vm.uiState.value.history
+
+        vm.selectTheme(AppTheme.Dark)
 
         assertEquals(result, vm.uiState.value.result)
         assertEquals(history, vm.uiState.value.history)

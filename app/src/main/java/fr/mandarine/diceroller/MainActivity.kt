@@ -3,6 +3,7 @@ package fr.mandarine.diceroller
 
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import android.content.Context
 import android.content.res.Configuration
@@ -32,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -55,6 +57,7 @@ import fr.mandarine.diceroller.domain.DieType
 import fr.mandarine.diceroller.domain.RollRecord
 import fr.mandarine.diceroller.domain.ValueTally
 import fr.mandarine.diceroller.presentation.AppLanguage
+import fr.mandarine.diceroller.presentation.AppTheme
 import fr.mandarine.diceroller.presentation.DiceRollerUiState
 import fr.mandarine.diceroller.presentation.DiceRollerViewModel
 import fr.mandarine.diceroller.presentation.ShakeDetector
@@ -87,11 +90,20 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            DiceRollerTheme {
-                val viewModel: DiceRollerViewModel = viewModel(
-                    factory = DiceRollerViewModel.factory(this),
-                )
-                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            val viewModel: DiceRollerViewModel = viewModel(
+                factory = DiceRollerViewModel.factory(this),
+            )
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            val darkTheme = uiState.theme.isDark
+            // Re-applied whenever the theme flips, because the bars' icon colour has to follow the
+            // app's choice rather than the device's: dark icons on leather would vanish.
+            DisposableEffect(darkTheme) {
+                val transparent = android.graphics.Color.TRANSPARENT
+                val style = SystemBarStyle.auto(transparent, transparent) { darkTheme }
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+                onDispose {}
+            }
+            DiceRollerTheme(darkTheme = darkTheme) {
                 ProvideAppLanguage(uiState.language) {
                 DiceRollerScreen(
                     uiState = uiState,
@@ -108,6 +120,7 @@ class MainActivity : ComponentActivity() {
                     onUndoRemoveCustomDie = viewModel::undoRemoveCustomDie,
                     onDismissRemovedCustomDie = viewModel::dismissRemovedCustomDie,
                     onSelectLanguage = viewModel::selectLanguage,
+                    onSelectTheme = viewModel::selectTheme,
                     onSetShakeToRollEnabled = viewModel::setShakeToRollEnabled,
                     onSetShakeSensitivity = viewModel::setShakeSensitivity,
                     onShowSettings = viewModel::showSettings,
@@ -162,16 +175,11 @@ private fun ProvideAppLanguage(
 }
 
 /**
- * This context, reading resources in [language] — or unchanged for [AppLanguage.System].
- *
- * "Unchanged" is what makes the system default work without any locale logic of its own: the base
- * context already carries the device's locale, and Android's resource resolution already falls
- * back to `values/` — English — for a device language this app does not ship.
+ * This context, reading resources in [language].
  */
 private fun Context.localizedFor(language: AppLanguage): Context {
-    val tag = language.tag ?: return this
     val configuration = Configuration(resources.configuration)
-    configuration.setLocales(LocaleList.forLanguageTags(tag))
+    configuration.setLocales(LocaleList.forLanguageTags(language.tag))
     return createConfigurationContext(configuration)
 }
 
@@ -230,6 +238,7 @@ private fun Configuration.composeLayoutDirection(): LayoutDirection =
  * reading the settings is not a request to roll.
  *
  * @param onSelectLanguage callback with the language picked in the settings sheet
+ * @param onSelectTheme callback with the light or dark theme picked in the settings sheet
  * @param onSetShakeToRollEnabled callback when the settings sheet's shake switch is flipped
  * @param onSetShakeSensitivity callback with the step the settings sheet's sensitivity slider
  *   moved to
@@ -253,6 +262,7 @@ fun DiceRollerScreen(
     onUndoRemoveCustomDie: () -> Unit = {},
     onDismissRemovedCustomDie: () -> Unit = {},
     onSelectLanguage: (AppLanguage) -> Unit = {},
+    onSelectTheme: (AppTheme) -> Unit = {},
     onSetShakeToRollEnabled: (Boolean) -> Unit = {},
     onSetShakeSensitivity: (Int) -> Unit = {},
     onShowSettings: () -> Unit = {},
@@ -405,6 +415,8 @@ fun DiceRollerScreen(
             onDismiss = onDismissSettings,
             selectedLanguage = uiState.language,
             onSelectLanguage = onSelectLanguage,
+            selectedTheme = uiState.theme,
+            onSelectTheme = onSelectTheme,
             isShakeToRollEnabled = uiState.isShakeToRollEnabled,
             onSetShakeToRollEnabled = onSetShakeToRollEnabled,
             shakeSensitivity = uiState.shakeSensitivity,

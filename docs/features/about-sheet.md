@@ -7,6 +7,9 @@ Closes [#66](https://github.com/emmanuel-h/DiceRoller/issues/66).
 > the headline. Everything below about *why the credit left the footer* and *why the entry point
 > hangs off the swatch row* still holds — only the naming and the icon moved. See
 > [language-and-settings.md](language-and-settings.md).
+>
+> Since [theme-and-inline-settings.md](theme-and-inline-settings.md) the sheet no longer shows the
+> version, the app's licence or the contact address; only the artwork credit remains.
 
 ## What changed
 

@@ -17,6 +17,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import fr.mandarine.diceroller.R
 import fr.mandarine.diceroller.presentation.AppLanguage
+import fr.mandarine.diceroller.presentation.AppTheme
 import fr.mandarine.diceroller.str
 import fr.mandarine.diceroller.ui.theme.DiceRollerTheme
 import org.junit.Assert.assertEquals
@@ -26,10 +27,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The sheet behind the gear: the language picker it gained, and the About content it used to *be*.
+ * The sheet behind the gear: the inline language and theme pickers, shake to roll, and the
+ * licence-required artwork credit — and none of the About, licence or contact rows it used to carry.
  *
- * The sheet is a pure function of `selectedLanguage` and reports picks through `onSelectLanguage`;
- * what a pick then *does* belongs to the ViewModel and to `ProvideAppLanguage`, and is covered by
+ * The sheet is a pure function of its selections and reports picks through callbacks; what a pick
+ * then *does* belongs to the ViewModel and to `MainActivity`, and is covered by
  * `DiceRollerViewModelTest` and by the French run of the whole suite.
  */
 @RunWith(AndroidJUnit4::class)
@@ -39,24 +41,28 @@ class SettingsSheetTest {
     val composeTestRule = createComposeRule()
 
     private val selected = mutableListOf<AppLanguage>()
+    private val selectedThemes = mutableListOf<AppTheme>()
     private val shakeToggles = mutableListOf<Boolean>()
     private val sensitivities = mutableListOf<Int>()
 
     private fun launchSheet(
-        selectedLanguage: AppLanguage = AppLanguage.System,
+        selectedLanguage: AppLanguage = AppLanguage.English,
+        selectedTheme: AppTheme = AppTheme.Light,
         isShakeToRollEnabled: Boolean = true,
     ) {
         selected.clear()
+        selectedThemes.clear()
         shakeToggles.clear()
         sensitivities.clear()
         composeTestRule.setContent {
             DiceRollerTheme {
                 SettingsSheet(
                     onDismiss = {},
-                    versionName = "1.0",
                     onOpenLink = {},
                     selectedLanguage = selectedLanguage,
                     onSelectLanguage = { selected += it },
+                    selectedTheme = selectedTheme,
+                    onSelectTheme = { selectedThemes += it },
                     isShakeToRollEnabled = isShakeToRollEnabled,
                     onSetShakeToRollEnabled = { shakeToggles += it },
                     onSetShakeSensitivity = { sensitivities += it },
@@ -67,6 +73,9 @@ class SettingsSheetTest {
 
     private fun option(language: AppLanguage) =
         composeTestRule.onNodeWithTag(languageOptionTestTag(language))
+
+    private fun option(theme: AppTheme) =
+        composeTestRule.onNodeWithTag(themeOptionTestTag(theme))
 
     private fun topOfTag(tag: String): Float = composeTestRule
         .onNodeWithTag(tag)
@@ -142,30 +151,14 @@ class SettingsSheetTest {
         composeTestRule.onNodeWithText(str(R.string.settings_title)).assertIsDisplayed()
     }
 
-    /**
-     * About was the sheet's headline until the picker arrived; it is a section among the others
-     * now. Both strings therefore have to be on screen, in that relationship.
-     */
+    /** About, the app's licence and the contact address were taken out of the sheet. */
     @Test
-    fun givenTheSheet_whenOpened_thenAboutIsASectionBelowTheTitle() {
+    fun givenTheSheet_whenOpened_thenThereIsNoAboutLicenseOrContact() {
         launchSheet()
 
-        val titleTop = topOfText(str(R.string.settings_title))
-        val aboutSectionTop = topOfText(str(R.string.settings_section_about).uppercase())
-
-        assertTrue(
-            "Expected the About section ($aboutSectionTop) below the title ($titleTop)",
-            titleTop < aboutSectionTop,
-        )
-    }
-
-    @Test
-    fun givenTheSheet_whenOpened_thenTheVersionIsStillShown() {
-        launchSheet()
-
-        composeTestRule
-            .onNodeWithText(str(R.string.about_version, str(R.string.app_name), "1.0"))
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithText("ABOUT", ignoreCase = true).assertDoesNotExist()
+        composeTestRule.onNodeWithText("Apache", substring = true).assertDoesNotExist()
+        composeTestRule.onNodeWithText("@", substring = true).assertDoesNotExist()
     }
 
     // --- The picker offers every language the app ships ---
@@ -192,54 +185,41 @@ class SettingsSheetTest {
         assertEquals("Français", str(AppLanguage.French.labelRes))
     }
 
-    /** First, because it is the only thing on the sheet that does anything. */
+    /** Inline: both options of a picker share one line. */
     @Test
-    fun givenTheSheet_whenOpened_thenThePickerIsAboveTheAboutSection() {
+    fun givenTheSheet_whenOpened_thenEachPickersOptionsShareALine() {
         launchSheet()
 
-        val pickerTop = topOfTag(languageOptionTestTag(AppLanguage.System))
-        val aboutSectionTop = topOfText(str(R.string.settings_section_about).uppercase())
-
-        assertTrue(
-            "Expected the picker ($pickerTop) above About ($aboutSectionTop)",
-            pickerTop < aboutSectionTop,
+        assertEquals(
+            topOfTag(languageOptionTestTag(AppLanguage.English)),
+            topOfTag(languageOptionTestTag(AppLanguage.French)),
         )
+        assertEquals(topOfTag(themeOptionTestTag(AppTheme.Light)), topOfTag(themeOptionTestTag(AppTheme.Dark)))
+    }
+
+    /** Settings first, then the read-only credit. */
+    @Test
+    fun givenTheSheet_whenOpened_thenThePickersAreAboveTheCredit() {
+        launchSheet()
+
+        val languageTop = topOfTag(languageOptionTestTag(AppLanguage.English))
+        val themeTop = topOfTag(themeOptionTestTag(AppTheme.Light))
+        val creditTop = topOfText(str(R.string.about_section_artwork).uppercase())
+
+        assertTrue("Expected language ($languageTop) above theme ($themeTop)", languageTop < themeTop)
+        assertTrue("Expected theme ($themeTop) above the credit ($creditTop)", themeTop < creditTop)
     }
 
     // --- Choosing one ---
 
     @Test
-    fun givenTheDefault_whenFrenchIsPicked_thenFrenchIsRequested() {
-        launchSheet(selectedLanguage = AppLanguage.System)
+    fun givenEnglish_whenFrenchIsPicked_thenFrenchIsRequested() {
+        launchSheet(selectedLanguage = AppLanguage.English)
 
-        option(AppLanguage.French).performClick()
+        option(AppLanguage.English).assertIsSelected()
+        option(AppLanguage.French).assertIsNotSelected().performClick()
 
         assertEquals(listOf(AppLanguage.French), selected)
-    }
-
-    /** The whole feature in one test: an app following an English device, put into French. */
-    @Test
-    fun givenTheAppFollowingTheDevice_whenAnotherLanguageIsPicked_thenItOverridesTheDevice() {
-        launchSheet(selectedLanguage = AppLanguage.System)
-
-        option(AppLanguage.System).assertIsSelected()
-        option(AppLanguage.French).assertIsNotSelected()
-
-        option(AppLanguage.French).performClick()
-
-        assertEquals(AppLanguage.French, selected.single())
-        assertEquals("fr", selected.single().tag)
-    }
-
-    /** And the way back: [AppLanguage.System] is what drops the override rather than pinning one. */
-    @Test
-    fun givenAnOverriddenLanguage_whenSystemDefaultIsPicked_thenTheOverrideIsDropped() {
-        launchSheet(selectedLanguage = AppLanguage.French)
-
-        option(AppLanguage.System).performClick()
-
-        assertEquals(AppLanguage.System, selected.single())
-        assertEquals(null, selected.single().tag)
     }
 
     @Test
@@ -248,7 +228,6 @@ class SettingsSheetTest {
 
         option(AppLanguage.French).assertIsSelected()
         option(AppLanguage.English).assertIsNotSelected()
-        option(AppLanguage.System).assertIsNotSelected()
     }
 
     /**
@@ -262,6 +241,38 @@ class SettingsSheetTest {
         option(AppLanguage.French).performClick()
 
         assertTrue("Expected no request, got $selected", selected.isEmpty())
+    }
+
+    // --- Theme ---
+
+    @Test
+    fun givenTheSheet_whenOpened_thenOnlyLightAndDarkAreOffered() {
+        launchSheet()
+
+        AppTheme.entries.forEach { theme ->
+            option(theme).assertIsDisplayed()
+            composeTestRule.onNodeWithText(str(theme.labelRes)).assertIsDisplayed()
+        }
+        assertEquals(listOf(AppTheme.Light, AppTheme.Dark), AppTheme.entries)
+    }
+
+    @Test
+    fun givenLight_whenDarkIsPicked_thenDarkIsRequested() {
+        launchSheet(selectedTheme = AppTheme.Light)
+
+        option(AppTheme.Light).assertIsSelected()
+        option(AppTheme.Dark).assertIsNotSelected().performClick()
+
+        assertEquals(listOf(AppTheme.Dark), selectedThemes)
+    }
+
+    @Test
+    fun givenTheThemeInForce_whenItIsPickedAgain_thenNothingIsRequested() {
+        launchSheet(selectedTheme = AppTheme.Dark)
+
+        option(AppTheme.Dark).assertIsSelected().performClick()
+
+        assertTrue("Expected no request, got $selectedThemes", selectedThemes.isEmpty())
     }
 
     // --- The credit is still reachable, which is a licence requirement ---

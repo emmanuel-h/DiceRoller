@@ -20,10 +20,9 @@ private val LANGUAGE_TAG_KEY = stringPreferencesKey("app_language_tag")
  * [DataStoreDiceColorStore] persist a colour's `name` rather than its ordinal, applied to the
  * value that is genuinely stable here.
  *
- * [AppLanguage.System] is stored as the *absence* of the key rather than as a sentinel string:
- * following the device is the state every install starts in, so it is the one that needs no
- * record. A tag naming a language this build no longer ships reads back as
- * [AppLanguage.System] — see [AppLanguage.ofTag].
+ * An absent key — every fresh install, and every install from before the "System default" option
+ * was dropped — reads back as the device's language, or English when the app does not ship it
+ * ([deviceLanguage]). So does a tag naming a language this build no longer ships.
  *
  * @param context any context; the application context is retained internally
  */
@@ -31,14 +30,13 @@ class DataStoreAppLanguageStore(context: Context) : AppLanguageStore {
 
     private val dataStore = context.applicationContext.diceDataStore
 
+    private val appContext = context.applicationContext
+
     override val language: Flow<AppLanguage> = dataStore.data.map { preferences ->
-        AppLanguage.ofTag(preferences[LANGUAGE_TAG_KEY])
+        AppLanguage.ofTag(preferences[LANGUAGE_TAG_KEY]) ?: appContext.deviceLanguage()
     }
 
     override suspend fun setLanguage(language: AppLanguage) {
-        dataStore.edit { preferences ->
-            val tag = language.tag
-            if (tag == null) preferences.remove(LANGUAGE_TAG_KEY) else preferences[LANGUAGE_TAG_KEY] = tag
-        }
+        dataStore.edit { preferences -> preferences[LANGUAGE_TAG_KEY] = language.tag }
     }
 }
