@@ -135,10 +135,8 @@
     <string name="theme_dark">Dark</string>
     <string name="settings_section_sound">Sound</string>
     <string name="sound_effects_label">Sound effects</string>
-    <string name="sound_effects_description">Play the clatter of dice when you roll.</string>
     <string name="settings_section_rolling">Rolling</string>
     <string name="shake_to_roll_label">Shake to roll</string>
-    <string name="shake_to_roll_description">Shake your phone to roll the dice you have picked.</string>
     <string name="shake_sensitivity_label">Sensitivity</string>
     <string name="shake_sensitivity_less">Less</string>
     <string name="shake_sensitivity_more">More</string>

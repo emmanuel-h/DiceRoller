@@ -123,10 +123,8 @@
     <string name="theme_dark">Sombre</string>
     <string name="settings_section_sound">Son</string>
     <string name="sound_effects_label">Effets sonores</string>
-    <string name="sound_effects_description">Faire entendre le bruit des dés à chaque lancer.</string>
     <string name="settings_section_rolling">Lancer</string>
     <string name="shake_to_roll_label">Secouer pour lancer</string>
-    <string name="shake_to_roll_description">Secouez votre téléphone pour lancer les dés choisis.</string>
     <string name="shake_sensitivity_label">Sensibilité</string>
     <string name="shake_sensitivity_less">Moins</string>
     <string name="shake_sensitivity_more">Plus</string>

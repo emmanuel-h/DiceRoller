@@ -737,9 +737,12 @@ class DiceRollerScreenTest {
          * Measured heights at which the densest typical pool shows its total without scrolling,
          * with and without a collapsed history band, after custom dice (issue #4) took a third chip
          * row. Both were ~100dp lower before that row existed — that 106dp is the feature's price.
+         * Both rose 10dp when the Roll bar started clearing the navigation bar instead of sitting
+         * under it: the viewport sits inside the real window, so its insets are charged here too
+         * (measured with gesture navigation; a three-button bar costs more).
          */
-        val TOTAL_FIT_HEIGHT_NO_HISTORY = 740.dp
-        val TOTAL_FIT_HEIGHT_WITH_HISTORY = 780.dp
+        val TOTAL_FIT_HEIGHT_NO_HISTORY = 750.dp
+        val TOTAL_FIT_HEIGHT_WITH_HISTORY = 790.dp
 
         /** Sum of [realisticRolledState]'s tallies. */
         const val REALISTIC_POOL_TOTAL = 80

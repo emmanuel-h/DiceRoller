@@ -60,8 +60,12 @@ Consequences, all measured rather than estimated:
 
 | | total fits without scrolling from |
 |---|---|
-| no history band | **740dp** (was ~640dp) |
-| collapsed history band | **780dp** (was ~680dp) |
+| no history band | **750dp** (was ~640dp) |
+| collapsed history band | **790dp** (was ~680dp) |
+
+Both were 740dp/780dp until the Roll bar started clearing the navigation bar rather than drawing
+under it — a three-button bar hid Roll entirely. That costs the result band the bottom inset: 10dp
+on the measured threshold with gesture navigation, more under a 48dp three-button bar.
 
 Below those heights the result band scrolls its last group and total into reach. **Every control
 still fits at 640dp** — the swatch row, all chips, the history header, the Roll button and the

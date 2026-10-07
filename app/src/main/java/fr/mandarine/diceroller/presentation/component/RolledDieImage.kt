@@ -38,8 +38,10 @@ private val NUMERAL_OUTLINE = Color.Black.copy(alpha = 0.85f)
  * The numeral is bold white over a dark outline rather than sitting in a disc: a disc large enough
  * to read hid most of the die, and the die is the point. The outline is what keeps the numeral
  * legible against any of the twelve colours and over the numerals already painted on the art,
- * which still show faintly around it. Putting the value on the die is what lets the `×N` beside it
- * read as a count: when the value sat between the die and the `×2`, `7 ×2` read as arithmetic.
+ * which still show faintly around it. A [CustomDie]'s badge is drawn blank instead, since its face
+ * count is solid text that the value would sit squarely on top of. Putting the value on the die is
+ * what lets the `×N` beside it read as a count: when the value sat between the die and the `×2`,
+ * `7 ×2` read as arithmetic.
  *
  * Shared by the live result and the roll history so the two never disagree on how a face looks.
  *
@@ -63,14 +65,27 @@ fun RolledDieImage(
     val style = sizeVariant.valueTextStyle()
     val outlineWidth = with(LocalDensity.current) { sizeVariant.valueOutlineWidth().toPx() }
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        DiceImage(
-            dice = dice,
-            color = color,
-            sizeVariant = sizeVariant,
-            // Decorative: every host merges the entry and gives it one spoken description.
-            contentDescription = null,
-            modifier = imageModifier,
-        )
+        // Decorative either way: every host merges the entry and gives it one spoken description.
+        when (dice) {
+            is Dice -> DiceImage(
+                dice = dice,
+                color = color,
+                sizeVariant = sizeVariant,
+                contentDescription = null,
+                modifier = imageModifier,
+            )
+            // A custom die's badge carries its face count as real text, not faint painted art, so
+            // the value drawn over it was a second numeral on top of the first ("7" over "1000").
+            // The pill goes blank instead; the group header and the history notation still name
+            // the die.
+            is CustomDie -> CustomDieBadge(
+                die = dice,
+                color = color,
+                sizeVariant = sizeVariant,
+                modifier = imageModifier,
+                showFaceCount = false,
+            )
+        }
         // The outline is a second, stroked copy of the numeral under the filled one. It is cleared
         // from semantics so the value exists once in the tree, as the filled text.
         Text(

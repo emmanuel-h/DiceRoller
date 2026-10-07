@@ -280,7 +280,6 @@ private fun SettingsSheetContent(
         SettingsSection(title = stringResource(R.string.settings_section_sound)) {
             SwitchRow(
                 label = stringResource(R.string.sound_effects_label),
-                description = stringResource(R.string.sound_effects_description),
                 checked = isSoundEnabled,
                 onCheckedChange = onSetSoundEnabled,
                 testTag = SOUND_TOGGLE_TAG,
@@ -290,7 +289,6 @@ private fun SettingsSheetContent(
         SettingsSection(title = stringResource(R.string.settings_section_rolling)) {
             SwitchRow(
                 label = stringResource(R.string.shake_to_roll_label),
-                description = stringResource(R.string.shake_to_roll_description),
                 checked = isShakeToRollEnabled,
                 onCheckedChange = onSetShakeToRollEnabled,
                 testTag = SHAKE_TO_ROLL_TOGGLE_TAG,
@@ -373,7 +371,7 @@ private fun <T> InlineRadioGroup(
 }
 
 /**
- * An on/off setting as a row: a label, a line explaining it, and the switch at the end. Shared by
+ * An on/off setting as a row: a label and the switch at the end. Shared by
  * the sound switch (issue #5) and the shake-to-roll one (issue #1).
  *
  * The whole row toggles, not just the switch, for the same reason the language options are whole
@@ -382,7 +380,6 @@ private fun <T> InlineRadioGroup(
 @Composable
 private fun SwitchRow(
     label: String,
-    description: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     testTag: String,
@@ -397,17 +394,11 @@ private fun SwitchRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(OPTION_SPACING),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f),
+        )
         // Null callback: the row is the control, as with the language options' radio buttons.
         Switch(checked = checked, onCheckedChange = null)
     }

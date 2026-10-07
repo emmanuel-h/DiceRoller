@@ -50,7 +50,9 @@ content exists and is reachable, not gone. `performScrollTo` is a no-op for an a
 node, so it is the same assertion whichever of them still fits on a given device.
 
 Two **new** tests pin the measured thresholds so they cannot drift silently:
-`TOTAL_FIT_HEIGHT_NO_HISTORY = 740.dp` and `TOTAL_FIT_HEIGHT_WITH_HISTORY = 780.dp`.
+`TOTAL_FIT_HEIGHT_NO_HISTORY = 750.dp` and `TOTAL_FIT_HEIGHT_WITH_HISTORY = 790.dp` (740/780 until
+the Roll bar began clearing the navigation-bar inset, which the test viewport is charged as well,
+since it sits inside the real window; re-measured with gesture navigation).
 
 Both numbers were measured on a Medium_Phone_API_36.1 emulator with a temporary sweep harness, not
 estimated — as was the 98dp chip height that showed the `IntrinsicSize.Min` row change added no

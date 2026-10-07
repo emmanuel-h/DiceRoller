@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -60,6 +61,9 @@ private const val LIGHT_SWATCH_LUMINANCE = 0.5f
  * @param alpha opacity applied to the badge, mirroring [DiceImage]'s parameter
  * @param contentDescription accessibility label; `null` marks the badge decorative, which is what
  *   every current caller does because an adjacent label or a merged ancestor already names the die
+ * @param showFaceCount `false` leaves the pill blank for [RolledDieImage] to draw the rolled value
+ *   on. The face count is still laid out, invisibly, so the pill keeps the width it has in the
+ *   selector and does not resize as the value tumbles through shorter numbers.
  */
 @Composable
 fun CustomDieBadge(
@@ -69,6 +73,7 @@ fun CustomDieBadge(
     modifier: Modifier = Modifier,
     alpha: Float = 1f,
     contentDescription: String? = null,
+    showFaceCount: Boolean = true,
 ) {
     val numeralColor = if (color.swatch.luminance() > LIGHT_SWATCH_LUMINANCE) {
         Color.Black
@@ -89,7 +94,9 @@ fun CustomDieBadge(
             style = sizeVariant.badgeTextStyle(),
             color = numeralColor,
             maxLines = 1,
-            modifier = Modifier.padding(horizontal = BADGE_HORIZONTAL_PADDING),
+            modifier = Modifier
+                .padding(horizontal = BADGE_HORIZONTAL_PADDING)
+                .then(if (showFaceCount) Modifier else Modifier.alpha(0f).clearAndSetSemantics {}),
         )
     }
 }

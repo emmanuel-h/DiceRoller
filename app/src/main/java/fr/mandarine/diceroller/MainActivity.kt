@@ -17,11 +17,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -554,7 +559,15 @@ private fun RollBar(
     // primary colour, which on parchment is ink, and the bar came out grey-brown.
     Surface(modifier = modifier, color = MaterialTheme.colorScheme.surfaceContainer) {
         Row(
-            modifier = Modifier.padding(
+            // Scaffold keeps the system bars out of its content, not out of its bottomBar, so the
+            // bar has to clear the navigation bar itself. A gesture handle is thin enough that the
+            // overlap went unnoticed; a three-button bar is 48dp and covered Roll. The padding is
+            // inside the Surface so the bar's colour still runs on behind the navigation bar.
+            modifier = Modifier
+                .windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
+                )
+                .padding(
                 start = SCREEN_HORIZONTAL_PADDING,
                 end = SCREEN_HORIZONTAL_PADDING,
                 top = 12.dp,
