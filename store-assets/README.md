@@ -8,6 +8,7 @@ listing/
   ic_launcher_play_store.png 512×512 high-res icon
   feature-graphic.png        1024×500
   make-listing-graphics.py   draws both from res/drawable/ic_launcher_*.xml
+  title-*.txt                en-US, fr-FR (30 characters)
   full-description-*.txt     en-US, fr-FR (4000 characters is the Play ceiling)
   short-description-*.txt    en-US, fr-FR (80 characters)
 screenshots/
@@ -26,6 +27,7 @@ tools/
 `make-listing-graphics.py` translates the launcher's vector layers to SVG and renders
 them with `rsvg-convert`, so the store icon cannot drift from the app's. The feature
 graphic sets the name in Cinzel, from `res/font/`. Re-run it when the icon changes.
+They reach Play only with `publish-play.py --graphics`; `--listing` sends text alone.
 
 ## The screenshots
 
@@ -47,6 +49,16 @@ kept to two die types for the same reason.
 Demo mode (9:30, full battery, wi-fi) is re-entered after every resize, because the
 density change restarts part of SystemUI and left duplicated status-bar glyphs.
 
+## Positioning and tags
+
+The title carries the RPG and tabletop search terms (*JDR*, *plateau* in French);
+the descriptions stay plain. Third-party trademarks (D&D, Warhammer) are kept out on
+purpose: Play's metadata policy and a single trademark complaint can pull the listing.
+
+Tags are not in the publishing API; they are set in the Console under *Grow → Store
+presence → Store settings → Tags* (up to 5, from Google's list). Pick the ones closest
+to: role-playing, tabletop, board, dice, tools.
+
 ## Publishing to Google Play
 
 `tools/publish-play.py` uses the same service-account key as Todolist
@@ -56,7 +68,7 @@ edit; a failure deletes it. `--dry-run` prints the calls, `--validate-only` has 
 check the edit and discard it.
 
 ```bash
-python3 store-assets/tools/publish-play.py --listing --screenshots
+python3 store-assets/tools/publish-play.py --listing --screenshots   # add --graphics for icon/feature graphic
 python3 store-assets/tools/publish-play.py --bundle app/build/outputs/bundle/release/app-release.aab \
     --track alpha --release-name 1.0.0 --status draft --notes-dir notes/ \
     --testers testers-community@googlegroups.com

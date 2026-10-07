@@ -3,7 +3,7 @@
 
     python3 publish-play.py [--bundle AAB --mapping TXT --track TRACK
                              --release-name NAME --notes-dir DIR]
-                            [--screenshots] [--listing] [--testers GROUP ...]
+                            [--screenshots] [--listing] [--graphics] [--testers GROUP ...]
                             [--validate-only] [--changes-not-sent-for-review]
                             [--dry-run]
 
@@ -13,8 +13,10 @@ if --mapping is given) is uploaded and released on TRACK with the notes in
 DIR/<language>.txt. With
 --screenshots, every screenshot slot of every language under
 store-assets/screenshots/<language>/ is emptied and refilled. With --listing, each
-language's short and full description, the high-res icon and the feature graphic are
-uploaded from store-assets/listing/ (the title is kept as the Console has it). With
+language's short and full description are uploaded from store-assets/listing/, with the
+title from title-<language>.txt (or as the Console has it, for a language with no title
+file). Only --graphics replaces the high-res icon and the feature graphic, so a text
+update never overwrites images changed in the Console. With
 --testers, TRACK's testers are set to those Google Groups.
 
 Play's API can neither create an app nor set a track's countries; both are Console-only.
@@ -146,9 +148,22 @@ def publish_listing(play, edit):
         if len(short) > 80 or len(full) > 4000:
             raise PlayError(f"{language}: short {len(short)}/80, full {len(full)}/4000 characters")
         url = f"{API}/edits/{edit}/listings/{language}"
-        title = existing.get(language, {}).get("title", fallback_title)
+        title_file = f"{LISTING}/title-{language}.txt"
+        if os.path.exists(title_file):
+            title = open(title_file, encoding="utf-8").read().strip()
+            if len(title) > 30:
+                raise PlayError(f"{language}: title {len(title)}/30 characters")
+        else:
+            title = existing.get(language, {}).get("title", fallback_title)
         play.call("PUT", url, json={"language": language, "title": title,
                                     "shortDescription": short, "fullDescription": full})
+
+
+def publish_graphics(play, edit):
+    languages = sorted(os.path.basename(f)[len("short-description-"):-len(".txt")]
+                       for f in glob.glob(f"{LISTING}/short-description-*.txt"))
+    for language in languages:
+        url = f"{API}/edits/{edit}/listings/{language}"
         for slot, image in [("icon", "ic_launcher_play_store.png"), ("featureGraphic", "feature-graphic.png")]:
             play.call("DELETE", f"{url}/{slot}")
             play.upload(f"{UPLOAD}/edits/{edit}/listings/{language}/{slot}", f"{LISTING}/{image}", "image/png")
@@ -169,6 +184,7 @@ def main():
     p.add_argument("--notes-dir")
     p.add_argument("--screenshots", action="store_true")
     p.add_argument("--listing", action="store_true")
+    p.add_argument("--graphics", action="store_true")
     p.add_argument("--testers", nargs="+", metavar="GROUP")
     p.add_argument("--validate-only", action="store_true")
     p.add_argument("--changes-not-sent-for-review", action="store_true")
@@ -180,8 +196,8 @@ def main():
         p.error("--bundle needs --track, --release-name and --notes-dir")
     if args.testers and not args.track:
         p.error("--testers needs --track")
-    if not (args.bundle or args.screenshots or args.listing or args.testers):
-        p.error("nothing to publish: pass --bundle, --screenshots, --listing or --testers")
+    if not (args.bundle or args.screenshots or args.listing or args.graphics or args.testers):
+        p.error("nothing to publish: pass --bundle, --screenshots, --listing, --graphics or --testers")
 
     key = os.environ.get("PLAY_SERVICE_ACCOUNT", DEFAULT_KEY)
     play = Play("dry-run" if args.dry_run else access_token(key), args.dry_run)
@@ -191,6 +207,8 @@ def main():
             publish_bundle(play, edit, args)
         if args.listing:
             publish_listing(play, edit)
+        if args.graphics:
+            publish_graphics(play, edit)
         if args.screenshots:
             publish_screenshots(play, edit)
         if args.testers:
